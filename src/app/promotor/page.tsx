@@ -25,7 +25,7 @@ const MosqueIcon = ({ className }: { className?: string }) => (
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { 
   ssr: false,
-  loading: () => <div className="w-full h-40 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl flex items-center justify-center text-slate-400 text-xs">Memuat Peta...</div>
+  loading: () => <div className="w-full h-48 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl flex items-center justify-center text-slate-400 text-xs">Memuat Peta...</div>
 })
 
 const getTanggalIndo = (d?: Date) => {
@@ -52,9 +52,9 @@ export default function PromotorPage() {
   const [showClosing, setShowClosing] = useState(false)
   
   const [sudahCheckinHariIni, setSudahCheckinHariIni] = useState(false)
-  const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
   const [isLoadingCheckin, setIsLoadingCheckin] = useState(true)
   const [todayKey, setTodayKey] = useState('')
+  const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
   
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(false)
@@ -211,7 +211,7 @@ export default function PromotorPage() {
             return
           }
         }
-        const kat = 'HA'
+        const kat = kategoriPilih
         await set(ref(db, pathAntrian), { nama: userData.nama, status: 'Standby', waktuStandby: Date.now(), kategori: kat, subkategori: kat, posisiTerkunci: 0 })
         await set(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`), { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: Date.now() })
         await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'CheckIn', waktu: Date.now(), tanggal: tglIndo, hasil: kat })
@@ -226,7 +226,6 @@ export default function PromotorPage() {
         const waktuMulai = dataSaya?.waktuMulaiMelayani || Date.now()
         const now = Date.now()
         
-        // Cari data aktivitas "BawaCustomer" yang belum selesai
         const snapAkt = await get(ref(db, pathStatistik))
         const dataAkt = snapAkt.val() || {}
         const aktivitasBelumSelesai = Object.keys(dataAkt)
@@ -356,7 +355,7 @@ export default function PromotorPage() {
 
   if (!userData) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6 transition-colors">
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 text-center">
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <ShieldCheck className="w-10 h-10 text-white" />
@@ -378,7 +377,7 @@ export default function PromotorPage() {
         <div className="w-24 h-24 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
           <Lock className="w-12 h-12 text-red-600 animate-pulse" />
         </div>
-        <h1 className="text-3xl font-black mb-2 text-red-800 dark:text-red-400">Akun Dikunci</h1>
+        <h1 className="text-3xl font-black mb-2 text-red-800 dark:text-red-400 uppercase">Akun Dikunci</h1>
         <p className="text-lg font-semibold mb-6 text-red-600 dark:text-red-300">Alasan: {lockData.alasan || '-'}</p>
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] w-full max-w-sm border border-red-100 dark:border-red-900/50 shadow-xl shadow-red-500/5">
           <p className="text-sm uppercase tracking-wider mb-2 text-slate-400 font-bold">Sisa Waktu</p>
@@ -393,7 +392,7 @@ export default function PromotorPage() {
   const dalamRadius = !gpsAktif || (jarak !== null && jarak <= (setting?.radiusToko || 50))
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans relative overflow-hidden flex justify-center transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans relative overflow-hidden flex justify-center transition-colors duration-300">
       
       <div className="w-full max-w-[420px] pt-6 pb-12 relative z-10 space-y-5 px-4">
         
@@ -404,7 +403,7 @@ export default function PromotorPage() {
               {userData.nama.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-800 dark:text-white">{userData.nama}</h1>
+              <h1 className="text-sm font-bold text-slate-800 dark:text-white uppercase">{userData.nama}</h1>
               <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wider uppercase">Promotor</p>
             </div>
           </div>
@@ -439,7 +438,7 @@ export default function PromotorPage() {
                   <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <ShieldCheck className="w-8 h-8 text-emerald-500" />
                   </div>
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Sudah Check-in Hari Ini</h2>
+                  <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-2 uppercase">Sudah Check-in Hari Ini</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Anda sudah konfirmasi kehadiran hari ini. Silakan ambil antrian jika ingin mulai bekerja.</p>
                   <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
                     {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
@@ -448,8 +447,9 @@ export default function PromotorPage() {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2"><MapPin className="w-4 h-4 text-emerald-500" /> Konfirmasi Kehadiran</h2>
+                  <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2 uppercase"><MapPin className="w-4 h-4 text-emerald-500" /> Konfirmasi Kehadiran</h2>
                   
+                  {/* PETA DENGAN TINGGI YANG CUKUP */}
                   {gpsAktif && setting?.latToko && setting?.lngToko ? (
                     <div className="mb-4">
                       <div className="w-full h-48 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative bg-slate-100">
@@ -471,18 +471,20 @@ export default function PromotorPage() {
                     <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-center text-xs text-slate-500">
                       GPS toko dinonaktifkan. Check-in dari mana saja.
                     </div>
-                  )}{/* Tambahkan Dropdown Ini */}
-<div className="mb-4">
-  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase">Pilih Kategori Antrian</label>
-  <select 
-    value={kategoriPilih} 
-    onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')}
-    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors appearance-none"
-  >
-    <option value="HA">HA (Home Appliance)</option>
-    <option value="AV">AV (Audio Video)</option>
-  </select>
-</div>
+                  )}
+
+                  {/* PILIH KATEGORI */}
+                  <div className="mb-4">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase">Pilih Kategori Antrian</label>
+                    <select 
+                      value={kategoriPilih} 
+                      onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors appearance-none"
+                    >
+                      <option value="HA">HA (Home Appliance)</option>
+                      <option value="AV">AV (Audio Video)</option>
+                    </select>
+                  </div>
 
                   <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2">
                     {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
@@ -498,16 +500,14 @@ export default function PromotorPage() {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/5 blur-3xl rounded-full"></div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
               <div className="text-8xl font-black text-slate-800 dark:text-white my-2 relative z-10 tracking-tighter">{posisiSaya.toString().padStart(2, '0')}</div>
-              <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 relative z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">KATEGORI {dataSaya?.kategori}</div>
+              <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 relative z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">KATEGORI {dataSaya?.kategori}</div>
               <div className="space-y-3 relative z-10">
                 <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-emerald-500 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2"><Play className="w-5 h-5 fill-white" /> SUDAH MEMBAWA CUSTOMER</button>
                 <div className="grid grid-cols-2 gap-3">
-                  {/* TOMBOL IBADAH - VERTIKAL */}
                   <button onClick={() => handleAksi('Ibadah')} className="py-3 px-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-[11px] flex flex-col justify-center items-center gap-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition border border-amber-200 dark:border-amber-800/50 leading-tight">
                     <MosqueIcon className="w-5 h-5" /> 
                     <span className="text-center">SEDANG IBADAH</span>
                   </button>
-                  {/* TOMBOL CS - VERTIKAL */}
                   <button onClick={() => handleAksi('PanggilCS')} className="py-3 px-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 font-bold rounded-xl text-[11px] flex flex-col justify-center items-center gap-1.5 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition border border-purple-200 dark:border-purple-800/50 leading-tight">
                     <Package className="w-5 h-5" /> 
                     <span className="text-center">DIPANGGIL CS/GUDANG</span>
@@ -522,7 +522,7 @@ export default function PromotorPage() {
 
           {statusSaya === 'Melayani' && (
             <motion.div key="melayani" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-blue-600 rounded-[2.5rem] p-8 text-center text-white shadow-xl shadow-blue-500/30">
-              <h2 className="text-2xl font-black mb-2">Sedang Melayani</h2>
+              <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
               <p className="text-xs text-blue-100 mb-8">Berikan pelayanan terbaik!</p>
               <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
             </motion.div>
@@ -531,7 +531,7 @@ export default function PromotorPage() {
           {statusSaya === 'Dipanggil CS' && (
             <motion.div key="cs" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-purple-600 rounded-[2.5rem] p-8 text-center text-white shadow-xl shadow-purple-500/30">
               <Package className="w-12 h-12 mx-auto mb-4" />
-              <h2 className="text-2xl font-black mb-2">Dipanggil CS/Gudang</h2>
+              <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS/Gudang</h2>
               <p className="text-xs text-purple-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
               <button onClick={() => handleAksi('KembaliCS')} className="w-full py-4 bg-white text-purple-700 font-black rounded-xl shadow-lg">KEMBALI ANTRI DARI CS/GUDANG</button>
             </motion.div>
@@ -540,7 +540,7 @@ export default function PromotorPage() {
           {statusSaya === 'Ibadah' && (
             <motion.div key="ibadah" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-amber-500 rounded-[2.5rem] p-8 text-center text-white shadow-xl shadow-amber-500/30">
               <MosqueIcon className="w-12 h-12 mx-auto mb-4" />
-              <h2 className="text-2xl font-black mb-2">Sedang Ibadah</h2>
+              <h2 className="text-2xl font-black mb-2 uppercase">Sedang Ibadah</h2>
               <p className="text-xs text-amber-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
               <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg">SELESAI IBADAH</button>
             </motion.div>
@@ -555,7 +555,7 @@ export default function PromotorPage() {
             return (
               <div key={kat} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[1.5rem] shadow-sm">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-2 uppercase">
                     <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-emerald-500' : 'bg-purple-500'}`}></span>
                     LIVE URUTAN KATEGORI {kat}
                   </h3>
@@ -571,7 +571,7 @@ export default function PromotorPage() {
                           <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black shadow-sm ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600'}`}>
                             {item.status === 'Melayani' ? '-' : (idx+1)}
                           </span>
-                          <span className={`text-xs font-bold ${isSaya ? 'text-emerald-800 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>{item.nama} {isSaya && '(Anda)'}</span>
+                          <span className={`text-xs font-bold uppercase ${isSaya ? 'text-emerald-800 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>{item.nama} {isSaya && '(Anda)'}</span>
                         </div>
                         {item.status === 'Melayani' ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">MELAYANI</span>
@@ -596,7 +596,7 @@ export default function PromotorPage() {
         {/* MENU AKTIVITAS */}
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[1.5rem] overflow-hidden shadow-sm">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><History className="w-5 h-5 text-slate-400" /> Aktivitas & Riwayat</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 uppercase"><History className="w-5 h-5 text-slate-400" /> Aktivitas & Riwayat</h3>
             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isAktivitasOpen ? 'rotate-180' : ''}`} />
           </button>
           
@@ -606,31 +606,31 @@ export default function PromotorPage() {
                 <div className="p-5 grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-800">
                   <button onClick={() => setPopupType('bawa')} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-2 relative hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <Users className="w-5 h-5 text-emerald-500" />
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Bawa Customer</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Bawa Customer</span>
                     <span className="absolute top-2 right-2 text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">{listBawaSaya.length}</span>
                   </button>
                   <button onClick={() => setPopupType('ibadah')} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-2 relative hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <MosqueIcon className="w-5 h-5 text-amber-500" />
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Ibadah</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Ibadah</span>
                     <span className="absolute top-2 right-2 text-[9px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{listIbadahSaya.length}</span>
                   </button>
                   <button onClick={() => setPopupType('keluar')} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-2 relative hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <LogOutIcon className="w-5 h-5 text-rose-500" />
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Keluar Antrian</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Keluar Antrian</span>
                     <span className="absolute top-2 right-2 text-[9px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded-full">{listKeluarSaya.length}</span>
                   </button>
                   <button onClick={() => setPopupType('autokick')} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-2 relative hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <AlertCircle className="w-5 h-5 text-red-500" />
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Autokick</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Autokick</span>
                     <span className="absolute top-2 right-2 text-[9px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-full">{listAutokickSaya.length}</span>
                   </button>
                   <button onClick={() => setPopupType('rekap')} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <BarChart3 className="w-5 h-5 text-blue-500" />
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Rekap Saya</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Rekap Saya</span>
                   </button>
                   <button onClick={() => setPopupType('bulanan')} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                     <Calendar className="w-5 h-5 text-indigo-500" />
-                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Total Bulanan</span>
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Total Bulanan</span>
                   </button>
                 </div>
               </motion.div>
@@ -646,7 +646,7 @@ export default function PromotorPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm border border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden">
               <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase">
                   {popupType === 'bawa' && 'Bawa Customer Saya'}
                   {popupType === 'ibadah' && 'Ibadah Saya'}
                   {popupType === 'keluar' && 'Keluar Antrian Saya'}
@@ -725,7 +725,7 @@ export default function PromotorPage() {
                   <div className="space-y-2">
                     {totalBulananSaya.length === 0 ? <p className="text-xs text-slate-400 italic text-center">Belum ada data tahun ini</p> : totalBulananSaya.map((b, i) => (
                       <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{b.namaBln} {b.tahun}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">{b.namaBln} {b.tahun}</span>
                         <div className="flex gap-3">
                           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">✓ {b.deal}</span>
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded">👀 {b.lihat}</span>
@@ -744,7 +744,7 @@ export default function PromotorPage() {
         {showClosing && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm text-center border border-slate-100 dark:border-slate-800 shadow-2xl">
-              <h3 className="text-lg font-bold mb-5 text-slate-800 dark:text-white">Hasil Melayani Customer</h3>
+              <h3 className="text-lg font-bold mb-5 text-slate-800 dark:text-white uppercase">Hasil Melayani Customer</h3>
               <div className="space-y-3">
                 <button onClick={() => handleAksi('SimpanClosing', 'Deal')} className="w-full py-3.5 bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20">✓ DEAL / CLOSING</button>
                 <button onClick={() => handleAksi('SimpanClosing', 'Lihat')} className="w-full py-3.5 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20">👀 LIHAT-LIHAT SAJA</button>
