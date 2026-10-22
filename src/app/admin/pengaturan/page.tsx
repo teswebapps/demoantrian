@@ -2,10 +2,10 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
-import { ref, onValue, update } from 'firebase/database'
+import { ref, onValue, update, get, remove } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, Save, Store, Image as ImageIcon, Type, MapPin, Navigation } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Store, Image as ImageIcon, Type, MapPin, Navigation, RotateCcw, ShieldAlert } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
@@ -15,6 +15,7 @@ export default function PengaturanPage() {
   const { user, loading: authLoading } = useAuth('ADMIN')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
   
   const [formNamaToko, setFormNamaToko] = useState('')
   const [formNamaSistem, setFormNamaSistem] = useState('')
@@ -49,8 +50,8 @@ export default function PengaturanPage() {
       const lngAda = formLng.trim() !== ''
       
       await update(ref(db, 'setting'), {
-        namaToko: formNamaToko.toUpperCase(), // <-- PAKSA UPPERCASE
-        namaSistem: formNamaSistem.toUpperCase(), // <-- PAKSA UPPERCASE
+        namaToko: formNamaToko.toUpperCase(),
+        namaSistem: formNamaSistem.toUpperCase(),
         logoUrl: formLogoUrl,
         latToko: latAda ? parseFloat(formLat) : '',
         lngToko: lngAda ? parseFloat(formLng) : '',
@@ -78,6 +79,68 @@ export default function PengaturanPage() {
     )
   }
 
+  const resetTotal = async () => {
+    if (!window.confirm("⚠️ PERINGATAN:\n\nSemua antrian hari ini akan dihapus.\nNo Sale akan dicatat otomatis untuk promotor yang belum dapat Deal.\n\nLanjutkan?")) return
+    
+    setIsResetting(true)
+    try {
+      const hariIniKey = new Date().toISOString().split('T')[0]
+      const hariIniIndo = `${String(new Date().getDate()).padStart(2,'0')}-${String(new Date().getMonth()+1).padStart(2,'0')}-${new Date().getFullYear()}`
+      
+      const checkinSnap = await get(ref(db, 'checkinHarian'))
+      const dataCheckin = checkinSnap.val() || {}
+      
+      const aktSnap = await get(ref(db, 'statistikAktivitas'))
+      const dataAkt = aktSnap.val() || {}
+      const listHariIni = Object.values(dataAkt).filter((a: any) => a && a.tanggal === hariIniIndo)
+      const promotorDeal = new Set(listHariIni.filter((a: any) => a.aksi === 'BawaCustomer' && a.hasil === 'Deal').map((a: any) => String(a.nama).toLowerCase().replace(/\s+/g, '_')))
+      
+      const masterSnap = await get(ref(db, 'mastersales'))
+      const masterData = masterSnap.val() || {}
+      const mapNama: any = {}
+      Object.values(masterData).forEach((item: any) => {
+        const rec = item.record ? item.record : item
+        const n = rec.NAMA_PROMOTOR || rec.nama
+        if (n) mapNama[String(n).trim().toLowerCase().replace(/\s+/g, '_')] = String(n).trim()
+      })
+      
+      let noSaleCount = 0
+      const bulanKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
+      
+      for (const clean of Object.keys(dataCheckin)) {
+        const dataPromotor = dataCheckin[clean]
+        let sudahCheckinHariIni = false
+        if (dataPromotor[hariIniKey] || dataPromotor.tanggalKey === hariIniKey) sudahCheckinHariIni = true
+        
+        if (sudahCheckinHariIni && !promotorDeal.has(clean)) {
+          const namaAsli = mapNama[clean] || clean
+          const pathRiwayat = `riwayatBulanan/${bulanKey}/${clean}`
+          const snapR = await get(ref(db, pathRiwayat))
+          const existing = snapR.exists() ? snapR.val() : { nama: namaAsli, lihat: 0, deal: 0, noSale: 0 }
+          if (typeof existing.noSale !== 'number') existing.noSale = 0
+          existing.noSale += 1
+          existing.nama = namaAsli
+          existing.lastUpdate = Date.now()
+          existing.bulanKey = bulanKey
+          await update(ref(db, pathRiwayat), existing)
+          noSaleCount++
+        }
+      }
+      
+      await remove(ref(db, 'antrian'))
+      await update(ref(db, 'setting'), { statusAntrian: 'BUKA' })
+      
+      alert(`Reset berhasil!\n✅ Antrian dikosongkan.\n⛔ ${noSaleCount} promotor tercatat No Sale.`)
+      window.location.reload()
+      
+    } catch (err) {
+      console.error(err)
+      alert("Gagal reset total.")
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   if (authLoading || isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>
   }
@@ -92,7 +155,7 @@ export default function PengaturanPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white uppercase">Pengaturan Toko</h1>
-            <p className="text-sm text-slate-400 uppercase">Identitas & Lokasi (GPS)</p>
+            <p className="text-sm text-slate-400 uppercase">Identitas, Lokasi GPS, & Zona Bahaya</p>
           </div>
         </div>
 
@@ -176,14 +239,13 @@ export default function PengaturanPage() {
           </div>
         </form>
 
-        {/* ZONA BAHAYA - RESET ANTRIAN */}
         <div className="mt-8 bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-3">
             <ShieldAlert className="w-6 h-6 text-red-500" />
             <h3 className="text-lg font-bold text-red-400 uppercase">Zona Bahaya</h3>
           </div>
           <p className="text-xs text-slate-400 mb-5 leading-relaxed uppercase">
-            Tombol di bawah ini akan <strong>menghapus semua antrian hari ini</strong> dan mencatat <strong>No Sale otomatis</strong>. Tindakan ini tidak bisa dibatalkan.
+            Tombol di bawah ini akan <strong>menghapus semua antrian hari ini</strong> dan mencatat <strong>No Sale otomatis</strong> untuk promotor yang sudah check-in tapi belum mendapatkan Deal. Tindakan ini tidak bisa dibatalkan.
           </p>
           <button 
             onClick={resetTotal}
