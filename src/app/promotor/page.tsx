@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import { useThemeMode } from '@/hooks/useThemeMode'
+import AnimatedGenerateButton from "@/components/ui/animated-generate-button-shadcn-tailwind";
 import { 
   Loader2, LogOut, ShieldCheck, Lock, Play, Package, 
   ArrowRight, Users, ListOrdered, TrendingUp, AlertCircle, Sun, Moon,
@@ -443,10 +444,17 @@ const posisiSaya = listKategoriSaya
                   </div>
                   <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-2 uppercase">Sudah Check-in Hari Ini</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Anda sudah konfirmasi kehadiran hari ini. Silakan ambil antrian jika ingin mulai bekerja.</p>
-                  <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
-                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
-                    {isProcessing ? 'Memproses...' : 'MASUK ANTRIAN'}
-                  </button>
+                  
+                  {/* TOMBOL ANIMASI: MASUK ANTRIAN */}
+                  <AnimatedGenerateButton
+                    labelIdle="MASUK ANTRIAN"
+                    labelActive="Memproses..."
+                    icon={<Play className="w-5 h-5 fill-white" />}
+                    highlightHueDeg={150}
+                    variant="emerald"
+                    disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius}
+                    onClick={() => handleAksi('CheckIn')}
+                  />
                 </div>
               ) : (
                 <>
@@ -489,10 +497,16 @@ const posisiSaya = listKategoriSaya
                     </select>
                   </div>
 
-                  <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2">
-                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
-                    {isProcessing ? 'Memproses...' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN & MASUK ANTRI'}
-                  </button>
+                  {/* TOMBOL ANIMASI: KONFIRMASI KEHADIRAN & MASUK ANTRI */}
+                  <AnimatedGenerateButton
+                    labelIdle={!dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN & MASUK ANTRI'}
+                    labelActive="Memproses..."
+                    icon={<Play className="w-5 h-5 fill-white" />}
+                    highlightHueDeg={150}
+                    variant="emerald"
+                    disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius}
+                    onClick={() => handleAksi('CheckIn')}
+                  />
                 </>
               )}
             </motion.div>
@@ -505,7 +519,18 @@ const posisiSaya = listKategoriSaya
               <div className="text-8xl font-black text-slate-800 dark:text-white my-2 relative z-10 tracking-tighter">{posisiSaya.toString().padStart(2, '0')}</div>
               <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 relative z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">KATEGORI {dataSaya?.kategori}</div>
               <div className="space-y-3 relative z-10">
-                <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-emerald-500 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2"><Play className="w-5 h-5 fill-white" /> SUDAH MEMBAWA CUSTOMER</button>
+                
+                {/* TOMBOL ANIMASI: SUDAH MEMBAWA CUSTOMER */}
+                <AnimatedGenerateButton
+                  labelIdle="SUDAH MEMBAWA CUSTOMER"
+                  labelActive="Memproses..."
+                  icon={<Play className="w-5 h-5 fill-white" />}
+                  highlightHueDeg={150}
+                  variant="emerald"
+                  disabled={isProcessing}
+                  onClick={() => handleAksi('BawaCustomer')}
+                />
+
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => handleAksi('Ibadah')} className="py-3 px-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-[11px] flex flex-col justify-center items-center gap-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition border border-amber-200 dark:border-amber-800/50 leading-tight">
                     <MosqueIcon className="w-5 h-5" /> 
@@ -527,7 +552,17 @@ const posisiSaya = listKategoriSaya
             <motion.div key="melayani" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-blue-600 rounded-[2.5rem] p-8 text-center text-white shadow-xl shadow-blue-500/30">
               <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
               <p className="text-xs text-blue-100 mb-8">Berikan pelayanan terbaik!</p>
-              <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
+              
+              {/* TOMBOL ANIMASI: SELESAI MELAYANI */}
+              <AnimatedGenerateButton
+                labelIdle="SELESAI MELAYANI"
+                labelActive="Menyimpan..."
+                icon={<ArrowRight className="w-5 h-5" />}
+                highlightHueDeg={200}
+                variant="white"
+                disabled={isProcessing}
+                onClick={() => handleAksi('Selesai')}
+              />
             </motion.div>
           )}
 
