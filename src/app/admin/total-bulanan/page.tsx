@@ -5,11 +5,13 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, Calendar, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Loader2, Calendar, TrendingUp, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
+import { useThemeMode } from '@/hooks/useThemeMode'
 
 export default function TotalBulananPage() {
   const { user, loading: authLoading } = useAuth('ADMIN')
+  const { isDark, toggleTheme, mounted } = useThemeMode()
   const [loading, setLoading] = useState(true)
   const [aktivitas, setAktivitas] = useState<any[]>([])
   const [tahunIni, setTahunIni] = useState('')
@@ -64,52 +66,55 @@ export default function TotalBulananPage() {
   const totalDeal = dataBulanan.reduce((s, b) => s + b.deal, 0)
   const totalLihat = dataBulanan.reduce((s, b) => s + b.lihat, 0)
 
-  if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>
+  if (authLoading || loading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><Loader2 className="w-8 h-8 text-emerald-600 animate-spin" /></div>
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6 md:p-8 flex justify-center">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-8 flex justify-center transition-colors duration-300">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-3xl">
         
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition">
+          <Link href="/admin" className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition shadow-sm">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Total Bulanan</h1>
-            <p className="text-sm text-slate-400">Rekap customer walk-in per bulan tahun {tahunIni}</p>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white uppercase">Total Bulanan</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 uppercase">Rekap customer walk-in per bulan tahun {tahunIni}</p>
           </div>
+          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors shadow-sm">
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-            <div className="flex items-center gap-3 mb-2"><TrendingUp className="w-5 h-5 text-emerald-400" /><p className="text-xs font-bold text-slate-400 uppercase">Total Deal Tahun Ini</p></div>
-            <p className="text-4xl font-black text-emerald-400">{totalDeal}</p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-3 mb-2"><TrendingUp className="w-5 h-5 text-emerald-500" /><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total Deal Tahun Ini</p></div>
+            <p className="text-4xl font-black text-emerald-500">{totalDeal}</p>
           </div>
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-            <div className="flex items-center gap-3 mb-2"><Calendar className="w-5 h-5 text-amber-400" /><p className="text-xs font-bold text-slate-400 uppercase">Total Lihat Tahun Ini</p></div>
-            <p className="text-4xl font-black text-amber-400">{totalLihat}</p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-3 mb-2"><Calendar className="w-5 h-5 text-amber-500" /><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total Lihat Tahun Ini</p></div>
+            <p className="text-4xl font-black text-amber-500">{totalLihat}</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4">Rekap per Bulan</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm transition-colors">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 uppercase">Rekap per Bulan</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-400 uppercase bg-slate-950/50">
+            <table className="w-full text-left text-sm min-w-[400px]">
+              <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-950/50">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg">Bulan</th>
                   <th className="px-4 py-3 text-center">Deal</th>
                   <th className="px-4 py-3 text-center rounded-r-lg">Lihat</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {dataBulanan.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-500">Belum ada data tahun ini</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400">Belum ada data tahun ini</td></tr>
                 ) : dataBulanan.map((b, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/50 transition">
-                    <td className="px-4 py-3 font-semibold text-white">{b.namaBln} {b.tahun}</td>
-                    <td className="px-4 py-3 text-center font-black text-emerald-400">{b.deal}</td>
-                    <td className="px-4 py-3 text-center font-black text-amber-400">{b.lihat}</td>
+                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                    <td className="px-4 py-3 font-bold text-slate-800 dark:text-white uppercase">{b.namaBln} {b.tahun}</td>
+                    <td className="px-4 py-3 text-center font-black text-emerald-500">{b.deal}</td>
+                    <td className="px-4 py-3 text-center font-black text-amber-500">{b.lihat}</td>
                   </tr>
                 ))}
               </tbody>

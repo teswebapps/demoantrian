@@ -52,6 +52,7 @@ export default function PromotorPage() {
   const [showClosing, setShowClosing] = useState(false)
   
   const [sudahCheckinHariIni, setSudahCheckinHariIni] = useState(false)
+  const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
   const [isLoadingCheckin, setIsLoadingCheckin] = useState(true)
   const [todayKey, setTodayKey] = useState('')
   
@@ -470,7 +471,18 @@ export default function PromotorPage() {
                     <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-center text-xs text-slate-500">
                       GPS toko dinonaktifkan. Check-in dari mana saja.
                     </div>
-                  )}
+                  )}{/* Tambahkan Dropdown Ini */}
+<div className="mb-4">
+  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block uppercase">Pilih Kategori Antrian</label>
+  <select 
+    value={kategoriPilih} 
+    onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')}
+    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors appearance-none"
+  >
+    <option value="HA">HA (Home Appliance)</option>
+    <option value="AV">AV (Audio Video)</option>
+  </select>
+</div>
 
                   <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2">
                     {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-white" />}
