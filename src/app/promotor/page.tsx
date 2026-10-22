@@ -187,7 +187,10 @@ export default function PromotorPage() {
   const listAV = antrian.filter(a => a.kategori === 'AV')
   const totalAntri = antrian.filter(a => a.status === 'Standby').length
   const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
-  const posisiSaya = listHA.filter(a => a.status === 'Standby').findIndex(a => a.nama.toLowerCase() === userData?.nama.toLowerCase()) + 1
+  const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA
+const posisiSaya = listKategoriSaya
+  .filter(a => a.status === 'Standby')
+  .findIndex(a => a.nama.toLowerCase() === userData?.nama.toLowerCase()) + 1
 
   const handleAksi = async (aksi: string, hasil: string = '') => {
     if (!userData) return
