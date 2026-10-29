@@ -18,16 +18,10 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} dark`}>
-      <body className="font-sans antialiased">
-        {children}
-      </body>
+    <html lang="id" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   )
 }

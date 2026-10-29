@@ -1,13 +1,14 @@
-import { LogOut, Store, Sun } from 'lucide-react'
+import { LogOut, Store, Sun, Moon } from 'lucide-react'
 
 type AppHeaderProps = {
   storeName: string
   isOpen: boolean
   onLogout?: () => void
-  onToggleTheme?: () => void // <-- Tambahan untuk fungsi ganti tema
+  onToggleTheme?: () => void
+  isDark?: boolean
 }
 
-export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme }: AppHeaderProps) {
+export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-[1000] bg-background/80 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl">
       <div className="flex items-center gap-3">
@@ -21,20 +22,18 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme }: AppHea
           </h1>
         </div>
         
-        {/* TOMBOL GANTI TEMA */}
         <button
           type="button"
-          onClick={onToggleTheme} // <--- Fungsi dipasang di sini
+          onClick={onToggleTheme}
           aria-label="Ganti tema"
           className="flex size-11 items-center justify-center rounded-full bg-secondary text-amber-300 transition-colors hover:bg-secondary/70 active:scale-95"
         >
-          <Sun className="size-5" aria-hidden="true" />
+          {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
 
-        {/* TOMBOL LOGOUT */}
         <button
           type="button"
-          onClick={onLogout} // <--- Fungsi logout dipasang di sini
+          onClick={onLogout}
           aria-label="Keluar"
           className="flex size-11 items-center justify-center rounded-full bg-destructive/15 text-destructive transition-colors hover:bg-destructive/25 active:scale-95"
         >

@@ -1,21 +1,15 @@
 'use client'
-
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export function useTheme() {
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(true)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Paksa gelap secara default
+    document.documentElement.classList.add('dark')
+    setIsDark(true)
     setMounted(true)
-    const saved = localStorage.getItem('theme')
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark')
-      setIsDark(true)
-    } else {
-      document.documentElement.classList.remove('dark')
-      setIsDark(false)
-    }
   }, [])
 
   const toggleTheme = () => {

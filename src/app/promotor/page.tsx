@@ -5,7 +5,7 @@ import { onAuthStateChanged, signOut, signInWithPopup } from 'firebase/auth'
 import { ref, get, set, remove, update, push, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 import { toast } from 'sonner'
-import { useThemeMode } from '@/hooks/useThemeMode'
+import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
 import { Loader2, ShieldCheck, Lock, Play, Hand, MapPin, Package, ArrowRight, LogOut } from 'lucide-react'
 
@@ -32,7 +32,7 @@ const getTanggalKey = (d?: Date) => {
 }
 
 export default function PromotorPage() {
-  const { isDark, toggleTheme, mounted } = useThemeMode()
+ const { isDark, toggleTheme, mounted } = useTheme()
   
   // --- STATE ASLI ANDA ---
   const [userData, setUserData] = useState<any>(null)
