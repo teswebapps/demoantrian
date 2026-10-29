@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { 
   Loader2, LogOut, Shield, Users, Clock, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
-  Trash2, UserPlus, X, Calendar, Sun, Moon,
+  Trash2, X, Calendar, Sun, Moon,
   History, BarChart3, Coffee, LogOut as LogOutIcon,
   ShieldAlert, ChevronDown
 } from 'lucide-react'
@@ -18,15 +18,11 @@ import {
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
   const { antrian, setting, loading: dataLoading } = useAntrian(user?.tokoId || 'ufo-kebonsari')
- const { isDark, toggleTheme, mounted } = useTheme()
+  const { isDark, toggleTheme, mounted } = useTheme()
   
   const [isUpdating, setIsUpdating] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(false)
   const [popupType, setPopupType] = useState<string | null>(null)
-  
-  const [formNama, setFormNama] = useState('')
-  const [formEmail, setFormEmail] = useState('')
   
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
@@ -67,25 +63,6 @@ export default function AdminPage() {
     } catch (err) { console.error(err) }
   }
 
-  const simpanPromotorBaru = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formNama || !formEmail) return alert("Nama dan Email wajib diisi!")
-    try {
-      const emailKey = formEmail.trim().toLowerCase().replace(/\./g, ',')
-      await set(ref(db, 'users/whitelist/' + emailKey), {
-        nama: formNama.toUpperCase(),
-        email: formEmail.trim().toLowerCase(),
-        role: 'PROMOTOR',
-        tokoId: TOKO_ID
-      })
-      await push(ref(db, 'mastersales'), { record: { NAMA_PROMOTOR: formNama.toUpperCase() } })
-      alert(`Berhasil! Promotor ${formNama.toUpperCase()} sekarang bisa login.`)
-      setIsModalOpen(false)
-      setFormNama('')
-      setFormEmail('')
-    } catch (err) { console.error(err) }
-  }
-
   // Hitung Statistik
   const totalStandby = antrian.filter(a => a.status === 'Standby').length
   const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
@@ -103,32 +80,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex relative font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300">
       
-      {/* MODAL TAMBAH PROMOTOR */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><UserPlus className="w-5 h-5 text-emerald-500" /> Tambah Promotor</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-red-500 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full"><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={simpanPromotorBaru} className="space-y-4">
-                <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block font-bold uppercase">Nama Lengkap</label>
-                  <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 uppercase" placeholder="NAMA" required />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block font-bold uppercase">Email Google</label>
-                  <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 lowercase" placeholder="email@gmail.com" required />
-                </div>
-                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition uppercase shadow-lg shadow-emerald-500/20">Simpan Akses Login</button>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* MODAL POPUP AKTIVITAS */}
+      {/* MODAL POPUP AKTIVITAS (Tetap Dipertahankan) */}
       <AnimatePresence>
         {popupType && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
@@ -226,7 +178,6 @@ export default function AdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors shadow-sm">
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button onClick={() => setIsModalOpen(true)} className="flex-1 md:flex-none justify-center flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition uppercase shadow-sm"><UserPlus className="w-4 h-4" /> Tambah Promotor</button>
             <button onClick={toggleStatusAntrian} disabled={isUpdating} className={`flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all border shadow-sm uppercase ${setting?.statusAntrian === 'BUKA' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'}`}>
               {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : setting?.statusAntrian === 'BUKA' ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
               {setting?.statusAntrian === 'BUKA' ? 'DIBUKA' : 'DITUTUP'}
