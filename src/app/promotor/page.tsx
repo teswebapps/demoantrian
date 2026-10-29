@@ -7,9 +7,8 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
-import { Loader2, ShieldCheck, Lock, Play, Hand, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, Coffee, ShieldAlert, X } from 'lucide-react'
+import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Coffee, Users } from 'lucide-react'
 
-// IMPORT KOMPONEN ZIP
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
 import { TurnCard } from '@/components/queue/turn-card'
@@ -55,7 +54,6 @@ export default function PromotorPage() {
     setTodayKey(getTanggalKey())
   }, [])
 
-  // Auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user || !user.email) { setUserData(null); setIsLoading(false); return }
@@ -84,7 +82,6 @@ export default function PromotorPage() {
   }
   const handleLogout = async () => { await signOut(auth); setUserData(null) }
 
-  // Cek Checkin
   useEffect(() => {
     if (!userData || !todayKey) return
     const clean = userData.nama.trim().toLowerCase().replace(/\s+/g, '_')
@@ -95,7 +92,6 @@ export default function PromotorPage() {
     return () => unsub()
   }, [userData, todayKey, TOKO_ID])
 
-  // Data Antrian
   useEffect(() => {
     if (!TOKO_ID) return
     const unsubAntrian = onValue(ref(db, `toko/${TOKO_ID}/antrian`), (snap) => {
@@ -131,7 +127,6 @@ export default function PromotorPage() {
     return () => { unsubAntrian(); unsubSetting(); unsubLock(); unsubAktivitas(); }
   }, [TOKO_ID, userData])
 
-  // Timer Lock
   useEffect(() => {
     if (!lockData || !userData) return
     const interval = setInterval(() => {
@@ -150,7 +145,6 @@ export default function PromotorPage() {
     return () => clearInterval(interval)
   }, [lockData, userData, TOKO_ID])
 
-  // GPS
   const hitungJarak = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2)
@@ -171,7 +165,6 @@ export default function PromotorPage() {
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
-  // Logika Aksi Firebase
   const handleAksi = async (aksi: string, hasil: string = '') => {
     if (!userData) return
     setIsProcessing(true)
@@ -261,8 +254,12 @@ export default function PromotorPage() {
 
   // Format Aktivitas
   const aktivitasSaya = aktivitasHariIni.filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
+  
   const listBawaSaya = aktivitasSaya.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
-  const listIbadahSaya = aktivitasSaya.filter(a => a.aksi === 'MulaiIbadah' && a.tanggal === hariIniIndo)
+  const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
+  const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
+  
+  const listIbadahSaya = aktivitasSaya.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah') && a.tanggal === hariIniIndo)
   const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
 
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
@@ -385,21 +382,21 @@ export default function PromotorPage() {
             <div className="text-8xl font-black text-foreground my-2 tracking-tighter">{(listHA.findIndex(a => a.nama === userData.nama) + 1).toString().padStart(2, '0')}</div>
             <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-secondary text-primary uppercase">KATEGORI {dataSaya?.kategori}</div>
             
-            {/* TOMBOL DIBUAT LEBAR PENUH (Sesuai Permintaan) */}
+            {/* TOMBOL SOLID & LEBAR PENUH */}
             <div className="space-y-3">
-              <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 hover:brightness-110 transition flex justify-center items-center gap-2">
-                <Play className="w-5 h-5 fill-primary-foreground" /> SUDAH MEMBAWA CUSTOMER
+              <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-cyan-500 text-slate-950 font-black rounded-xl shadow-lg shadow-cyan-500/30 hover:bg-cyan-400 transition flex justify-center items-center gap-2">
+                <Play className="w-5 h-5 fill-slate-950" /> SUDAH MEMBAWA CUSTOMER
               </button>
               
-              <button onClick={() => handleAksi('Ibadah')} className="w-full py-4 bg-amber-500/15 text-amber-500 font-bold rounded-xl border border-amber-500/20 hover:bg-amber-500/25 transition flex justify-center items-center gap-2">
+              <button onClick={() => handleAksi('Ibadah')} className="w-full py-4 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition flex justify-center items-center gap-2">
                 <Coffee className="w-5 h-5" /> SEDANG IBADAH
               </button>
               
-              <button onClick={() => handleAksi('PanggilCS')} className="w-full py-4 bg-purple-500/15 text-purple-500 font-bold rounded-xl border border-purple-500/20 hover:bg-purple-500/25 transition flex justify-center items-center gap-2">
+              <button onClick={() => handleAksi('PanggilCS')} className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-500 transition flex justify-center items-center gap-2">
                 <Package className="w-5 h-5" /> DIPANGGIL CS / GUDANG
               </button>
               
-              <button onClick={() => handleAksi('Keluar')} className="w-full py-4 bg-destructive/15 text-destructive font-bold rounded-xl border border-destructive/20 hover:bg-destructive/25 transition flex justify-center items-center gap-2">
+              <button onClick={() => handleAksi('Keluar')} className="w-full py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:bg-rose-500 transition flex justify-center items-center gap-2">
                 <LogOut className="w-5 h-5" /> KELUAR ANTRIAN
               </button>
             </div>
@@ -435,22 +432,77 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* MENU AKTIVITAS (Dikembalikan) */}
+        {/* MENU AKTIVITAS HARI INI (DENGAN WAKTU) */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
             <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${isAktivitasOpen ? 'rotate-180' : ''}`} />
           </button>
+          
           {isAktivitasOpen && (
-            <div className="p-5 border-t border-border grid grid-cols-2 gap-3">
-              <div className="bg-secondary rounded-xl p-3 text-center">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Bawa Customer</p>
-                <p className="text-lg font-black text-foreground">{listBawaSaya.length}</p>
+            <div className="p-5 border-t border-border space-y-5">
+              
+              {/* 1. Bawa Customer */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Users className="w-3 h-3" /> Bawa Customer</p>
+                  <div className="flex gap-2">
+                    <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">Deal: {totalDeal}</span>
+                    <span className="text-[10px] font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">Lihat: {totalLihat}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {listBawaSaya.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
+                  ) : (
+                    listBawaSaya.map((a, i) => (
+                      <div key={i} className="bg-secondary rounded-xl p-3 flex justify-between items-center text-xs">
+                        <span className={`font-bold ${a.hasil === 'Deal' ? 'text-emerald-500' : a.hasil === 'Lihat' ? 'text-amber-500' : 'text-blue-500'}`}>
+                          {a.hasil || 'Proses'}
+                        </span>
+                        <span className="text-muted-foreground font-medium">
+                          {formatJam(a.waktuMulai || a.waktu)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div className="bg-secondary rounded-xl p-3 text-center">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Ibadah</p>
-                <p className="text-lg font-black text-foreground">{listIbadahSaya.length}</p>
+
+              {/* 2. Ibadah */}
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><Coffee className="w-3 h-3" /> Ibadah</p>
+                <div className="space-y-2">
+                  {listIbadahSaya.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
+                  ) : (
+                    listIbadahSaya.map((a, i) => (
+                      <div key={i} className="bg-secondary rounded-xl p-3 text-xs flex justify-between items-center">
+                        <span className="text-foreground font-bold">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
+                        <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
+
+              {/* 3. Keluar Antrian */}
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><LogOut className="w-3 h-3" /> Keluar Antrian</p>
+                <div className="space-y-2">
+                  {listKeluarSaya.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
+                  ) : (
+                    listKeluarSaya.map((a, i) => (
+                      <div key={i} className="bg-secondary rounded-xl p-3 text-xs flex justify-between items-center">
+                        <span className="text-foreground font-bold">Keluar</span>
+                        <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
         </div>
