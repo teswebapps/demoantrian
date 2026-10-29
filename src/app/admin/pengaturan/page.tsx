@@ -25,8 +25,13 @@ export default function PengaturanPage() {
   const [formRadius, setFormRadius] = useState('50')
   const [formStatus, setFormStatus] = useState<'BUKA' | 'TUTUP'>('BUKA')
 
+  // Path dinamis berdasarkan toko user yang login
+  const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
+
   useEffect(() => {
-    const unsubscribe = onValue(ref(db, 'setting'), (snap) => {
+    if (!TOKO_ID) return
+    // PERBAIKAN: Path setting sekarang mengarah ke toko spesifik
+    const unsubscribe = onValue(ref(db, `toko/${TOKO_ID}/setting`), (snap) => {
       if (snap.exists()) {
         const data = snap.val()
         setFormNamaToko(data.namaToko || '')
@@ -40,7 +45,7 @@ export default function PengaturanPage() {
       setIsLoading(false)
     })
     return () => unsubscribe()
-  }, [])
+  }, [TOKO_ID])
 
   const simpanPengaturan = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +54,8 @@ export default function PengaturanPage() {
       const latAda = formLat.trim() !== ''
       const lngAda = formLng.trim() !== ''
       
-      await update(ref(db, 'setting'), {
+      // PERBAIKAN: Path update mengarah ke toko spesifik
+      await update(ref(db, `toko/${TOKO_ID}/setting`), {
         namaToko: formNamaToko.toUpperCase(),
         namaSistem: formNamaSistem.toUpperCase(),
         logoUrl: formLogoUrl,
@@ -87,14 +93,16 @@ export default function PengaturanPage() {
       const hariIniKey = new Date().toISOString().split('T')[0]
       const hariIniIndo = `${String(new Date().getDate()).padStart(2,'0')}-${String(new Date().getMonth()+1).padStart(2,'0')}-${new Date().getFullYear()}`
       
-      const checkinSnap = await get(ref(db, 'checkinHarian'))
+      // PERBAIKAN: Path checkin & antrian mengarah ke toko spesifik
+      const checkinSnap = await get(ref(db, `toko/${TOKO_ID}/checkinHarian`))
       const dataCheckin = checkinSnap.val() || {}
       
-      const aktSnap = await get(ref(db, 'statistikAktivitas'))
+      const aktSnap = await get(ref(db, `toko/${TOKO_ID}/statistikAktivitas`))
       const dataAkt = aktSnap.val() || {}
       const listHariIni = Object.values(dataAkt).filter((a: any) => a && a.tanggal === hariIniIndo)
       const promotorDeal = new Set(listHariIni.filter((a: any) => a.aksi === 'BawaCustomer' && a.hasil === 'Deal').map((a: any) => String(a.nama).toLowerCase().replace(/\s+/g, '_')))
       
+      // PERBAIKAN: Path mastersales
       const masterSnap = await get(ref(db, 'mastersales'))
       const masterData = masterSnap.val() || {}
       const mapNama: any = {}
@@ -114,7 +122,7 @@ export default function PengaturanPage() {
         
         if (sudahCheckinHariIni && !promotorDeal.has(clean)) {
           const namaAsli = mapNama[clean] || clean
-          const pathRiwayat = `riwayatBulanan/${bulanKey}/${clean}`
+          const pathRiwayat = `toko/${TOKO_ID}/riwayatBulanan/${bulanKey}/${clean}`
           const snapR = await get(ref(db, pathRiwayat))
           const existing = snapR.exists() ? snapR.val() : { nama: namaAsli, lihat: 0, deal: 0, noSale: 0 }
           if (typeof existing.noSale !== 'number') existing.noSale = 0
@@ -127,8 +135,9 @@ export default function PengaturanPage() {
         }
       }
       
-      await remove(ref(db, 'antrian'))
-      await update(ref(db, 'setting'), { statusAntrian: 'BUKA' })
+      // PERBAIKAN: Path remove antrian mengarah ke toko spesifik
+      await remove(ref(db, `toko/${TOKO_ID}/antrian`))
+      await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: 'BUKA' })
       
       alert(`Reset berhasil!\n✅ Antrian dikosongkan.\n⛔ ${noSaleCount} promotor tercatat No Sale.`)
       window.location.reload()
@@ -220,7 +229,7 @@ export default function PengaturanPage() {
             </div>
             
             {formLat && formLng && (
-              <div className="rounded-xl overflow-hidden border border-slate-700 mt-2">
+              <div className="rounded-xl overflow-hidden border border-slate-700 mt-2 h-48">
                 <MapComponent 
                   tokoLat={parseFloat(formLat) || 0} 
                   tokoLng={parseFloat(formLng) || 0} 
