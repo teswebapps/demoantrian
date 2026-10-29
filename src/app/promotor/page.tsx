@@ -403,7 +403,17 @@ export default function PromotorPage() {
         {statusSaya === 'Standby' && (
           <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border relative overflow-hidden">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
-            <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">{(listHA.findIndex(a => a.nama === userData.nama) + 1).toString().padStart(2, '0')}</div>
+            <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">
+  {(() => {
+    // Pilih list berdasarkan kategori promotor saat ini
+    const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA;
+    // Hitung posisi (hanya yang statusnya Standby/Melayani)
+    const posisi = listKategoriSaya
+      .filter(a => a.status === 'Standby' || a.status === 'Melayani')
+      .findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1;
+    return posisi.toString().padStart(2, '0');
+  })()}
+</div>
             <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {dataSaya?.kategori}</div>
             
             <div className="space-y-3 relative z-10">
