@@ -3,14 +3,21 @@ import { getDatabase } from "firebase/database";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDrrS4E_6e3G1DBfqkFbWoYLhdq6ZIzapg",
-  authDomain: "tes-webapps.firebaseapp.com",
-  databaseURL: "https://tes-webapps-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "tes-webapps",
-  storageBucket: "tes-webapps.firebasestorage.app",
-  messagingSenderId: "87638829660",
-  appId: "1:87638829660:web:5a04a73f02206803fa9499"
+
+  apiKey: "AIzaSyCc-3AS_he7fQ19G2BFsXRevJexSQ7Zggk",
+
+  authDomain: "antrianpro-aa282.firebaseapp.com",
+
+  projectId: "antrianpro-aa282",
+
+  storageBucket: "antrianpro-aa282.firebasestorage.app",
+
+  messagingSenderId: "820400935691",
+
+  appId: "1:820400935691:web:f126abad86288044d5c80e"
+
 };
+
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
