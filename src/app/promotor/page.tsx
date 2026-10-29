@@ -335,7 +335,7 @@ export default function PromotorPage() {
           </div>
         </section>
 
-        {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN (TANPA EFEK BLUR) */}
+        {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN */}
         {statusSaya === 'Offline' && (
           <div className="bg-card rounded-3xl p-6 shadow-sm border border-border relative overflow-hidden">
             {sudahCheckinHariIni ? (
@@ -345,7 +345,22 @@ export default function PromotorPage() {
                 </div>
                 <h2 className="text-lg font-bold text-foreground mb-2 uppercase">Sudah Check-in Hari Ini</h2>
                 <p className="text-xs text-muted-foreground mb-4">Ambil antrian jika ingin mulai bekerja.</p>
-                <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
+                <div className="mb-4 text-left">
+                  <label className="text-xs font-bold text-muted-foreground mb-1 block uppercase">Pilih Kategori</label>
+                  <select value={kategoriPilih} onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')} className="w-full bg-background border border-border rounded-xl py-3 px-4 text-sm font-bold text-foreground focus:outline-none focus:border-primary appearance-none">
+                    <option value="HA">HA (Home Appliance)</option>
+                    <option value="AV">AV (Audio Video)</option>
+                  </select>
+                </div>
+                <button 
+                  onClick={() => {
+                    // Pastikan state terbaru terkirim
+                    setKategoriPilih(kategoriPilih);
+                    handleAksi('CheckIn');
+                  }} 
+                  disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} 
+                  className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
+                >
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
                   {isProcessing ? 'Memproses...' : 'MASUK ANTRIAN'}
                 </button>
@@ -384,7 +399,7 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: STANDBY (TANPA EFEK BLUR) */}
+        {/* STATUS: STANDBY */}
         {statusSaya === 'Standby' && (
           <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border relative overflow-hidden">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>

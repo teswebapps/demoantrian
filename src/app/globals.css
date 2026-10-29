@@ -147,3 +147,86 @@ html:not(.dark) header {
   background-color: rgba(255, 255, 255, 0.8);
   border-bottom: 1px solid var(--border);
 }
+/* ========================================== */
+/* PAKSA MODE TERANG JADI SOLID & PADAT       */
+/* ========================================== */
+html:not(.dark) {
+  --background: #e2e8f0; /* Background halaman abu-abu kebiruan */
+  --foreground: #0f172a;
+  --card: #ffffff;       /* Card putih bersih */
+  --border: #cbd5e1;
+}
+
+html:not(.dark) body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Paksa semua card, header, dan elemen background menjadi putih solid (TIDAK TRANSPARAN) */
+html:not(.dark) .bg-card,
+html:not(.dark) .bg-gradient-to-br,
+html:not(.dark) .bg-gradient-to-t,
+html:not(.dark) .bg-secondary\/50,
+html:not(.dark) .bg-background\/80,
+html:not(.dark) header {
+  background: #ffffff !important;
+  background-image: none !important; /* Hilangkan gradien */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Paksa teks agar tetap gelap dan kontras */
+html:not(.dark) .text-muted-foreground {
+  color: #475569 !important;
+}
+/* ========================================== */
+/* PAKSA MODE TERANG JADI 100% SOLID          */
+/* ========================================== */
+html:not(.dark) {
+  --background: #e2e8f0; 
+  --foreground: #0f172a;
+  --card: #ffffff;       
+  --border: #cbd5e1;
+}
+
+html:not(.dark) body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Paksa semua card, header, ikon, dan tombol menjadi solid */
+html:not(.dark) .bg-card,
+html:not(.dark) .bg-secondary,
+html:not(.dark) .bg-primary\/15,
+html:not(.dark) .bg-destructive\/15,
+html:not(.dark) .bg-accent\/15,
+html:not(.dark) header {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Paksa ikon dan teks agar tidak transparan */
+html:not(.dark) .text-muted-foreground {
+  color: #475569 !important;
+}
+html:not(.dark) .text-primary {
+  color: #0ea5e9 !important;
+}
+html:not(.dark) .text-destructive {
+  color: #ef4444 !important;
+}
+html:not(.dark) .text-accent {
+  color: #10b981 !important;
+}
+
+/* Tombol keluar dan ikon toko */
+html:not(.dark) button.bg-destructive\/15 {
+  background-color: #fee2e2 !important; /* Merah muda solid */
+  color: #ef4444 !important;
+}
+html:not(.dark) .bg-primary\/15 {
+  background-color: #e0f2fe !important; /* Biru muda solid */
+  color: #0ea5e9 !important;
+}
