@@ -1,8 +1,7 @@
 'use client'
-
+import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { useAntrian } from '@/hooks/useAntrian'
-const { isDark, toggleTheme, mounted } = useTheme()
 import { motion, AnimatePresence } from 'framer-motion'
 import { ref, update, remove, set, onValue, push, get } from 'firebase/database'
 import { db } from '@/lib/firebase'
@@ -19,7 +18,7 @@ import {
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
   const { antrian, setting, loading: dataLoading } = useAntrian(user?.tokoId || 'ufo-kebonsari')
-  const { isDark, toggleTheme, mounted } = useThemeMode()
+ const { isDark, toggleTheme, mounted } = useTheme()
   
   const [isUpdating, setIsUpdating] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
