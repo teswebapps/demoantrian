@@ -335,10 +335,9 @@ export default function PromotorPage() {
           </div>
         </section>
 
-        {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN */}
+        {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN (TANPA EFEK BLUR) */}
         {statusSaya === 'Offline' && (
-          <div className="bg-gradient-to-br from-card to-card/50 rounded-3xl p-6 shadow-sm border border-border/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+          <div className="bg-card rounded-3xl p-6 shadow-sm border border-border relative overflow-hidden">
             {sudahCheckinHariIni ? (
               <div className="text-center py-4 relative z-10">
                 <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -385,11 +384,9 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: STANDBY */}
+        {/* STATUS: STANDBY (TANPA EFEK BLUR) */}
         {statusSaya === 'Standby' && (
-          <div className="bg-gradient-to-br from-card to-card/50 rounded-3xl p-6 text-center shadow-xl border border-border/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-            
+          <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border relative overflow-hidden">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
             <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">{(listHA.findIndex(a => a.nama === userData.nama) + 1).toString().padStart(2, '0')}</div>
             <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {dataSaya?.kategori}</div>
@@ -416,7 +413,7 @@ export default function PromotorPage() {
 
         {/* STATUS: MELAYANI */}
         {statusSaya === 'Melayani' && (
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
+          <div className="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
             <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
             <p className="text-xs text-blue-100 mb-8">Berikan pelayanan terbaik!</p>
             <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition-all"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
@@ -425,7 +422,7 @@ export default function PromotorPage() {
 
         {/* STATUS: DIPANGGIL CS */}
         {statusSaya === 'Dipanggil CS' && (
-          <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
+          <div className="bg-purple-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
             <Package className="w-12 h-12 mx-auto mb-4" />
             <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS</h2>
             <p className="text-xs text-purple-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
@@ -435,8 +432,7 @@ export default function PromotorPage() {
 
         {/* STATUS: IBADAH */}
         {statusSaya === 'Ibadah' && (
-          <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+          <div className="bg-amber-500 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20 relative overflow-hidden">
             <MosqueIcon className="w-12 h-12 mx-auto mb-4 relative z-10" />
             <h2 className="text-2xl font-black mb-2 uppercase relative z-10">Sedang Ibadah</h2>
             <p className="text-xs text-amber-100 mb-8 relative z-10">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
