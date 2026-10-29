@@ -1,31 +1,33 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
+import type { Metadata, Viewport } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
+import './globals.css'
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-inter",
-});
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: "Antrian UFO Elektronika",
-  description: "Sistem Antrian Digital Kebonsari Malang",
-};
+  title: 'Antrian Promotor · UFO Malang Kebonsari',
+  description: 'Aplikasi antrian promotor toko UFO Malang Kebonsari.',
+}
+
+export const viewport: Viewport = {
+  colorScheme: 'dark',
+  themeColor: '#0d1424',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          {children}
-          <Toaster position="top-center" richColors />
-        </ThemeProvider>
+    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} dark`}>
+      <body className="font-sans antialiased">
+        {children}
       </body>
     </html>
-  );
+  )
 }
