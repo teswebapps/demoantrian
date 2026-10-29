@@ -16,6 +16,15 @@ import { ActionBar, type QueueType } from '@/components/queue/action-bar'
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
 
+// IKON MASJID CUSTOM
+const MosqueIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 2c-1.5 2-4 3-4 6 0 1.5.5 2.5 1 3H5v10h14V11h-4c.5-.5 1-1.5 1-3 0-3-2.5-4-4-6z" />
+    <path d="M9 21v-4a3 3 0 0 1 6 0v4" />
+    <path d="M3 21h18" />
+  </svg>
+)
+
 const getTanggalIndo = (d?: Date) => {
   const now = d ? new Date(d) : new Date()
   return `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`
@@ -39,6 +48,7 @@ export default function PromotorPage() {
   const [showClosing, setShowClosing] = useState(false)
   
   const [sudahCheckinHariIni, setSudahCheckinHariIni] = useState(false)
+  const [jamCheckin, setJamCheckin] = useState<number | null>(null)
   const [isLoadingCheckin, setIsLoadingCheckin] = useState(true)
   const [todayKey, setTodayKey] = useState('')
   const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
@@ -87,6 +97,8 @@ export default function PromotorPage() {
     const clean = userData.nama.trim().toLowerCase().replace(/\s+/g, '_')
     const unsub = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`), (snap) => {
       setSudahCheckinHariIni(snap.exists())
+      if (snap.exists()) setJamCheckin(snap.val().waktu)
+      else setJamCheckin(null)
       setIsLoadingCheckin(false)
     })
     return () => unsub()
@@ -252,13 +264,10 @@ export default function PromotorPage() {
     } finally { setIsProcessing(false) }
   }
 
-  // Format Aktivitas
   const aktivitasSaya = aktivitasHariIni.filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
-  
   const listBawaSaya = aktivitasSaya.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
   const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
-  
   const listIbadahSaya = aktivitasSaya.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah') && a.tanggal === hariIniIndo)
   const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
 
@@ -328,9 +337,10 @@ export default function PromotorPage() {
 
         {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN */}
         {statusSaya === 'Offline' && (
-          <div className="bg-card rounded-3xl p-6 shadow-sm border border-border">
+          <div className="bg-gradient-to-br from-card to-card/50 rounded-3xl p-6 shadow-sm border border-border/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
             {sudahCheckinHariIni ? (
-              <div className="text-center py-4">
+              <div className="text-center py-4 relative z-10">
                 <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ShieldCheck className="w-8 h-8 text-accent" />
                 </div>
@@ -342,7 +352,7 @@ export default function PromotorPage() {
                 </button>
               </div>
             ) : (
-              <>
+              <div className="relative z-10">
                 <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase"><MapPin className="w-4 h-4 text-primary" /> Konfirmasi Kehadiran</h2>
                 
                 {gpsAktif && setting?.latToko && setting?.lngToko ? (
@@ -370,33 +380,34 @@ export default function PromotorPage() {
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
                   {isProcessing ? 'Memproses...' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN'}
                 </button>
-              </>
+              </div>
             )}
           </div>
         )}
 
         {/* STATUS: STANDBY */}
         {statusSaya === 'Standby' && (
-          <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Nomor Antrian Anda</p>
-            <div className="text-8xl font-black text-foreground my-2 tracking-tighter">{(listHA.findIndex(a => a.nama === userData.nama) + 1).toString().padStart(2, '0')}</div>
-            <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-secondary text-primary uppercase">KATEGORI {dataSaya?.kategori}</div>
+          <div className="bg-gradient-to-br from-card to-card/50 rounded-3xl p-6 text-center shadow-xl border border-border/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
             
-            {/* TOMBOL SOLID & LEBAR PENUH */}
-            <div className="space-y-3">
-              <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-cyan-500 text-slate-950 font-black rounded-xl shadow-lg shadow-cyan-500/30 hover:bg-cyan-400 transition flex justify-center items-center gap-2">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
+            <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">{(listHA.findIndex(a => a.nama === userData.nama) + 1).toString().padStart(2, '0')}</div>
+            <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {dataSaya?.kategori}</div>
+            
+            <div className="space-y-3 relative z-10">
+              <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-cyan-500 text-slate-950 font-black rounded-xl shadow-lg shadow-cyan-500/30 hover:bg-cyan-400 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <Play className="w-5 h-5 fill-slate-950" /> SUDAH MEMBAWA CUSTOMER
               </button>
               
-              <button onClick={() => handleAksi('Ibadah')} className="w-full py-4 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition flex justify-center items-center gap-2">
-                <Coffee className="w-5 h-5" /> SEDANG IBADAH
+              <button onClick={() => handleAksi('Ibadah')} className="w-full py-4 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-all active:scale-95 flex justify-center items-center gap-2">
+                <MosqueIcon className="w-5 h-5" /> SEDANG IBADAH
               </button>
               
-              <button onClick={() => handleAksi('PanggilCS')} className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-500 transition flex justify-center items-center gap-2">
+              <button onClick={() => handleAksi('PanggilCS')} className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-500 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <Package className="w-5 h-5" /> DIPANGGIL CS / GUDANG
               </button>
               
-              <button onClick={() => handleAksi('Keluar')} className="w-full py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:bg-rose-500 transition flex justify-center items-center gap-2">
+              <button onClick={() => handleAksi('Keluar')} className="w-full py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:bg-rose-500 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <LogOut className="w-5 h-5" /> KELUAR ANTRIAN
               </button>
             </div>
@@ -405,34 +416,35 @@ export default function PromotorPage() {
 
         {/* STATUS: MELAYANI */}
         {statusSaya === 'Melayani' && (
-          <div className="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
             <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
             <p className="text-xs text-blue-100 mb-8">Berikan pelayanan terbaik!</p>
-            <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
+            <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition-all"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
           </div>
         )}
 
         {/* STATUS: DIPANGGIL CS */}
         {statusSaya === 'Dipanggil CS' && (
-          <div className="bg-purple-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
+          <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
             <Package className="w-12 h-12 mx-auto mb-4" />
             <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS</h2>
             <p className="text-xs text-purple-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
-            <button onClick={() => handleAksi('KembaliCS')} className="w-full py-4 bg-white text-purple-700 font-black rounded-xl shadow-lg">KEMBALI ANTRI</button>
+            <button onClick={() => handleAksi('KembaliCS')} className="w-full py-4 bg-white text-purple-700 font-black rounded-xl shadow-lg active:scale-95 transition-all">KEMBALI ANTRI</button>
           </div>
         )}
 
         {/* STATUS: IBADAH */}
         {statusSaya === 'Ibadah' && (
-          <div className="bg-amber-500 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20">
-            <Coffee className="w-12 h-12 mx-auto mb-4" />
-            <h2 className="text-2xl font-black mb-2 uppercase">Sedang Ibadah</h2>
-            <p className="text-xs text-amber-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
-            <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg">SELESAI IBADAH</button>
+          <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+            <MosqueIcon className="w-12 h-12 mx-auto mb-4 relative z-10" />
+            <h2 className="text-2xl font-black mb-2 uppercase relative z-10">Sedang Ibadah</h2>
+            <p className="text-xs text-amber-100 mb-8 relative z-10">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
+            <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg active:scale-95 transition-all relative z-10">SELESAI IBADAH</button>
           </div>
         )}
 
-        {/* MENU AKTIVITAS HARI INI (DENGAN WAKTU) */}
+        {/* MENU AKTIVITAS HARI INI */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
@@ -442,7 +454,17 @@ export default function PromotorPage() {
           {isAktivitasOpen && (
             <div className="p-5 border-t border-border space-y-5">
               
-              {/* 1. Bawa Customer */}
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Check-in</p>
+                <div className="bg-secondary rounded-xl p-3 text-xs flex justify-between items-center">
+                  {jamCheckin ? (
+                    <><span className="text-emerald-500 font-bold">✓ Sudah Check-in</span><span className="text-muted-foreground font-medium">Jam {formatJam(jamCheckin)}</span></>
+                  ) : (
+                    <span className="text-muted-foreground italic">Belum Check-in hari ini</span>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Users className="w-3 h-3" /> Bawa Customer</p>
@@ -457,21 +479,16 @@ export default function PromotorPage() {
                   ) : (
                     listBawaSaya.map((a, i) => (
                       <div key={i} className="bg-secondary rounded-xl p-3 flex justify-between items-center text-xs">
-                        <span className={`font-bold ${a.hasil === 'Deal' ? 'text-emerald-500' : a.hasil === 'Lihat' ? 'text-amber-500' : 'text-blue-500'}`}>
-                          {a.hasil || 'Proses'}
-                        </span>
-                        <span className="text-muted-foreground font-medium">
-                          {formatJam(a.waktuMulai || a.waktu)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'}
-                        </span>
+                        <span className={`font-bold ${a.hasil === 'Deal' ? 'text-emerald-500' : a.hasil === 'Lihat' ? 'text-amber-500' : 'text-blue-500'}`}>{a.hasil || 'Proses'}</span>
+                        <span className="text-muted-foreground font-medium">{formatJam(a.waktuMulai || a.waktu)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'}</span>
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              {/* 2. Ibadah */}
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><Coffee className="w-3 h-3" /> Ibadah</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><MosqueIcon className="w-3 h-3" /> Ibadah</p>
                 <div className="space-y-2">
                   {listIbadahSaya.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
@@ -486,7 +503,6 @@ export default function PromotorPage() {
                 </div>
               </div>
 
-              {/* 3. Keluar Antrian */}
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><LogOut className="w-3 h-3" /> Keluar Antrian</p>
                 <div className="space-y-2">

@@ -15,8 +15,8 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
         <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Store className="size-5" aria-hidden="true" />
         </div>
+        {/* Tulisan "Toko" sudah dihapus */}
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">Toko</p>
           <h1 className="truncate text-base font-semibold leading-tight text-foreground">
             {storeName}
           </h1>
@@ -30,7 +30,6 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
         >
           {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
-
         <button
           type="button"
           onClick={onLogout}
@@ -41,7 +40,7 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
         </button>
       </div>
 
-      <div className="mt-3 flex items-center justify-between rounded-2xl bg-card px-4 py-3">
+      <div className="mt-3 flex items-center justify-between rounded-2xl bg-card px-4 py-3 border border-border shadow-sm">
         <span className="text-sm text-muted-foreground">Status antrian</span>
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
