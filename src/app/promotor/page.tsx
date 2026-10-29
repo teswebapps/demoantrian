@@ -354,7 +354,6 @@ export default function PromotorPage() {
                 </div>
                 <button 
                   onClick={() => {
-                    // Pastikan state terbaru terkirim
                     setKategoriPilih(kategoriPilih);
                     handleAksi('CheckIn');
                   }} 
@@ -399,21 +398,19 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: STANDBY */}
+        {/* STATUS: STANDBY (Nomor Dinamis HA/AV) */}
         {statusSaya === 'Standby' && (
           <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border relative overflow-hidden">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
             <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">
-  {(() => {
-    // Pilih list berdasarkan kategori promotor saat ini
-    const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA;
-    // Hitung posisi (hanya yang statusnya Standby/Melayani)
-    const posisi = listKategoriSaya
-      .filter(a => a.status === 'Standby' || a.status === 'Melayani')
-      .findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1;
-    return posisi.toString().padStart(2, '0');
-  })()}
-</div>
+              {(() => {
+                const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA;
+                const posisi = listKategoriSaya
+                  .filter(a => a.status === 'Standby' || a.status === 'Melayani')
+                  .findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1;
+                return posisi.toString().padStart(2, '0');
+              })()}
+            </div>
             <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {dataSaya?.kategori}</div>
             
             <div className="space-y-3 relative z-10">
@@ -465,7 +462,7 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* MENU AKTIVITAS HARI INI */}
+        {/* MENU AKTIVITAS HARI INI (FONT DIPERBESAR) */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
@@ -476,8 +473,8 @@ export default function PromotorPage() {
             <div className="p-5 border-t border-border space-y-5">
               
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Check-in</p>
-                <div className="bg-secondary rounded-xl p-3 text-xs flex justify-between items-center">
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><ShieldCheck className="w-4 h-4" /> Check-in</p>
+                <div className="bg-secondary rounded-xl p-3 text-sm flex justify-between items-center">
                   {jamCheckin ? (
                     <><span className="text-emerald-500 font-bold">✓ Sudah Check-in</span><span className="text-muted-foreground font-medium">Jam {formatJam(jamCheckin)}</span></>
                   ) : (
@@ -488,18 +485,18 @@ export default function PromotorPage() {
 
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Users className="w-3 h-3" /> Bawa Customer</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1"><Users className="w-4 h-4" /> Bawa Customer</p>
                   <div className="flex gap-2">
-                    <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">Deal: {totalDeal}</span>
-                    <span className="text-[10px] font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">Lihat: {totalLihat}</span>
+                    <span className="text-xs font-bold bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">Deal: {totalDeal}</span>
+                    <span className="text-xs font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">Lihat: {totalLihat}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   {listBawaSaya.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
+                    <p className="text-sm text-muted-foreground italic px-1">Belum ada</p>
                   ) : (
                     listBawaSaya.map((a, i) => (
-                      <div key={i} className="bg-secondary rounded-xl p-3 flex justify-between items-center text-xs">
+                      <div key={i} className="bg-secondary rounded-xl p-3 flex justify-between items-center text-sm">
                         <span className={`font-bold ${a.hasil === 'Deal' ? 'text-emerald-500' : a.hasil === 'Lihat' ? 'text-amber-500' : 'text-blue-500'}`}>{a.hasil || 'Proses'}</span>
                         <span className="text-muted-foreground font-medium">{formatJam(a.waktuMulai || a.waktu)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'}</span>
                       </div>
@@ -509,13 +506,13 @@ export default function PromotorPage() {
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><MosqueIcon className="w-3 h-3" /> Ibadah</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><MosqueIcon className="w-4 h-4" /> Ibadah</p>
                 <div className="space-y-2">
                   {listIbadahSaya.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
+                    <p className="text-sm text-muted-foreground italic px-1">Belum ada</p>
                   ) : (
                     listIbadahSaya.map((a, i) => (
-                      <div key={i} className="bg-secondary rounded-xl p-3 text-xs flex justify-between items-center">
+                      <div key={i} className="bg-secondary rounded-xl p-3 text-sm flex justify-between items-center">
                         <span className="text-foreground font-bold">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
                         <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
                       </div>
@@ -525,13 +522,13 @@ export default function PromotorPage() {
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><LogOut className="w-3 h-3" /> Keluar Antrian</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><LogOut className="w-4 h-4" /> Keluar Antrian</p>
                 <div className="space-y-2">
                   {listKeluarSaya.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic px-1">Belum ada</p>
+                    <p className="text-sm text-muted-foreground italic px-1">Belum ada</p>
                   ) : (
                     listKeluarSaya.map((a, i) => (
-                      <div key={i} className="bg-secondary rounded-xl p-3 text-xs flex justify-between items-center">
+                      <div key={i} className="bg-secondary rounded-xl p-3 text-sm flex justify-between items-center">
                         <span className="text-foreground font-bold">Keluar</span>
                         <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
                       </div>
