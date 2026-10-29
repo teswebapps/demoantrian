@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/useTheme'
 
 export default function TotalBulananPage() {
   const { user, loading: authLoading } = useAuth('ADMIN')
-  const { isDark, toggleTheme, mounted } = useThemeMode()
+const { isDark, toggleTheme, mounted } = useTheme()
   const [loading, setLoading] = useState(true)
   const [aktivitas, setAktivitas] = useState<any[]>([])
   const [tahunIni, setTahunIni] = useState('')

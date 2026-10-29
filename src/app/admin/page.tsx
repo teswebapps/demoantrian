@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { useAntrian } from '@/hooks/useAntrian'
-import { useThemeMode } from '@/hooks/useThemeMode'
+const { isDark, toggleTheme, mounted } = useTheme()
 import { motion, AnimatePresence } from 'framer-motion'
 import { ref, update, remove, set, onValue, push, get } from 'firebase/database'
 import { db } from '@/lib/firebase'
