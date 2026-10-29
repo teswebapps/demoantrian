@@ -7,21 +7,16 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
-import { Loader2, ShieldCheck, Lock, Play, Hand, MapPin, Package, ArrowRight, LogOut } from 'lucide-react'
+import { Loader2, ShieldCheck, Lock, Play, Hand, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, Coffee, ShieldAlert, X } from 'lucide-react'
 
-// --- IMPORT KOMPONEN DARI V0.APP ---
+// IMPORT KOMPONEN ZIP
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
 import { TurnCard } from '@/components/queue/turn-card'
 import { ActionBar, type QueueType } from '@/components/queue/action-bar'
 
-// --- KOMPONEN PETA (Dari kode asli Anda) ---
-const MapComponent = dynamic(() => import('@/components/MapComponent'), { 
-  ssr: false,
-  loading: () => <div className="w-full h-full bg-secondary animate-pulse rounded-2xl flex items-center justify-center text-muted-foreground text-xs">Memuat Peta...</div>
-})
+const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
 
-// --- FUNGSI BANTU ---
 const getTanggalIndo = (d?: Date) => {
   const now = d ? new Date(d) : new Date()
   return `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`
@@ -32,9 +27,7 @@ const getTanggalKey = (d?: Date) => {
 }
 
 export default function PromotorPage() {
- const { isDark, toggleTheme, mounted } = useTheme()
-  
-  // --- STATE ASLI ANDA ---
+  const { isDark, toggleTheme, mounted } = useTheme()
   const [userData, setUserData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -50,8 +43,11 @@ export default function PromotorPage() {
   const [isLoadingCheckin, setIsLoadingCheckin] = useState(true)
   const [todayKey, setTodayKey] = useState('')
   const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
-  const [hariIniIndo, setHariIniIndo] = useState('')
   
+  const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
+  const [isAktivitasOpen, setIsAktivitasOpen] = useState(false)
+  const [hariIniIndo, setHariIniIndo] = useState('')
+
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
 
   useEffect(() => {
@@ -59,7 +55,7 @@ export default function PromotorPage() {
     setTodayKey(getTanggalKey())
   }, [])
 
-  // 1. AUTHENTICATION
+  // Auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user || !user.email) { setUserData(null); setIsLoading(false); return }
@@ -88,7 +84,7 @@ export default function PromotorPage() {
   }
   const handleLogout = async () => { await signOut(auth); setUserData(null) }
 
-  // 2. CHECK-IN HARIAN
+  // Cek Checkin
   useEffect(() => {
     if (!userData || !todayKey) return
     const clean = userData.nama.trim().toLowerCase().replace(/\s+/g, '_')
@@ -99,7 +95,7 @@ export default function PromotorPage() {
     return () => unsub()
   }, [userData, todayKey, TOKO_ID])
 
-  // 3. DATA ANTRIAN, SETTING, DAN LOCK
+  // Data Antrian
   useEffect(() => {
     if (!TOKO_ID) return
     const unsubAntrian = onValue(ref(db, `toko/${TOKO_ID}/antrian`), (snap) => {
@@ -126,10 +122,16 @@ export default function PromotorPage() {
         } else setLockData(null)
       }
     })
-    return () => { unsubAntrian(); unsubSetting(); unsubLock(); }
+    const unsubAktivitas = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
+      setAktivitasHariIni(list)
+    })
+    return () => { unsubAntrian(); unsubSetting(); unsubLock(); unsubAktivitas(); }
   }, [TOKO_ID, userData])
 
-  // 4. TIMER LOCK
+  // Timer Lock
   useEffect(() => {
     if (!lockData || !userData) return
     const interval = setInterval(() => {
@@ -148,7 +150,7 @@ export default function PromotorPage() {
     return () => clearInterval(interval)
   }, [lockData, userData, TOKO_ID])
 
-  // 5. GPS / LOKASI
+  // GPS
   const hitungJarak = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2)
@@ -164,18 +166,12 @@ export default function PromotorPage() {
     return () => navigator.geolocation.clearWatch(watchId)
   }, [setting, userData])
 
-  // --- DATA TURUNAN ---
   const dataSaya = antrian.find(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
   const statusSaya = dataSaya ? dataSaya.status : 'Offline'
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
-  const totalAntri = antrian.filter(a => a.status === 'Standby').length
-  const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
-  
-  const gpsAktif = !!(setting?.latToko && setting?.lngToko)
-  const dalamRadius = !gpsAktif || (jarak !== null && jarak <= (setting?.radiusToko || 50))
 
-  // --- FUNGSI AKSI FIREBASE ASLI ANDA ---
+  // Logika Aksi Firebase
   const handleAksi = async (aksi: string, hasil: string = '') => {
     if (!userData) return
     setIsProcessing(true)
@@ -225,15 +221,6 @@ export default function PromotorPage() {
         } else {
           await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: waktuMulai, waktuMulai: waktuMulai, waktuSelesai: now, tanggal: tglIndo, hasil: hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
         }
-        const bulanKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
-        const snapR = await get(ref(db, `toko/${TOKO_ID}/riwayatBulanan/${bulanKey}/${clean}`))
-        const existing = snapR.exists() ? snapR.val() : { nama: userData.nama, lihat: 0, deal: 0, noSale: 0 }
-        if (hasil === 'Deal') existing.deal = (existing.deal || 0) + 1
-        else if (hasil === 'Lihat') existing.lihat = (existing.lihat || 0) + 1
-        existing.nama = userData.nama
-        existing.lastUpdate = now
-        existing.bulanKey = bulanKey
-        await update(ref(db, `toko/${TOKO_ID}/riwayatBulanan/${bulanKey}/${clean}`), existing)
         toast.success(`Berhasil disimpan: ${hasil}`)
         setShowClosing(false)
       } else if (aksi === 'Ibadah') {
@@ -272,7 +259,14 @@ export default function PromotorPage() {
     } finally { setIsProcessing(false) }
   }
 
-  // --- TAMPILAN ---
+  // Format Aktivitas
+  const aktivitasSaya = aktivitasHariIni.filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
+  const listBawaSaya = aktivitasSaya.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
+  const listIbadahSaya = aktivitasSaya.filter(a => a.aksi === 'MulaiIbadah' && a.tanggal === hariIniIndo)
+  const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
+
+  const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
+
   if (isLoading || !mounted || isLoadingCheckin) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
 
   if (!userData) {
@@ -309,23 +303,24 @@ export default function PromotorPage() {
     )
   }
 
+  const gpsAktif = !!(setting?.latToko && setting?.lngToko)
+  const dalamRadius = !gpsAktif || (jarak !== null && jarak <= (setting?.radiusToko || 50))
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background relative">
       
-      {/* HEADER V0.APP */}
       <AppHeader 
         storeName="UFO Malang Kebonsari" 
         isOpen={setting?.statusAntrian !== 'TUTUP'} 
         onLogout={handleLogout}
         onToggleTheme={toggleTheme}
+        isDark={isDark}
       />
 
-      <main className="flex flex-1 flex-col gap-4 px-4 pb-44 pt-2">
+      <main className="flex-1 px-4 pt-4 pb-48 space-y-6">
         
-        {/* PROMOTOR CARD V0.APP */}
         <PromoterCard name={userData.nama} />
 
-        {/* GILIRAN SAAT INI V0.APP */}
         <section className="flex flex-col gap-3">
           <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Giliran saat ini</h2>
           <div className="grid grid-cols-2 gap-3">
@@ -334,137 +329,146 @@ export default function PromotorPage() {
           </div>
         </section>
 
-        {/* KONDISI STATUS ANDA (CheckIn, Standby, Melayani, dll) */}
-        <div className="space-y-4 mt-2">
-          {statusSaya === 'Offline' && (
-            <div className="bg-card rounded-3xl p-6 shadow-sm border border-border">
-              <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase"><MapPin className="w-4 h-4 text-primary" /> Konfirmasi Kehadiran</h2>
-              {gpsAktif && setting?.latToko && setting?.lngToko ? (
-                <div className="mb-4">
-                  <div className="w-full h-40 rounded-2xl overflow-hidden border border-border relative bg-secondary">
-                    <MapComponent tokoLat={Number(setting.latToko)} tokoLng={Number(setting.lngToko)} radius={Number(setting.radiusToko) || 50} userLat={userLoc?.lat} userLng={userLoc?.lng} />
-                  </div>
-                  <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${dalamRadius ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'}`}>
-                    {jarak !== null ? (dalamRadius ? `✓ Di dalam radius (${jarak.toFixed(0)}m)` : `⚠️ Di luar radius (${jarak.toFixed(0)}m)`) : 'Mendeteksi lokasi...'}
-                  </div>
+        {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN */}
+        {statusSaya === 'Offline' && (
+          <div className="bg-card rounded-3xl p-6 shadow-sm border border-border">
+            {sudahCheckinHariIni ? (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShieldCheck className="w-8 h-8 text-accent" />
                 </div>
-              ) : (
-                <div className="mb-4 p-3 bg-secondary rounded-xl text-center text-xs text-muted-foreground">GPS toko dinonaktifkan.</div>
-              )}
-              <div className="mb-4">
-                <label className="text-xs font-bold text-muted-foreground mb-1 block uppercase">Pilih Kategori</label>
-                <select value={kategoriPilih} onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')} className="w-full bg-background border border-border rounded-xl py-3 px-4 text-sm font-bold text-foreground focus:outline-none focus:border-primary appearance-none">
-                  <option value="HA">HA (Home Appliance)</option>
-                  <option value="AV">AV (Audio Video)</option>
-                </select>
-              </div>
-              <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
-                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
-                {isProcessing ? 'Memproses...' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN'}
-              </button>
-            </div>
-          )}
-
-          {statusSaya === 'Standby' && (
-            <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Nomor Antrian Anda</p>
-              <div className="text-8xl font-black text-foreground my-2 tracking-tighter">{listHA.findIndex(a => a.nama === userData.nama) + 1}</div>
-              <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-secondary text-primary uppercase">KATEGORI {dataSaya?.kategori}</div>
-              <div className="space-y-3">
-                <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2"><Play className="w-5 h-5 fill-primary-foreground" /> SUDAH MEMBAWA CUSTOMER</button>
-                <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => handleAksi('Ibadah')} className="py-3 px-2 bg-amber-500/10 text-amber-500 font-bold rounded-xl text-[11px] flex flex-col justify-center items-center gap-1.5 hover:bg-amber-500/20 transition border border-amber-500/20 leading-tight">
-                    <span className="text-center">SEDANG IBADAH</span>
-                  </button>
-                  <button onClick={() => handleAksi('PanggilCS')} className="py-3 px-2 bg-purple-500/10 text-purple-500 font-bold rounded-xl text-[11px] flex flex-col justify-center items-center gap-1.5 hover:bg-purple-500/20 transition border border-purple-500/20 leading-tight">
-                    <Package className="w-5 h-5" /> <span className="text-center">DIPANGGIL CS</span>
-                  </button>
-                </div>
-                <button onClick={() => handleAksi('Keluar')} className="w-full py-3.5 bg-destructive/10 text-destructive font-bold rounded-xl text-xs flex justify-center items-center gap-2 hover:bg-destructive/20 transition border border-destructive/20">
-                  <LogOut className="w-4 h-4" /> KELUAR ANTRIAN
+                <h2 className="text-lg font-bold text-foreground mb-2 uppercase">Sudah Check-in Hari Ini</h2>
+                <p className="text-xs text-muted-foreground mb-4">Ambil antrian jika ingin mulai bekerja.</p>
+                <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
+                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
+                  {isProcessing ? 'Memproses...' : 'MASUK ANTRIAN'}
                 </button>
               </div>
-            </div>
-          )}
+            ) : (
+              <>
+                <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase"><MapPin className="w-4 h-4 text-primary" /> Konfirmasi Kehadiran</h2>
+                
+                {gpsAktif && setting?.latToko && setting?.lngToko ? (
+                  <div className="mb-4">
+                    <div className="w-full h-40 rounded-2xl overflow-hidden border border-border relative bg-secondary">
+                      <MapComponent tokoLat={Number(setting.latToko)} tokoLng={Number(setting.lngToko)} radius={Number(setting.radiusToko) || 50} userLat={userLoc?.lat} userLng={userLoc?.lng} />
+                    </div>
+                    <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${dalamRadius ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'}`}>
+                      {jarak !== null ? (dalamRadius ? `✓ Di dalam radius (${jarak.toFixed(0)}m)` : `⚠️ Di luar radius (${jarak.toFixed(0)}m)`) : 'Mendeteksi lokasi...'}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-4 p-3 bg-secondary rounded-xl text-center text-xs text-muted-foreground">GPS toko dinonaktifkan.</div>
+                )}
 
-          {statusSaya === 'Melayani' && (
-            <div className="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
-              <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
-              <p className="text-xs text-blue-100 mb-8">Berikan pelayanan terbaik!</p>
-              <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
-            </div>
-          )}
-
-          {statusSaya === 'Dipanggil CS' && (
-            <div className="bg-purple-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
-              <Package className="w-12 h-12 mx-auto mb-4" />
-              <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS</h2>
-              <p className="text-xs text-purple-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
-              <button onClick={() => handleAksi('KembaliCS')} className="w-full py-4 bg-white text-purple-700 font-black rounded-xl shadow-lg">KEMBALI ANTRI</button>
-            </div>
-          )}
-
-          {statusSaya === 'Ibadah' && (
-            <div className="bg-amber-500 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20">
-              <h2 className="text-2xl font-black mb-2 uppercase">Sedang Ibadah</h2>
-              <p className="text-xs text-amber-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
-              <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg">SELESAI IBADAH</button>
-            </div>
-          )}
-        </div>
-
-        {/* LIST ANTRIAN LENGKAP */}
-        <div className="space-y-4 mt-4">
-          {['HA', 'AV'].map((kat) => {
-            const list = kat === 'HA' ? listHA : listAV
-            const listStandby = list.filter(a => a.status === 'Standby')
-            return (
-              <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xs font-bold text-foreground flex items-center gap-2 uppercase">
-                    <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-primary' : 'bg-purple-500'}`}></span>
-                    LIVE {kat}
-                  </h3>
-                  <span className="text-[10px] font-bold bg-secondary text-muted-foreground px-2.5 py-1 rounded-md">{listStandby.length} PROMOTOR</span>
+                <div className="mb-4">
+                  <label className="text-xs font-bold text-muted-foreground mb-1 block uppercase">Pilih Kategori</label>
+                  <select value={kategoriPilih} onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')} className="w-full bg-background border border-border rounded-xl py-3 px-4 text-sm font-bold text-foreground focus:outline-none focus:border-primary appearance-none">
+                    <option value="HA">HA (Home Appliance)</option>
+                    <option value="AV">AV (Audio Video)</option>
+                  </select>
                 </div>
-                <div className="space-y-2">
-                  {list.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-2">Belum ada antrian</p> : list.map((item, idx) => {
-                    const isSaya = item.nama.toLowerCase() === userData?.nama.toLowerCase()
-                    const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0
-                    return (
-                      <div key={idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${isSaya ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/50 border border-transparent'}`}>
-                        <div className="flex items-center gap-3">
-                          <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-destructive text-destructive-foreground' : 'bg-secondary text-muted-foreground'}`}>
-                            {item.status === 'Melayani' ? '-' : (idx+1)}
-                          </span>
-                          <span className={`text-xs font-bold uppercase ${isSaya ? 'text-primary' : 'text-foreground'}`}>{item.nama} {isSaya && '(Anda)'}</span>
-                        </div>
-                        {item.status === 'Melayani' ? <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-500/20 text-blue-500">MELAYANI</span> : 
-                         item.status === 'Dipanggil CS' ? <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-500/20 text-purple-500">CS</span> :
-                         item.status === 'Ibadah' ? <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500/20 text-amber-500">IBADAH</span> :
-                         isGiliranUtama ? <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-destructive text-destructive-foreground animate-pulse">UTAMA</span> :
-                         <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-secondary text-muted-foreground">STANDBY</span>}
-                      </div>
-                    )
-                  })}
-                </div>
+
+                <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
+                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
+                  {isProcessing ? 'Memproses...' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* STATUS: STANDBY */}
+        {statusSaya === 'Standby' && (
+          <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Nomor Antrian Anda</p>
+            <div className="text-8xl font-black text-foreground my-2 tracking-tighter">{(listHA.findIndex(a => a.nama === userData.nama) + 1).toString().padStart(2, '0')}</div>
+            <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-secondary text-primary uppercase">KATEGORI {dataSaya?.kategori}</div>
+            
+            {/* TOMBOL DIBUAT LEBAR PENUH (Sesuai Permintaan) */}
+            <div className="space-y-3">
+              <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 hover:brightness-110 transition flex justify-center items-center gap-2">
+                <Play className="w-5 h-5 fill-primary-foreground" /> SUDAH MEMBAWA CUSTOMER
+              </button>
+              
+              <button onClick={() => handleAksi('Ibadah')} className="w-full py-4 bg-amber-500/15 text-amber-500 font-bold rounded-xl border border-amber-500/20 hover:bg-amber-500/25 transition flex justify-center items-center gap-2">
+                <Coffee className="w-5 h-5" /> SEDANG IBADAH
+              </button>
+              
+              <button onClick={() => handleAksi('PanggilCS')} className="w-full py-4 bg-purple-500/15 text-purple-500 font-bold rounded-xl border border-purple-500/20 hover:bg-purple-500/25 transition flex justify-center items-center gap-2">
+                <Package className="w-5 h-5" /> DIPANGGIL CS / GUDANG
+              </button>
+              
+              <button onClick={() => handleAksi('Keluar')} className="w-full py-4 bg-destructive/15 text-destructive font-bold rounded-xl border border-destructive/20 hover:bg-destructive/25 transition flex justify-center items-center gap-2">
+                <LogOut className="w-5 h-5" /> KELUAR ANTRIAN
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STATUS: MELAYANI */}
+        {statusSaya === 'Melayani' && (
+          <div className="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
+            <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
+            <p className="text-xs text-blue-100 mb-8">Berikan pelayanan terbaik!</p>
+            <button onClick={() => handleAksi('Selesai')} className="w-full py-4 bg-white text-blue-700 font-black rounded-xl shadow-lg flex justify-center items-center gap-2"><ArrowRight className="w-5 h-5" /> SELESAI MELAYANI</button>
+          </div>
+        )}
+
+        {/* STATUS: DIPANGGIL CS */}
+        {statusSaya === 'Dipanggil CS' && (
+          <div className="bg-purple-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
+            <Package className="w-12 h-12 mx-auto mb-4" />
+            <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS</h2>
+            <p className="text-xs text-purple-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
+            <button onClick={() => handleAksi('KembaliCS')} className="w-full py-4 bg-white text-purple-700 font-black rounded-xl shadow-lg">KEMBALI ANTRI</button>
+          </div>
+        )}
+
+        {/* STATUS: IBADAH */}
+        {statusSaya === 'Ibadah' && (
+          <div className="bg-amber-500 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20">
+            <Coffee className="w-12 h-12 mx-auto mb-4" />
+            <h2 className="text-2xl font-black mb-2 uppercase">Sedang Ibadah</h2>
+            <p className="text-xs text-amber-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
+            <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg">SELESAI IBADAH</button>
+          </div>
+        )}
+
+        {/* MENU AKTIVITAS (Dikembalikan) */}
+        <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
+          <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
+            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${isAktivitasOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {isAktivitasOpen && (
+            <div className="p-5 border-t border-border grid grid-cols-2 gap-3">
+              <div className="bg-secondary rounded-xl p-3 text-center">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Bawa Customer</p>
+                <p className="text-lg font-black text-foreground">{listBawaSaya.length}</p>
               </div>
-            )
-          })}
+              <div className="bg-secondary rounded-xl p-3 text-center">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Ibadah</p>
+                <p className="text-lg font-black text-foreground">{listIbadahSaya.length}</p>
+              </div>
+            </div>
+          )}
         </div>
 
       </main>
 
-      {/* ACTION BAR V0.APP */}
-      <ActionBar 
-        disabled={statusSaya !== 'Offline' || setting?.statusAntrian === 'TUTUP' || !dalamRadius} 
-        onTakeTurn={(type: QueueType) => {
-          setKategoriPilih(type);
-          handleAksi('CheckIn');
-        }} 
-      />
+      {/* ACTION BAR (Untuk check-in) */}
+      {statusSaya === 'Offline' && !sudahCheckinHariIni && (
+        <ActionBar 
+          disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} 
+          onTakeTurn={(type: QueueType) => {
+            setKategoriPilih(type);
+            handleAksi('CheckIn');
+          }} 
+        />
+      )}
 
-      {/* MODAL CLOSING (Dari logika Firebase asli Anda) */}
+      {/* MODAL CLOSING */}
       {showClosing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-card rounded-3xl p-6 w-full max-w-sm text-center border border-border shadow-2xl">
