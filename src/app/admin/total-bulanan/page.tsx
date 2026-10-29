@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, Calendar, TrendingUp, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
-import { useThemeMode } from '@/hooks/useThemeMode'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function TotalBulananPage() {
   const { user, loading: authLoading } = useAuth('ADMIN')
