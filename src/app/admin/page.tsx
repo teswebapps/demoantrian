@@ -11,7 +11,7 @@ import {
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
   Trash2, X, Calendar, Sun, Moon,
   History, BarChart3, Coffee, LogOut as LogOutIcon,
-  ShieldAlert, ChevronDown
+  ShieldAlert
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
@@ -73,7 +73,7 @@ export default function AdminPage() {
   const totalHA = antrian.filter(a => a.kategori === 'HA').length
   const totalAV = antrian.filter(a => a.kategori === 'AV').length
 
-  // Filter List Kategori untuk Live Antrian Admin
+  // Filter List Kategori untuk Live Antrian
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
@@ -86,15 +86,17 @@ export default function AdminPage() {
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative font-sans text-slate-200 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-950 flex relative font-sans text-slate-200 transition-colors duration-300 pb-16">
       
-      {/* MODAL POPUP AKTIVITAS */}
+      {/* MODAL POPUP AKTIVITAS & LIVE ANTRIAN */}
       <AnimatePresence>
         {popupType && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-slate-900 rounded-2xl w-full max-w-sm border border-slate-800 shadow-2xl overflow-hidden">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-slate-900 rounded-2xl w-full max-w-md border border-slate-800 shadow-2xl overflow-hidden">
               <div className="flex justify-between items-center p-4 border-b border-slate-800">
                 <h3 className="text-xs font-bold text-white uppercase">
+                  {popupType === 'liveHA' && 'Live Urutan Antrian HA'}
+                  {popupType === 'liveAV' && 'Live Urutan Antrian AV'}
                   {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
                   {popupType === 'ibadah' && 'Ibadah Hari Ini'}
                   {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
@@ -102,7 +104,74 @@ export default function AdminPage() {
                 </h3>
                 <button onClick={() => setPopupType(null)} className="p-1 text-slate-400 hover:text-red-500 bg-slate-800 rounded-full"><X className="w-3.5 h-3.5" /></button>
               </div>
-              <div className="p-4 max-h-[60vh] overflow-y-auto">
+              <div className="p-4 max-h-[65vh] overflow-y-auto">
+                
+                {popupType === 'liveHA' && (
+                  <div className="space-y-1.5">
+                    {listHA.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-3">Belum ada antrian HA</p> : listHA.map((item, idx) => {
+                      const listStandby = listHA.filter(a => a.status === 'Standby');
+                      const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
+                      return (
+                        <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                              {item.status === 'Melayani' ? '-' : (idx + 1)}
+                            </span>
+                            <span className="font-bold text-white uppercase text-[11px]">{item.nama}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.status === 'Melayani' ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-blue-500/20 text-blue-400">Melayani</span>
+                            ) : item.status === 'Dipanggil CS' ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-purple-500/20 text-purple-400">CS</span>
+                            ) : item.status === 'Ibadah' ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-amber-500/20 text-amber-400">Ibadah</span>
+                            ) : isGiliranUtama ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                            ) : (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-800 text-slate-400">Standby</span>
+                            )}
+                            <button onClick={() => hapusAntrian(item.nama)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {popupType === 'liveAV' && (
+                  <div className="space-y-1.5">
+                    {listAV.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-3">Belum ada antrian AV</p> : listAV.map((item, idx) => {
+                      const listStandby = listAV.filter(a => a.status === 'Standby');
+                      const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
+                      return (
+                        <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                              {item.status === 'Melayani' ? '-' : (idx + 1)}
+                            </span>
+                            <span className="font-bold text-white uppercase text-[11px]">{item.nama}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.status === 'Melayani' ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-blue-500/20 text-blue-400">Melayani</span>
+                            ) : item.status === 'Dipanggil CS' ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-purple-500/20 text-purple-400">CS</span>
+                            ) : item.status === 'Ibadah' ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-amber-500/20 text-amber-400">Ibadah</span>
+                            ) : isGiliranUtama ? (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                            ) : (
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-800 text-slate-400">Standby</span>
+                            )}
+                            <button onClick={() => hapusAntrian(item.nama)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
                 {popupType === 'bawa' && (
                   <div className="space-y-1.5">
                     {listBawa.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-2">Belum ada</p> : listBawa.map((a, i) => (
@@ -203,74 +272,25 @@ export default function AdminPage() {
           <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
         </div>
 
-        {/* LIVE URUTAN ANTRIAN (Dua Kolom HA & AV Rapi di HP) */}
-        <div className="space-y-3 mb-5">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Live Urutan Antrian Toko</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {['HA', 'AV'].map((kat) => {
-              const list = kat === 'HA' ? listHA : listAV;
-              const listStandby = list.filter(a => a.status === 'Standby');
-              
-              return (
-                <div key={kat} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm">
-                  <div className="flex justify-between items-center mb-2.5">
-                    <h4 className="text-xs font-bold text-white flex items-center gap-2 uppercase">
-                      <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-cyan-500' : 'bg-purple-500'}`}></span>
-                      Live {kat}
-                    </h4>
-                    <span className="text-[9px] font-bold bg-slate-800 text-slate-400 px-2 py-0.5 rounded">
-                      {listStandby.length} Antri
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                    {list.length === 0 ? (
-                      <p className="text-[11px] text-slate-500 italic text-center py-3">Belum ada antrian</p>
-                    ) : (
-                      list.map((item, idx) => {
-                        const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
-                        
-                        return (
-                          <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-slate-800/40 border border-slate-800 text-xs">
-                            <div className="flex items-center gap-2.5">
-                              <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
-                                {item.status === 'Melayani' ? '-' : (idx + 1)}
-                              </span>
-                              <span className="text-[11px] font-bold uppercase text-white truncate max-w-[100px] md:max-w-[130px]">
-                                {item.nama}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-1.5">
-                              {item.status === 'Melayani' ? (
-                                <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-blue-500/20 text-blue-400">Melayani</span>
-                              ) : item.status === 'Dipanggil CS' ? (
-                                <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-purple-500/20 text-purple-400">CS</span>
-                              ) : item.status === 'Ibadah' ? (
-                                <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-amber-500/20 text-amber-400">Ibadah</span>
-                              ) : isGiliranUtama ? (
-                                <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-rose-500 text-white animate-pulse">Utama</span>
-                              ) : (
-                                <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-800 text-slate-400">Standby</span>
-                              )}
-                              
-                              <button onClick={() => hapusAntrian(item.nama)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Keluarkan"><Trash2 className="w-3 h-3" /></button>
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        {/* MENU AKTIVITAS & LIVE ANTRIAN DI BAWAH (Lengkap dengan Tombol Aktivitas & Rekap + Total Bulanan) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+            <button onClick={() => setPopupType('liveHA')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
+              <span className="w-2 h-2 rounded-full bg-cyan-500 absolute top-2.5 left-2.5"></span>
+              <Users className="w-4 h-4 text-cyan-400 mt-1" />
+              <span className="text-[10px] font-bold text-slate-300 uppercase">Live Antrian HA</span>
+              <span className="text-[9px] text-slate-400 font-semibold">{listHA.filter(a => a.status === 'Standby').length} Antri</span>
+            </button>
 
-        {/* MENU AKTIVITAS (Ringkas & Rapi di Menu Bawah) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Ringkasan Aktivitas Hari Ini</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+            <button onClick={() => setPopupType('liveAV')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
+              <span className="w-2 h-2 rounded-full bg-purple-500 absolute top-2.5 left-2.5"></span>
+              <Users className="w-4 h-4 text-purple-400 mt-1" />
+              <span className="text-[10px] font-bold text-slate-300 uppercase">Live Antrian AV</span>
+              <span className="text-[9px] text-slate-400 font-semibold">{listAV.filter(a => a.status === 'Standby').length} Antri</span>
+            </button>
+
             <button onClick={() => setPopupType('bawa')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
               <Users className="w-4 h-4 text-sky-500" />
               <span className="text-[10px] font-bold text-slate-300 uppercase">Bawa Customer</span>
@@ -293,12 +313,12 @@ export default function AdminPage() {
             </button>
           </div>
           
-          <div className="grid grid-cols-2 gap-2 mt-2.5">
-            <Link href="/admin/aktivitas" className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl py-2 text-center text-[11px] font-bold uppercase hover:bg-cyan-500/20 transition">
-              Aktivitas & Rekap Promotor
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Link href="/admin/aktivitas" className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl py-2.5 text-center text-[11px] font-bold uppercase hover:bg-cyan-500/20 transition flex items-center justify-center gap-1.5">
+              <BarChart3 className="w-3.5 h-3.5" /> Aktivitas & Rekap Promotor
             </Link>
-            <Link href="/admin/total-bulanan" className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl py-2 text-center text-[11px] font-bold uppercase hover:bg-indigo-500/20 transition">
-              Total Bulanan
+            <Link href="/admin/total-bulanan" className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl py-2.5 text-center text-[11px] font-bold uppercase hover:bg-indigo-500/20 transition flex items-center justify-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Total Bulanan
             </Link>
           </div>
         </div>
