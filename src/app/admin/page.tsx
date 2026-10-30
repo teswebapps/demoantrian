@@ -43,8 +43,8 @@ export default function AdminPage() {
     return () => unsub()
   }, [TOKO_ID])
 
-  if (authLoading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>
-  if (error) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-red-500">{error}</div>
+  if (authLoading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+  if (error) return <div className="min-h-screen flex items-center justify-center bg-background text-destructive">{error}</div>
   if (!user) { 
     if (typeof window !== 'undefined') window.location.href = '/login'
     return null 
@@ -86,15 +86,15 @@ export default function AdminPage() {
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative font-sans text-slate-200 transition-colors duration-300 pb-16">
+    <div className="min-h-screen bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-16">
       
       {/* MODAL POPUP AKTIVITAS & LIVE ANTRIAN */}
       <AnimatePresence>
         {popupType && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-slate-900 rounded-2xl w-full max-w-md border border-slate-800 shadow-2xl overflow-hidden">
-              <div className="flex justify-between items-center p-4 border-b border-slate-800">
-                <h3 className="text-xs font-bold text-white uppercase">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-card rounded-3xl w-full max-w-md border border-border shadow-2xl overflow-hidden">
+              <div className="flex justify-between items-center p-5 border-b border-border">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
                   {popupType === 'liveHA' && 'Live Urutan Antrian HA'}
                   {popupType === 'liveAV' && 'Live Urutan Antrian AV'}
                   {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
@@ -102,36 +102,36 @@ export default function AdminPage() {
                   {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
                   {popupType === 'autokick' && 'Autokick (Pelanggaran)'}
                 </h3>
-                <button onClick={() => setPopupType(null)} className="p-1 text-slate-400 hover:text-red-500 bg-slate-800 rounded-full"><X className="w-3.5 h-3.5" /></button>
+                <button onClick={() => setPopupType(null)} className="p-1.5 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
-              <div className="p-4 max-h-[65vh] overflow-y-auto">
+              <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5">
                 
                 {popupType === 'liveHA' && (
-                  <div className="space-y-1.5">
-                    {listHA.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-3">Belum ada antrian HA</p> : listHA.map((item, idx) => {
+                  <div className="space-y-2">
+                    {listHA.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada antrian HA</p> : listHA.map((item, idx) => {
                       const listStandby = listHA.filter(a => a.status === 'Standby');
                       const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
                       return (
-                        <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                        <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
+                          <div className="flex items-center gap-2.5">
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
                               {item.status === 'Melayani' ? '-' : (idx + 1)}
                             </span>
-                            <span className="font-bold text-white uppercase text-[11px]">{item.nama}</span>
+                            <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{item.nama}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {item.status === 'Melayani' ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-blue-500/20 text-blue-400">Melayani</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 dark:bg-blue-500/20 text-white dark:text-blue-400">Melayani</span>
                             ) : item.status === 'Dipanggil CS' ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-purple-500/20 text-purple-400">CS</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">CS / GUDANG</span>
                             ) : item.status === 'Ibadah' ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-amber-500/20 text-amber-400">Ibadah</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-400">Ibadah</span>
                             ) : isGiliranUtama ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
                             ) : (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-800 text-slate-400">Standby</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
                             )}
-                            <button onClick={() => hapusAntrian(item.nama)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></button>
+                            <button onClick={() => hapusAntrian(item.nama)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>
                       )
@@ -140,31 +140,31 @@ export default function AdminPage() {
                 )}
 
                 {popupType === 'liveAV' && (
-                  <div className="space-y-1.5">
-                    {listAV.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-3">Belum ada antrian AV</p> : listAV.map((item, idx) => {
+                  <div className="space-y-2">
+                    {listAV.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada antrian AV</p> : listAV.map((item, idx) => {
                       const listStandby = listAV.filter(a => a.status === 'Standby');
                       const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
                       return (
-                        <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                        <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
+                          <div className="flex items-center gap-2.5">
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
                               {item.status === 'Melayani' ? '-' : (idx + 1)}
                             </span>
-                            <span className="font-bold text-white uppercase text-[11px]">{item.nama}</span>
+                            <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{item.nama}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {item.status === 'Melayani' ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-blue-500/20 text-blue-400">Melayani</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 dark:bg-blue-500/20 text-white dark:text-blue-400">Melayani</span>
                             ) : item.status === 'Dipanggil CS' ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-purple-500/20 text-purple-400">CS</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">CS / GUDANG</span>
                             ) : item.status === 'Ibadah' ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-amber-500/20 text-amber-400">Ibadah</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-400">Ibadah</span>
                             ) : isGiliranUtama ? (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
                             ) : (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-800 text-slate-400">Standby</span>
+                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
                             )}
-                            <button onClick={() => hapusAntrian(item.nama)} className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></button>
+                            <button onClick={() => hapusAntrian(item.nama)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>
                       )
@@ -173,49 +173,49 @@ export default function AdminPage() {
                 )}
 
                 {popupType === 'bawa' && (
-                  <div className="space-y-1.5">
-                    {listBawa.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-2">Belum ada</p> : listBawa.map((a, i) => (
-                      <div key={i} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-white uppercase text-[11px]">{a.nama}</span>
-                          {a.hasil === 'Deal' && <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">DEAL</span>}
-                          {a.hasil === 'Lihat' && <span className="text-[8px] font-black bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">LIHAT</span>}
-                          {!a.waktuSelesai && <span className="text-[8px] font-black bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded animate-pulse">PROSES</span>}
+                  <div className="space-y-2">
+                    {listBawa.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada aktivitas</p> : listBawa.map((a, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{a.nama}</span>
+                          {a.hasil === 'Deal' && <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">DEAL</span>}
+                          {a.hasil === 'Lihat' && <span className="text-[9px] font-black bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">LIHAT</span>}
+                          {!a.waktuSelesai && <span className="text-[9px] font-black bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded animate-pulse">PROSES</span>}
                         </div>
-                        <span className="text-[10px] text-slate-400">({formatJam(a.waktuMulai)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'})</span>
+                        <span className="text-xs text-muted-foreground font-medium">{formatJam(a.waktuMulai)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {popupType === 'ibadah' && (
-                  <div className="space-y-1.5">
-                    {listIbadah.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-2">Belum ada</p> : listIbadah.map((a, i) => (
-                      <div key={i} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
-                        <span className="font-bold text-white uppercase text-[11px]">{a.nama}</span>
-                        <span className="text-[10px] text-slate-400">{formatJam(a.waktu)}</span>
+                  <div className="space-y-2">
+                    {listIbadah.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada</p> : listIbadah.map((a, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
+                        <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{a.nama}</span>
+                        <span className="text-xs text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {popupType === 'keluar' && (
-                  <div className="space-y-1.5">
-                    {listKeluar.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-2">Belum ada</p> : listKeluar.map((a, i) => (
-                      <div key={i} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
-                        <span className="font-bold text-white uppercase text-[11px]">{a.nama}</span>
-                        <span className="text-[10px] text-slate-400">{formatJam(a.waktu)}</span>
+                  <div className="space-y-2">
+                    {listKeluar.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada</p> : listKeluar.map((a, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
+                        <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{a.nama}</span>
+                        <span className="text-xs text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {popupType === 'autokick' && (
-                  <div className="space-y-1.5">
-                    {listAutokick.length === 0 ? <p className="text-[11px] text-slate-400 italic text-center py-2">Tidak ada pelanggaran</p> : listAutokick.map((a, i) => (
-                      <div key={i} className="flex justify-between items-center p-2.5 bg-slate-800/60 rounded-xl text-xs">
+                  <div className="space-y-2">
+                    {listAutokick.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Tidak ada pelanggaran</p> : listAutokick.map((a, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
                         <div>
-                          <span className="font-bold text-white uppercase block text-[11px]">{a.nama}</span>
-                          <span className="text-[9px] text-red-400 font-bold">{a.hasil || a.kategori}</span>
+                          <span className="font-bold text-slate-900 dark:text-foreground uppercase block text-xs">{a.nama}</span>
+                          <span className="text-[10px] text-destructive font-bold">{a.hasil || a.kategori}</span>
                         </div>
-                        <span className="text-[10px] text-slate-400">{formatJam(a.waktu)}</span>
+                        <span className="text-xs text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
                       </div>
                     ))}
                   </div>
@@ -226,46 +226,46 @@ export default function AdminPage() {
         )}
       </AnimatePresence>
 
-      {/* SIDEBAR (Hanya Desktop) */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex-col hidden md:flex">
-        <div className="p-5 flex items-center gap-3 border-b border-slate-800">
+      {/* SIDEBAR (Desktop) */}
+      <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
+        <div className="p-5 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20"><Shield className="w-4 h-4 text-white" /></div>
-          <div><h1 className="text-xs font-bold text-white uppercase">UFO Admin</h1><p className="text-[9px] text-slate-400 uppercase">Kebonsari</p></div>
+          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Admin</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
         </div>
         <nav className="flex-1 p-3 space-y-1.5">
-          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 font-semibold text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
-          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
-          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
+          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
+          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
-        <div className="p-3 border-t border-slate-800">
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition text-xs font-semibold"><LogOut className="w-3.5 h-3.5" /> Keluar</button>
+        <div className="p-3 border-t border-border">
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/20 transition text-xs font-semibold"><LogOut className="w-3.5 h-3.5" /> Keluar</button>
         </div>
       </aside>
 
       {/* KONTEN UTAMA */}
-      <main className="flex-1 p-3 md:p-6 overflow-y-auto max-w-5xl mx-auto">
+      <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-5xl mx-auto">
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-5">
           <div>
-            <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-tight">Dashboard Admin</h2>
-            <p className="text-xs text-slate-400">Halo, <span className="text-cyan-400 font-bold uppercase">{user?.nama}</span></p>
+            <h2 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Dashboard Admin</h2>
+            <p className="text-xs text-muted-foreground">Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span></p>
           </div>
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <button onClick={toggleTheme} className="p-2 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-500 transition-colors shadow-sm">
+            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={toggleStatusAntrian} disabled={isUpdating} className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold tracking-wide transition-all border shadow-sm uppercase ${setting?.statusAntrian === 'BUKA' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+            <button onClick={toggleStatusAntrian} disabled={isUpdating} className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold tracking-wide transition-all border shadow-sm uppercase ${setting?.statusAntrian === 'BUKA' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>
               {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : setting?.statusAntrian === 'BUKA' ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
               {setting?.statusAntrian === 'BUKA' ? 'DIBUKA' : 'DITUTUP'}
             </button>
-            <button onClick={logout} className="md:hidden p-2 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
         {/* STATISTIK KARTU KECIL */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <StatCard title="Total Antri" value={totalStandby} icon={<Users />} color="text-sky-500" bg="bg-sky-500/10" />
           <StatCard title="Sedang Dilayani" value={totalMelayani} icon={<UserCheck />} color="text-cyan-500" bg="bg-cyan-500/10" />
           <StatCard title="Kategori HA" value={totalHA} icon={<ListOrdered />} color="text-amber-500" bg="bg-amber-500/10" />
@@ -273,52 +273,52 @@ export default function AdminPage() {
         </div>
 
         {/* MENU AKTIVITAS & LIVE ANTRIAN DI BAWAH */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
+        <div className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm space-y-4">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
-            <button onClick={() => setPopupType('liveHA')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
-              <span className="w-2 h-2 rounded-full bg-cyan-500 absolute top-2.5 left-2.5"></span>
-              <Users className="w-4 h-4 text-cyan-400 mt-1" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase">Live Antrian HA</span>
-              <span className="text-[9px] text-slate-400 font-semibold">{listHA.filter(a => a.status === 'Standby').length} Antri</span>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <button onClick={() => setPopupType('liveHA')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-cyan-500 absolute top-3 left-3"></span>
+              <Users className="w-4 h-4 text-cyan-500 mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Live Antrian HA</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">{listHA.filter(a => a.status === 'Standby').length} Antri</span>
             </button>
 
-            <button onClick={() => setPopupType('liveAV')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
-              <span className="w-2 h-2 rounded-full bg-purple-500 absolute top-2.5 left-2.5"></span>
-              <Users className="w-4 h-4 text-purple-400 mt-1" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase">Live Antrian AV</span>
-              <span className="text-[9px] text-slate-400 font-semibold">{listAV.filter(a => a.status === 'Standby').length} Antri</span>
+            <button onClick={() => setPopupType('liveAV')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-purple-500 absolute top-3 left-3"></span>
+              <Users className="w-4 h-4 text-purple-500 mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Live Antrian AV</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">{listAV.filter(a => a.status === 'Standby').length} Antri</span>
             </button>
 
-            <button onClick={() => setPopupType('bawa')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
-              <Users className="w-4 h-4 text-sky-500" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase">Bawa Customer</span>
-              <span className="absolute top-2 right-2 text-[8px] font-black bg-sky-500 text-white px-1.5 py-0.2 rounded-full">{listBawa.length}</span>
+            <button onClick={() => setPopupType('bawa')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <Users className="w-4 h-4 text-sky-500 mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Bawa Customer</span>
+              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-sky-500 text-white px-2 py-0.5 rounded-full">{listBawa.length}</span>
             </button>
-            <button onClick={() => setPopupType('ibadah')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
-              <Coffee className="w-4 h-4 text-amber-500" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase">Ibadah</span>
-              <span className="absolute top-2 right-2 text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.2 rounded-full">{listIbadah.length}</span>
+            <button onClick={() => setPopupType('ibadah')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <Coffee className="w-4 h-4 text-amber-500 mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Ibadah</span>
+              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">{listIbadah.length}</span>
             </button>
-            <button onClick={() => setPopupType('keluar')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
-              <LogOutIcon className="w-4 h-4 text-rose-500" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase">Keluar Antrian</span>
-              <span className="absolute top-2 right-2 text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.2 rounded-full">{listKeluar.length}</span>
+            <button onClick={() => setPopupType('keluar')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <LogOutIcon className="w-4 h-4 text-rose-500 mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Keluar Antrian</span>
+              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full">{listKeluar.length}</span>
             </button>
-            <button onClick={() => setPopupType('autokick')} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-slate-800 transition">
-              <ShieldAlert className="w-4 h-4 text-red-500" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase">Autokick</span>
-              <span className="absolute top-2 right-2 text-[8px] font-black bg-red-500 text-white px-1.5 py-0.2 rounded-full">{listAutokick.length}</span>
+            <button onClick={() => setPopupType('autokick')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <ShieldAlert className="w-4 h-4 text-destructive mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Autokick</span>
+              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-destructive text-white px-2 py-0.5 rounded-full">{listAutokick.length}</span>
             </button>
           </div>
           
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <Link href="/admin/aktivitas" className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl py-2.5 text-center text-[11px] font-bold uppercase hover:bg-cyan-500/20 transition flex items-center justify-center gap-1.5">
-              <BarChart3 className="w-3.5 h-3.5" /> Aktivitas & Rekap Promotor
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+            <Link href="/admin/aktivitas" className="bg-primary/10 border border-primary/20 text-primary rounded-2xl py-3 text-center text-[11px] font-bold uppercase hover:bg-primary/20 transition flex items-center justify-center gap-2 shadow-sm">
+              <BarChart3 className="w-4 h-4" /> Aktivitas & Rekap Promotor
             </Link>
-            <Link href="/admin/total-bulanan" className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl py-2.5 text-center text-[11px] font-bold uppercase hover:bg-indigo-500/20 transition flex items-center justify-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" /> Total Bulanan
+            <Link href="/admin/total-bulanan" className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 rounded-2xl py-3 text-center text-[11px] font-bold uppercase hover:bg-indigo-500/20 transition flex items-center justify-center gap-2 shadow-sm">
+              <Calendar className="w-4 h-4" /> Total Bulanan
             </Link>
           </div>
         </div>
@@ -330,9 +330,9 @@ export default function AdminPage() {
 
 function StatCard({ title, value, icon, color, bg }: { title: string, value: number, icon: React.ReactNode, color: string, bg: string }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-col justify-between shadow-sm">
-      <div className="flex justify-between items-start mb-2"><div className={`p-1.5 rounded-lg ${bg} ${color}`}>{icon}</div></div>
-      <div><p className="text-xl font-black text-white">{value}</p><p className="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-wide">{title}</p></div>
+    <div className="bg-card border border-border p-3.5 rounded-3xl flex flex-col justify-between shadow-sm">
+      <div className="flex justify-between items-start mb-3"><div className={`p-2 rounded-2xl ${bg} ${color}`}>{icon}</div></div>
+      <div><p className="text-xl md:text-2xl font-black text-foreground">{value}</p><p className="text-[10px] text-muted-foreground font-bold mt-0.5 uppercase tracking-wide">{title}</p></div>
     </div>
   )
 }
