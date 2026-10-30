@@ -59,7 +59,6 @@ export default function PromotorPage() {
   
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(false)
-  const [isBulananOpen, setIsBulananOpen] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
@@ -295,7 +294,7 @@ export default function PromotorPage() {
     }, {})
 
   const listRekapBulanan = Object.keys(rekapBulananMap)
-    .sort((a, b) => b.localeCompare(a)) // Urutkan dari bulan terbaru
+    .sort((a, b) => b.localeCompare(a))
     .map(k => rekapBulananMap[k])
 
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
@@ -573,7 +572,7 @@ export default function PromotorPage() {
           })}
         </div>
 
-        {/* MENU AKTIVITAS HARI INI */}
+        {/* MENU AKTIVITAS HARI INI & REKAP BULANAN DI DALAMNYA */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
@@ -646,41 +645,29 @@ export default function PromotorPage() {
                   )}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* MENU REKAP TOTAL BULANAN */}
-        <div className="bg-card border border-border rounded-3xl overflow-hidden mt-4">
-          <button onClick={() => setIsBulananOpen(!isBulananOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><CalendarDays className="w-5 h-5 text-muted-foreground" /> Rekap Total Bulanan</h3>
-            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${isBulananOpen ? 'rotate-180' : ''}`} />
-          </button>
-          
-          {isBulananOpen && (
-            <div className="p-5 border-t border-border space-y-3">
-              {listRekapBulanan.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic text-center py-2">Belum ada riwayat rekap bulanan</p>
-              ) : (
-                listRekapBulanan.map((rekap: any, idx: number) => (
-                  <div key={idx} className="bg-secondary/60 border border-border/50 rounded-2xl p-4 flex justify-between items-center">
-                    <div>
-                      <h4 className="text-sm font-black text-foreground uppercase">{rekap.label}</h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Total customer dilayani</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-center">
-                        <span className="block text-[10px] font-bold text-emerald-500 uppercase">Deal</span>
-                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{rekap.deal}</span>
+              {/* REKAP TOTAL BULANAN DI DALAM ACCORDION AKTIVITAS */}
+              <div className="pt-2 border-t border-border/60">
+                <p className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-1"><CalendarDays className="w-4 h-4" /> Rekap Total Bulanan</p>
+                <div className="space-y-2">
+                  {listRekapBulanan.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic px-1">Belum ada riwayat rekap bulanan</p>
+                  ) : (
+                    listRekapBulanan.map((rekap: any, idx: number) => (
+                      <div key={idx} className="bg-secondary rounded-xl p-3 flex justify-between items-center text-sm">
+                        <div>
+                          <span className="font-bold text-foreground block">{rekap.label}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-xs font-bold bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">Deal: {rekap.deal}</span>
+                          <span className="text-xs font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">Lihat: {rekap.lihat}</span>
+                        </div>
                       </div>
-                      <div className="bg-amber-500/15 border border-amber-500/30 px-3 py-1.5 rounded-xl text-center">
-                        <span className="block text-[10px] font-bold text-amber-500 uppercase">Lihat</span>
-                        <span className="text-sm font-black text-amber-600 dark:text-amber-400">{rekap.lihat}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+                    ))
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
         </div>
