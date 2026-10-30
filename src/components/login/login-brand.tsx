@@ -11,17 +11,17 @@ export function LoginBrand() {
   return (
     <section className="flex flex-1 flex-col items-center justify-center text-center mt-10">
       <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
-        {/* Efek Cahaya Biru Paksa (Hex Color) di belakang logo */}
+        {/* Efek Cahaya Biru Paksa di belakang logo */}
         <div
           aria-hidden="true"
           className="absolute inset-0 rounded-[28px] blur-2xl opacity-50"
-          style={{ backgroundColor: '#0ea5e9' }} // Biru Cyan Solid
+          style={{ backgroundColor: '#0ea5e9' }} 
         />
         
         {/* Logo UFO */}
         <div 
           className="relative flex size-28 items-center justify-center overflow-hidden rounded-[28px] bg-transparent shadow-2xl" 
-          style={{ boxShadow: '0 10px 30px -5px rgba(14, 165, 233, 0.5)' }} // Shadow biru
+          style={{ boxShadow: '0 10px 30px -5px rgba(14, 165, 233, 0.5)' }}
         >
           <Image 
             src="/logo-ufo.png" 
@@ -35,10 +35,10 @@ export function LoginBrand() {
       </div>
 
       <h1 className="mt-8 text-balance text-3xl font-extrabold tracking-tight text-foreground">
-        Antrian Walk-In Promotor
+        Sistem Antrian
       </h1>
       <p className="mt-2 text-sm font-medium text-muted-foreground">
-        {'UFO Malang · Kebonsari'}
+        {'UFO Elektronika · Kebonsari'}
       </p>
 
       <ul className="mt-8 flex flex-wrap justify-center gap-2 text-xs font-semibold">

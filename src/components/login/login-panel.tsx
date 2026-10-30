@@ -19,7 +19,6 @@ export function LoginPanel() {
     try {
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
-
       if (!user.email) throw new Error('Akun Google tidak mengirimkan email.')
 
       const emailKey = user.email.replace(/\./g, ',')
@@ -31,13 +30,9 @@ export function LoginPanel() {
       }
 
       const data = snap.val()
-      const role = data.role
-
-      if (role === 'ADMIN') {
-        router.push('/admin')
-      } else if (role === 'PROMOTOR') {
-        router.push('/promotor')
-      } else {
+      if (data.role === 'ADMIN') router.push('/admin')
+      else if (data.role === 'PROMOTOR') router.push('/promotor')
+      else {
         await auth.signOut()
         throw new Error('Role akun tidak valid.')
       }
@@ -56,7 +51,6 @@ export function LoginPanel() {
       aria-labelledby="login-title"
       className="mt-8 rounded-[28px] bg-card border border-border p-6 shadow-2xl shadow-black/5 dark:shadow-black/40 relative overflow-hidden"
     >
-      {/* Garis Gradien Biru di atas card */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-600"></div>
 
       <h2 id="login-title" className="text-xl font-black text-foreground text-center">
@@ -67,10 +61,7 @@ export function LoginPanel() {
       </p>
 
       {error && (
-        <div
-          role="alert"
-          className="mb-4 flex items-start gap-3 rounded-2xl bg-destructive/10 p-3.5 text-sm text-destructive border border-destructive/20"
-        >
+        <div role="alert" className="mb-4 flex items-start gap-3 rounded-2xl bg-destructive/10 p-3.5 text-sm text-destructive border border-destructive/20">
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </div>
@@ -82,17 +73,12 @@ export function LoginPanel() {
         onClick={handleLogin}
         disabled={loading}
         className="group relative flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-slate-800 border border-slate-200 
-        shadow-[0_6px_0_0_#e2e8f0] 
-        transition-all duration-150 ease-out
+        shadow-[0_6px_0_0_#e2e8f0] transition-all duration-150 ease-out
         hover:translate-y-[2px] hover:shadow-[0_4px_0_0_#e2e8f0]
         active:translate-y-[6px] active:shadow-none
         disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-[0_6px_0_0_#e2e8f0]"
       >
-        {loading ? (
-          <Loader2 className="size-5 animate-spin text-slate-800" />
-        ) : (
-          <GoogleIcon className="size-5" />
-        )}
+        {loading ? <Loader2 className="size-5 animate-spin text-slate-800" /> : <GoogleIcon className="size-5" />}
         {loading ? 'Menghubungkan...' : 'Lanjutkan dengan Google'}
       </button>
 

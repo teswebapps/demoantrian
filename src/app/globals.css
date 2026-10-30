@@ -230,3 +230,8 @@ html:not(.dark) .bg-primary\/15 {
   background-color: #e0f2fe !important; /* Biru muda solid */
   color: #0ea5e9 !important;
 }
+@keyframes float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
