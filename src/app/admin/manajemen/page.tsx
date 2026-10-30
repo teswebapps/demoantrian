@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, UserPlus, UserMinus, Trash2, Play, Lock, Unlock, RotateCcw, ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon } from 'lucide-react'
+import { Loader2, UserPlus, UserMinus, Trash2, Play, Lock, Unlock, RotateCcw, ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -75,7 +75,7 @@ export default function ManajemenPage() {
     } catch (err) { alert('Gagal menambah promotor.') } finally { setIsProcessing(false) }
   }
 
-  const handlePaksaAntri = async () => {
+  const handleMasukanAntri = async () => {
     if (!selectedSales) return alert('Pilih promotor!')
     setIsProcessing(true)
     try {
@@ -87,20 +87,20 @@ export default function ManajemenPage() {
         kategori: selectedKategori, subkategori: selectedKategori,
         posisiTerkunci: 0, timerMulai: 0, timerAksi: ''
       })
-      alert('Berhasil dimasukkan ke antrian.')
+      alert('Berhasil memasukkan promotor ke antrian.')
       setSelectedSales('')
     } catch (err: any) { alert(err.message) } finally { setIsProcessing(false) }
   }
 
-  const handlePaksaKeluar = async () => {
+  const handleKeluarkanAntrian = async () => {
     if (!selectedSales) return alert('Pilih promotor!')
     setIsProcessing(true)
     try {
       const clean = selectedSales.trim().toLowerCase().replace(/\s+/g, '_')
       await remove(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
-      alert('Berhasil dikeluarkan dari antrian.')
+      alert('Berhasil mengeluarkan promotor dari antrian.')
       setSelectedSales('')
-    } catch (err) { alert('Gagal mengeluarkan.') } finally { setIsProcessing(false) }
+    } catch (err) { alert('Gagal mengeluarkan promotor.') } finally { setIsProcessing(false) }
   }
 
   const handleHapusPermanen = async () => {
@@ -134,7 +134,7 @@ export default function ManajemenPage() {
         tanggal: new Date().toLocaleDateString('id-ID').split('/').join('-'),
         waktuMulai: Date.now(), keterangan: 'Dipaksa Admin'
       })
-      alert('Promotor dipaksa melayani.')
+      alert('Promotor dipaksa melayani customer.')
       setSelectedSales('')
     } catch (err) { alert('Gagal memproses.') } finally { setIsProcessing(false) }
   }
@@ -220,61 +220,65 @@ export default function ManajemenPage() {
         <div className="space-y-4">
           
           {/* TAMBAH PROMOTOR */}
-          <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+          <div className="bg-card bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Tambah Promotor Baru</h3>
             <form onSubmit={handleTambahPromotor} className="space-y-3">
-              <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-bold text-foreground focus:outline-none uppercase" required />
-              <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" required />
+              <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-bold text-foreground focus:outline-none uppercase" required />
+              <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" required />
               <button type="submit" disabled={isProcessing} className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-2xl uppercase tracking-wider text-xs hover:opacity-95 transition shadow-sm">Simpan Promotor</button>
             </form>
           </div>
 
-          {/* MANAJEMEN ANTRIAN */}
-          <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+          {/* MANAJEMEN URUTAN ANTRIAN */}
+          <div className="bg-card bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Manajemen Urutan Antrian</h3>
             <div className="space-y-3">
-              <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
+              <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="">-- Pilih Promotor --</option>
                 {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
               </select>
+              
               <div className="grid grid-cols-2 gap-3">
-                <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
+                <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                   <option value="HA">Kategori HA</option>
                   <option value="AV">Kategori AV</option>
                 </select>
-                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
+                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={handlePaksaAntri} disabled={isProcessing} className="py-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold rounded-2xl text-[11px] uppercase hover:bg-emerald-500/20 transition">Paksa Masuk Antrian</button>
-                <button onClick={handlePaksaKeluar} disabled={isProcessing} className="py-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold rounded-2xl text-[11px] uppercase hover:bg-amber-500/20 transition">Paksa Keluar</button>
+
+              {/* TOMBOL AKSI ANTRIAN (SOLID DI MODE TERANG) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button onClick={handleMasukanAntri} disabled={isProcessing} className="py-3 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/20 font-bold rounded-2xl text-[11px] uppercase hover:bg-emerald-200 dark:hover:bg-emerald-500/20 transition shadow-sm">Masukkan Promotor ke Antrian</button>
+                <button onClick={handleKeluarkanAntrian} disabled={isProcessing} className="py-3 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-500/20 font-bold rounded-2xl text-[11px] uppercase hover:bg-amber-200 dark:hover:bg-amber-500/20 transition shadow-sm">Keluarkan Promotor dari Antrian</button>
               </div>
-              <button onClick={handleHapusPermanen} disabled={isProcessing} className="w-full py-3 bg-destructive/10 text-destructive border border-destructive/20 font-bold rounded-2xl text-[11px] uppercase flex items-center justify-center gap-2 hover:bg-destructive/20 transition"><Trash2 className="w-4 h-4" /> Hapus Promotor Permanen</button>
+
+              <button onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3 bg-sky-100 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-300 dark:border-sky-500/20 font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-sky-200 dark:hover:bg-sky-500/20 transition shadow-sm">
+                <Play className="w-4 h-4" /> Paksa Bawa Customer (Pilih dari Promotor di Atas)
+              </button>
+
+              <button onClick={handleHapusPermanen} disabled={isProcessing} className="w-full py-3 bg-rose-100 dark:bg-destructive/10 text-rose-700 dark:text-destructive border border-rose-300 dark:border-destructive/20 font-bold rounded-2xl text-[11px] uppercase flex items-center justify-center gap-2 hover:bg-rose-200 dark:hover:bg-destructive/20 transition shadow-sm"><Trash2 className="w-4 h-4" /> Hapus Promotor Permanen</button>
             </div>
           </div>
 
           {/* TINDAKAN DARURAT */}
-          <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+          <div className="bg-card bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
             <div className="space-y-3">
-              <button onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3 bg-sky-500/10 text-sky-500 border border-sky-500/20 font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-sky-500/20 transition"><Play className="w-4 h-4" /> Paksa Bawa Customer (Pilih atas)</button>
-              
-              <hr className="border-border" />
-
-              <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
+              <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="">-- Pilih Promotor untuk Lock --</option>
                 {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
               </select>
-              <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
+              <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="LOCK">🔒 Kunci Akun</option>
                 <option value="UNLOCK">🔓 Buka Kunci</option>
               </select>
               {lockAction === 'LOCK' && (
                 <>
-                  <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan hukuman" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
-                  <input type="number" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
+                  <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan hukuman" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
+                  <input type="number" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
                 </>
               )}
-              <button onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-500/20 transition">
+              <button onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3 bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-200 dark:hover:bg-rose-500/20 transition shadow-sm">
                 {lockAction === 'LOCK' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 {lockAction === 'LOCK' ? 'Kunci Akun' : 'Buka Kunci'}
               </button>
