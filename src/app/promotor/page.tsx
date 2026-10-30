@@ -204,26 +204,39 @@ export default function PromotorPage() {
             return
           }
         }
-        
-        // Ambil waktu check-in harian yang sudah ada (supaya jam check-in awal tidak berubah)
-        const checkinSnap = await get(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`))
-        const waktuCheckinAsli = checkinSnap.exists() ? checkinSnap.val().waktu : Date.now()
+
+        // 1. Cek apakah sudah ada catatan check-in hari ini di database
+        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`)
+        const checkinSnap = await get(checkinRef)
+
+        let waktuStandbyFinal;
+
+        if (checkinSnap.exists()) {
+          // Jika sudah pernah check-in hari ini, AMBIL JAM ASLINYA dan jangan diubah!
+          waktuStandbyFinal = checkinSnap.val().waktu
+        } else {
+          // Jika ini adalah check-in pertama kali hari ini, catat waktu sekarang
+          waktuStandbyFinal = Date.now()
+          await set(checkinRef, { 
+            nama: userData.nama, 
+            tanggal: tglIndo, 
+            tanggalKey: getTanggalKey(), 
+            waktu: waktuStandbyFinal 
+          })
+        }
 
         const kat = kategoriPilih
+        // 2. Masukkan ke antrian dengan menggunakan waktuStandbyFinal yang terkunci
         await set(ref(db, pathAntrian), { 
           nama: userData.nama, 
           status: 'Standby', 
-          waktuStandby: waktuCheckinAsli, // <-- Dikunci pakai waktu check-in pertama kali hari ini!
+          waktuStandby: waktuStandbyFinal, // <-- Jam check-in awal dijamin tidak akan berubah!
           kategori: kat, 
           subkategori: kat, 
           posisiTerkunci: 0 
         })
 
-        if (!checkinSnap.exists()) {
-          await set(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`), { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: Date.now() })
-        }
-        
-        toast.success('Berhasil Check-in!')
+        toast.success('Berhasil Masuk Antrian!')
       }
         const kat = kategoriPilih
         await set(ref(db, pathAntrian), { nama: userData.nama, status: 'Standby', waktuStandby: Date.now(), kategori: kat, subkategori: kat, posisiTerkunci: 0 })
