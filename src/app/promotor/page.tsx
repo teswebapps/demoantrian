@@ -578,9 +578,9 @@ export default function PromotorPage() {
                             <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
                               {item.status === 'Melayani' ? '-' : (idx + 1)}
                             </span>
-                            <span className={`text-xs font-bold uppercase ${isSaya ? 'text-primary' : 'text-foreground'}`}>
-                              {item.nama} {isSaya && '(Anda)'}
-                            </span>
+                            <span className={`text-xs font-bold uppercase ${isSaya ? 'text-slate-900 dark:text-primary' : 'text-slate-900 dark:text-foreground'}`}>
+  {item.nama} {isSaya && '(Anda)'}
+</span>
                           </div>
                           
                           {item.status === 'Melayani' ? (
