@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/useTheme'
 
 export default function TotalBulananPage() {
   const { user, loading: authLoading } = useAuth('ADMIN')
-const { isDark, toggleTheme, mounted } = useTheme()
+  const { isDark, toggleTheme, mounted } = useTheme()
   const [loading, setLoading] = useState(true)
   const [aktivitas, setAktivitas] = useState<any[]>([])
   const [tahunIni, setTahunIni] = useState('')
@@ -66,59 +66,57 @@ const { isDark, toggleTheme, mounted } = useTheme()
   const totalDeal = dataBulanan.reduce((s, b) => s + b.deal, 0)
   const totalLihat = dataBulanan.reduce((s, b) => s + b.lihat, 0)
 
-  if (authLoading || loading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><Loader2 className="w-8 h-8 text-emerald-600 animate-spin" /></div>
+  if (authLoading || loading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-8 flex justify-center transition-colors duration-300">
+    <div className="min-h-screen bg-background p-4 md:p-8 flex justify-center transition-colors duration-300">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-3xl">
         
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition shadow-sm">
+        <div className="flex items-center gap-4 mb-6">
+          <Link href="/admin" className="p-2.5 bg-card border border-border rounded-2xl text-muted-foreground hover:text-foreground transition shadow-sm">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white uppercase">Total Bulanan</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 uppercase">Rekap customer walk-in per bulan tahun {tahunIni}</p>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground uppercase tracking-tight">Total Bulanan</h1>
+            <p className="text-xs text-muted-foreground uppercase">Rekap customer walk-in per bulan tahun {tahunIni}</p>
           </div>
-          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors shadow-sm">
+          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
-            <div className="flex items-center gap-3 mb-2"><TrendingUp className="w-5 h-5 text-emerald-500" /><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total Deal Tahun Ini</p></div>
-            <p className="text-4xl font-black text-emerald-500">{totalDeal}</p>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-card border border-border p-5 rounded-3xl shadow-sm">
+            <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-emerald-500" /><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Deal Tahun Ini</p></div>
+            <p className="text-3xl md:text-4xl font-black text-emerald-500">{totalDeal}</p>
           </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
-            <div className="flex items-center gap-3 mb-2"><Calendar className="w-5 h-5 text-amber-500" /><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total Lihat Tahun Ini</p></div>
-            <p className="text-4xl font-black text-amber-500">{totalLihat}</p>
+          <div className="bg-card border border-border p-5 rounded-3xl shadow-sm">
+            <div className="flex items-center gap-2 mb-2"><Calendar className="w-4 h-4 text-amber-500" /><p className="text-[10px] font-bold text-muted-foreground uppercase">Total Lihat Tahun Ini</p></div>
+            <p className="text-3xl md:text-4xl font-black text-amber-500">{totalLihat}</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm transition-colors">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 uppercase">Rekap per Bulan</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[400px]">
-              <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-950/50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg">Bulan</th>
-                  <th className="px-4 py-3 text-center">Deal</th>
-                  <th className="px-4 py-3 text-center rounded-r-lg">Lihat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {dataBulanan.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400">Belum ada data tahun ini</td></tr>
-                ) : dataBulanan.map((b, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="px-4 py-3 font-bold text-slate-800 dark:text-white uppercase">{b.namaBln} {b.tahun}</td>
-                    <td className="px-4 py-3 text-center font-black text-emerald-500">{b.deal}</td>
-                    <td className="px-4 py-3 text-center font-black text-amber-500">{b.lihat}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm transition-colors">
+          <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Rekap per Bulan</h3>
+          
+          <div className="w-full space-y-2.5">
+            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary rounded-2xl text-xs font-bold text-muted-foreground uppercase">
+              <div className="col-span-6">Bulan</div>
+              <div className="col-span-3 text-center">Deal</div>
+              <div className="col-span-3 text-center">Lihat</div>
+            </div>
+
+            <div className="space-y-2">
+              {dataBulanan.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic text-center py-6">Belum ada data tahun ini</p>
+              ) : dataBulanan.map((b, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 px-4 py-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs items-center border border-slate-200 dark:border-border shadow-sm">
+                  <div className="col-span-6 font-bold text-slate-900 dark:text-foreground uppercase">{b.namaBln} {b.tahun}</div>
+                  <div className="col-span-3 text-center font-black text-emerald-500">{b.deal}</div>
+                  <div className="col-span-3 text-center font-black text-amber-500">{b.lihat}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
