@@ -146,6 +146,7 @@ export default function AktivitasAdminPage() {
         <nav className="flex-1 p-3 space-y-1.5">
           <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
           <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
+          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><ShieldAlert className="w-4 h-4" /> Darurat</Link>
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">
@@ -227,7 +228,9 @@ export default function AktivitasAdminPage() {
                           {a.hasil === 'Lihat' && <span className="text-[9px] font-black bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">LIHAT</span>}
                           {!a.waktuSelesai && <span className="text-[9px] font-black bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded animate-pulse">PROSES</span>}
                         </div>
-                        <span className="text-xs text-muted-foreground font-medium">{formatJam(a.waktuMulai)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : '...'}</span>
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {formatJam(a.waktuMulai)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : '...'}
+                        </span>
                       </div>
                     ))}
                   </div>
