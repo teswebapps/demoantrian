@@ -5,11 +5,13 @@ import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, UserPlus, UserMinus, Trash2, Play, Lock, Unlock, RotateCcw, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Loader2, UserPlus, UserMinus, Trash2, Play, Lock, Unlock, RotateCcw, ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon } from 'lucide-react'
 import Link from 'next/link'
+import { useTheme } from '@/hooks/useTheme'
 
 export default function ManajemenPage() {
-  const { user, loading: authLoading } = useAuth('ADMIN')
+  const { user, loading: authLoading, logout } = useAuth('ADMIN')
+  const { isDark, toggleTheme, mounted } = useTheme()
   const [isProcessing, setIsProcessing] = useState(false)
   
   const [masterSales, setMasterSales] = useState<any[]>([])
@@ -168,89 +170,121 @@ export default function ManajemenPage() {
     } catch (err) { alert('Gagal reset.') } finally { setIsProcessing(false) }
   }
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>
+  if (authLoading || !mounted) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+  }
 
   return (
-    // TEMA BARU: Background Gelap
-    <div className="min-h-screen bg-slate-950 p-6 md:p-8 flex justify-center pb-24">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-2xl">
+    <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-24">
+      
+      {/* SIDEBAR (Desktop) */}
+      <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
+        <div className="p-5 flex items-center gap-3 border-b border-border">
+          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
+            <img src="/logo-ufo.png" alt="UFO Logo" className="w-full h-full object-contain" />
+          </div>
+          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Admin</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
+        </div>
+        <nav className="flex-1 p-3 space-y-1.5">
+          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
+          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><ShieldAlert className="w-4 h-4" /> Darurat</Link>
+          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
+        </nav>
+        <div className="p-3 border-t border-border">
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+            <LogOut className="w-3.5 h-3.5" /> Keluar
+          </button>
+        </div>
+      </aside>
+
+      {/* KONTEN UTAMA */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-4 md:p-6 overflow-y-auto max-w-3xl mx-auto space-y-6">
         
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+        {/* HEADER */}
+        <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white uppercase">Manajemen & Darurat</h1>
-            <p className="text-sm text-slate-400 uppercase">Kontrol Penuh Admin</p>
+            <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Manajemen & Darurat</h1>
+            <p className="text-xs text-muted-foreground uppercase">Kontrol Penuh Admin</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
+              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 text-white shadow-sm">
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
+          
           {/* TAMBAH PROMOTOR */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase"><UserPlus className="w-5 h-5 text-cyan-400" /> Tambah Promotor Baru</h3>
+          <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Tambah Promotor Baru</h3>
             <form onSubmit={handleTambahPromotor} className="space-y-3">
-              <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase" required />
-              <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500" required />
-              <button type="submit" disabled={isProcessing} className="w-full py-3 bg-cyan-500 text-slate-950 font-bold rounded-xl uppercase tracking-wider text-xs hover:bg-cyan-400 transition">Simpan Promotor</button>
+              <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-bold text-foreground focus:outline-none uppercase" required />
+              <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" required />
+              <button type="submit" disabled={isProcessing} className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-2xl uppercase tracking-wider text-xs hover:opacity-95 transition shadow-sm">Simpan Promotor</button>
             </form>
           </div>
 
           {/* MANAJEMEN ANTRIAN */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase"><UserMinus className="w-5 h-5 text-amber-400" /> Manajemen Urutan Antrian</h3>
+          <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Manajemen Urutan Antrian</h3>
             <div className="space-y-3">
-              <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500">
+              <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="">-- Pilih Promotor --</option>
                 {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-3">
-                <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500">
+                <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                   <option value="HA">Kategori HA</option>
                   <option value="AV">Kategori AV</option>
                 </select>
-                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500" min="1" />
+                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={handlePaksaAntri} disabled={isProcessing} className="py-3 bg-emerald-900/30 text-emerald-400 border border-emerald-800/50 font-bold rounded-xl text-xs uppercase hover:bg-emerald-900/50 transition">Paksa Masuk Antrian</button>
-                <button onClick={handlePaksaKeluar} disabled={isProcessing} className="py-3 bg-amber-900/30 text-amber-400 border border-amber-800/50 font-bold rounded-xl text-xs uppercase hover:bg-amber-900/50 transition">Paksa Keluar</button>
+                <button onClick={handlePaksaAntri} disabled={isProcessing} className="py-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold rounded-2xl text-[11px] uppercase hover:bg-emerald-500/20 transition">Paksa Masuk Antrian</button>
+                <button onClick={handlePaksaKeluar} disabled={isProcessing} className="py-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold rounded-2xl text-[11px] uppercase hover:bg-amber-500/20 transition">Paksa Keluar</button>
               </div>
-              <button onClick={handleHapusPermanen} disabled={isProcessing} className="w-full py-3 bg-rose-900/30 text-rose-400 border border-rose-800/50 font-bold rounded-xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-900/50 transition"><Trash2 className="w-4 h-4" /> Hapus Promotor Permanen</button>
+              <button onClick={handleHapusPermanen} disabled={isProcessing} className="w-full py-3 bg-destructive/10 text-destructive border border-destructive/20 font-bold rounded-2xl text-[11px] uppercase flex items-center justify-center gap-2 hover:bg-destructive/20 transition"><Trash2 className="w-4 h-4" /> Hapus Promotor Permanen</button>
             </div>
           </div>
 
           {/* TINDAKAN DARURAT */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase"><ShieldAlert className="w-5 h-5 text-rose-500" /> Tindakan Darurat</h3>
+          <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
             <div className="space-y-3">
-              <button onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3 bg-blue-900/30 text-blue-400 border border-blue-800/50 font-bold rounded-xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-blue-900/50 transition"><Play className="w-4 h-4" /> Paksa Bawa Customer (Pilih atas)</button>
+              <button onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3 bg-sky-500/10 text-sky-500 border border-sky-500/20 font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-sky-500/20 transition"><Play className="w-4 h-4" /> Paksa Bawa Customer (Pilih atas)</button>
               
-              <hr className="border-slate-800" />
+              <hr className="border-border" />
 
-              <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500">
+              <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="">-- Pilih Promotor untuk Lock --</option>
                 {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
               </select>
-              <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500">
+              <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="LOCK">🔒 Kunci Akun</option>
                 <option value="UNLOCK">🔓 Buka Kunci</option>
               </select>
               {lockAction === 'LOCK' && (
                 <>
-                  <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan hukuman" className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500" />
-                  <input type="number" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500" />
+                  <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan hukuman" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
+                  <input type="number" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
                 </>
               )}
-              <button onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3 bg-rose-900/30 text-rose-400 border border-rose-800/50 font-bold rounded-xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-900/50 transition">
+              <button onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-500/20 transition">
                 {lockAction === 'LOCK' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 {lockAction === 'LOCK' ? 'Kunci Akun' : 'Buka Kunci'}
               </button>
 
-              <hr className="border-slate-800" />
+              <hr className="border-border" />
               
-              <button onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3 bg-rose-600 text-white font-bold rounded-xl text-xs uppercase flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 hover:bg-rose-500 transition"><RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI</button>
+              <button onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3 bg-rose-600 text-white font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 shadow-sm hover:bg-rose-700 transition"><RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI</button>
             </div>
           </div>
+
         </div>
 
       </motion.div>
