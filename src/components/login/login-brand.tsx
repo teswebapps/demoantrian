@@ -35,10 +35,10 @@ export function LoginBrand() {
       </div>
 
       <h1 className="mt-8 text-balance text-3xl font-extrabold tracking-tight text-foreground">
-        Sistem Antrian
+        Antrian Walk In Promotor
       </h1>
       <p className="mt-2 text-sm font-medium text-muted-foreground">
-        {'UFO Elektronika · Kebonsari'}
+        {'UFO Malang · Kebonsari'}
       </p>
 
       <ul className="mt-8 flex flex-wrap justify-center gap-2 text-xs font-semibold">
