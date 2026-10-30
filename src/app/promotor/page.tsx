@@ -339,20 +339,22 @@ export default function PromotorPage() {
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('HA')}
-                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-2 px-1 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
                         kategoriPilih === 'HA' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      HA
+                      <span className="text-sm font-bold">HA</span>
+                      <span className="text-[10px] font-medium opacity-80">Home Appliance</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('AV')}
-                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-2 px-1 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
                         kategoriPilih === 'AV' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      AV
+                      <span className="text-sm font-bold">AV</span>
+                      <span className="text-[10px] font-medium opacity-80">Audio Video</span>
                     </button>
                   </div>
                 </div>
@@ -392,20 +394,22 @@ export default function PromotorPage() {
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('HA')}
-                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-2 px-1 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
                         kategoriPilih === 'HA' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      HA (Home Appliance)
+                      <span className="text-sm font-bold">HA</span>
+                      <span className="text-[10px] font-medium opacity-80">Home Appliance</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('AV')}
-                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-2 px-1 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
                         kategoriPilih === 'AV' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      AV (Audio Video)
+                      <span className="text-sm font-bold">AV</span>
+                      <span className="text-[10px] font-medium opacity-80">Audio Video</span>
                     </button>
                   </div>
                 </div>

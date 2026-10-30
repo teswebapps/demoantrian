@@ -359,3 +359,12 @@ html:not(.dark) .bg-primary\/15 {
   background-color: #0ea5e9 !important;
   color: #ffffff !important;
 }
+/* Paksa titik (dot) status antrian menjadi putih di mode terang */
+html:not(.dark) .bg-accent\/15 .bg-accent,
+html:not(.dark) .bg-accent\/15 .animate-ping {
+  background-color: #ffffff !important; /* Titik Putih */
+}
+
+html:not(.dark) .bg-destructive\/15 .bg-destructive {
+  background-color: #ffffff !important; /* Titik Putih (untuk Tutup) */
+}
