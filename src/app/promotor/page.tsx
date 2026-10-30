@@ -190,8 +190,7 @@ export default function PromotorPage() {
     const pathStatistik = `toko/${TOKO_ID}/statistikAktivitas`
     
     try {
-      
-       if (aksi === 'CheckIn') {
+      if (aksi === 'CheckIn') {
         const lockSnap = await get(ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`))
         if (lockSnap.exists()) {
           const l = lockSnap.val()
@@ -237,11 +236,6 @@ export default function PromotorPage() {
         })
 
         toast.success('Berhasil Masuk Antrian!')
-      }
-        const kat = kategoriPilih
-        await set(ref(db, pathAntrian), { nama: userData.nama, status: 'Standby', waktuStandby: Date.now(), kategori: kat, subkategori: kat, posisiTerkunci: 0 })
-        await set(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`), { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: Date.now() })
-        toast.success('Berhasil Check-in!')
       } else if (aksi === 'BawaCustomer') {
         await update(ref(db, pathAntrian), { status: 'Melayani', posisiTerkunci: 0, waktuMulaiMelayani: Date.now() })
         await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: Date.now(), tanggal: tglIndo, waktuMulai: Date.now() })
