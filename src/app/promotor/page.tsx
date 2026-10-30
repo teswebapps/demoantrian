@@ -7,12 +7,11 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
-import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Coffee, Users } from 'lucide-react'
+import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, Coffee } from 'lucide-react'
 
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
 import { TurnCard } from '@/components/queue/turn-card'
-import { ActionBar, type QueueType } from '@/components/queue/action-bar'
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
 
@@ -275,11 +274,11 @@ export default function PromotorPage() {
 
   if (isLoading || !mounted || isLoadingCheckin) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
 
-    if (!userData) {
-    // Jika belum login, lempar ke halaman utama
+  if (!userData) {
     if (typeof window !== 'undefined') window.location.href = '/'
     return null
   }
+
   if (lockData?.locked) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
@@ -311,7 +310,7 @@ export default function PromotorPage() {
         isDark={isDark}
       />
 
-      <main className="flex-1 px-4 pt-4 pb-48 space-y-6">
+      <main className="flex-1 px-4 pt-4 pb-28 space-y-6">
         
         <PromoterCard name={userData.nama} />
 
@@ -333,13 +332,31 @@ export default function PromotorPage() {
                 </div>
                 <h2 className="text-lg font-bold text-foreground mb-2 uppercase">Sudah Check-in Hari Ini</h2>
                 <p className="text-xs text-muted-foreground mb-4">Ambil antrian jika ingin mulai bekerja.</p>
+                
                 <div className="mb-4 text-left">
-                  <label className="text-xs font-bold text-muted-foreground mb-1 block uppercase">Pilih Kategori</label>
-                  <select value={kategoriPilih} onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')} className="w-full bg-background border border-border rounded-xl py-3 px-4 text-sm font-bold text-foreground focus:outline-none focus:border-primary appearance-none">
-                    <option value="HA">HA (Home Appliance)</option>
-                    <option value="AV">AV (Audio Video)</option>
-                  </select>
+                  <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase">Pilih Kategori</label>
+                  <div className="flex bg-secondary rounded-xl p-1 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setKategoriPilih('HA')}
+                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                        kategoriPilih === 'HA' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      HA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKategoriPilih('AV')}
+                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                        kategoriPilih === 'AV' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      AV
+                    </button>
+                  </div>
                 </div>
+
                 <button 
                   onClick={() => {
                     setKategoriPilih(kategoriPilih);
@@ -370,11 +387,27 @@ export default function PromotorPage() {
                 )}
 
                 <div className="mb-4">
-                  <label className="text-xs font-bold text-muted-foreground mb-1 block uppercase">Pilih Kategori</label>
-                  <select value={kategoriPilih} onChange={(e) => setKategoriPilih(e.target.value as 'HA' | 'AV')} className="w-full bg-background border border-border rounded-xl py-3 px-4 text-sm font-bold text-foreground focus:outline-none focus:border-primary appearance-none">
-                    <option value="HA">HA (Home Appliance)</option>
-                    <option value="AV">AV (Audio Video)</option>
-                  </select>
+                  <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase">Pilih Kategori</label>
+                  <div className="flex bg-secondary rounded-xl p-1 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setKategoriPilih('HA')}
+                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                        kategoriPilih === 'HA' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      HA (Home Appliance)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKategoriPilih('AV')}
+                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                        kategoriPilih === 'AV' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      AV (Audio Video)
+                    </button>
+                  </div>
                 </div>
 
                 <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
@@ -530,17 +563,6 @@ export default function PromotorPage() {
         </div>
 
       </main>
-
-      {/* ACTION BAR (Untuk check-in) */}
-      {statusSaya === 'Offline' && !sudahCheckinHariIni && (
-        <ActionBar 
-          disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} 
-          onTakeTurn={(type: QueueType) => {
-            setKategoriPilih(type);
-            handleAksi('CheckIn');
-          }} 
-        />
-      )}
 
       {/* MODAL CLOSING */}
       {showClosing && (
