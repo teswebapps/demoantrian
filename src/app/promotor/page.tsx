@@ -586,7 +586,7 @@ export default function PromotorPage() {
                           {item.status === 'Melayani' ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-500/20 text-blue-500">Melayani</span>
                           ) : item.status === 'Dipanggil CS' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-500/20 text-purple-500">CS</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-500/20 text-purple-500">Dipanggil CS/Gudang</span>
                           ) : item.status === 'Ibadah' ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500/20 text-amber-500">Ibadah</span>
                           ) : isGiliranUtama ? (
