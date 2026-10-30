@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Loader2, LogOut, Shield, Users, LayoutDashboard, 
+  Loader2, LogOut, Users, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
   Trash2, X, Sun, Moon,
   History, BarChart3, Calendar, Coffee, LogOut as LogOutIcon, ShieldAlert
@@ -70,8 +70,10 @@ export default function AdminPage() {
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
         <div className="p-5 flex items-center gap-3 border-b border-border">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20"><Shield className="w-4 h-4 text-white" /></div>
-          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Admin</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
+          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
+            <img src="/logo-ufo.png" alt="UFO Logo" className="w-full h-full object-contain" />
+          </div>
+          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Malang</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
         </div>
         <nav className="flex-1 p-3 space-y-1.5">
           <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
@@ -79,7 +81,9 @@ export default function AdminPage() {
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/20 transition text-xs font-semibold"><LogOut className="w-3.5 h-3.5" /> Keluar</button>
+         <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+  <LogOut className="w-3.5 h-3.5" /> Keluar
+</button>
         </div>
       </aside>
 

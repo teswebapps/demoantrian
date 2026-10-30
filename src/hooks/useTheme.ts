@@ -6,9 +6,14 @@ export function useTheme() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // Paksa gelap secara default
-    document.documentElement.classList.add('dark')
-    setIsDark(true)
+    const saved = localStorage.getItem('theme')
+    if (saved === 'light') {
+      document.documentElement.classList.remove('dark')
+      setIsDark(false)
+    } else {
+      document.documentElement.classList.add('dark')
+      setIsDark(true)
+    }
     setMounted(true)
   }, [])
 

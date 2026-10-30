@@ -2,269 +2,218 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
-import { ref, onValue, update, get, remove } from 'firebase/database'
+import { ref, update, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, Save, Store, Image as ImageIcon, Type, MapPin, Navigation, RotateCcw, ShieldAlert } from 'lucide-react'
+import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, MapPin, Globe } from 'lucide-react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
+import { useTheme } from '@/hooks/useTheme'
 
-const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
+export default function PengaturanAdminPage() {
+  const { user, loading: authLoading, logout } = useAuth('ADMIN')
+  const { isDark, toggleTheme, mounted } = useTheme()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
 
-export default function PengaturanPage() {
-  const { user, loading: authLoading } = useAuth('ADMIN')
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
-  
-  const [formNamaToko, setFormNamaToko] = useState('')
-  const [formNamaSistem, setFormNamaSistem] = useState('')
-  const [formLogoUrl, setFormLogoUrl] = useState('')
-  const [formLat, setFormLat] = useState('')
-  const [formLng, setFormLng] = useState('')
-  const [formRadius, setFormRadius] = useState('50')
-  const [formStatus, setFormStatus] = useState<'BUKA' | 'TUTUP'>('BUKA')
+  const [form, setForm] = useState({
+    namaToko: '',
+    namaSistem: '',
+    lat: '',
+    lng: '',
+    radiusMaks: '50'
+  })
 
-  // Path dinamis berdasarkan toko user yang login
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
   useEffect(() => {
     if (!TOKO_ID) return
-    // PERBAIKAN: Path setting sekarang mengarah ke toko spesifik
-    const unsubscribe = onValue(ref(db, `toko/${TOKO_ID}/setting`), (snap) => {
-      if (snap.exists()) {
-        const data = snap.val()
-        setFormNamaToko(data.namaToko || '')
-        setFormNamaSistem(data.namaSistem || '')
-        setFormLogoUrl(data.logoUrl || '')
-        setFormLat(data.latToko ? String(data.latToko) : '')
-        setFormLng(data.lngToko ? String(data.lngToko) : '')
-        setFormRadius(data.radiusToko ? String(data.radiusToko) : '50')
-        setFormStatus(data.statusAntrian || 'BUKA')
+    const unsub = onValue(ref(db, `toko/${TOKO_ID}/setting`), (snap) => {
+      const data = snap.val()
+      if (data) {
+        setForm({
+          namaToko: data.namaToko || '',
+          namaSistem: data.namaSistem || '',
+          lat: data.lat || '',
+          lng: data.lng || '',
+          radiusMaks: data.radiusMaks || '50'
+        })
       }
-      setIsLoading(false)
+      setLoading(false)
     })
-    return () => unsubscribe()
+    return () => unsub()
   }, [TOKO_ID])
 
-  const simpanPengaturan = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSaving(true)
+    setSaving(true)
+    setSuccessMsg('')
     try {
-      const latAda = formLat.trim() !== ''
-      const lngAda = formLng.trim() !== ''
-      
-      // PERBAIKAN: Path update mengarah ke toko spesifik
-      await update(ref(db, `toko/${TOKO_ID}/setting`), {
-        namaToko: formNamaToko.toUpperCase(),
-        namaSistem: formNamaSistem.toUpperCase(),
-        logoUrl: formLogoUrl,
-        latToko: latAda ? parseFloat(formLat) : '',
-        lngToko: lngAda ? parseFloat(formLng) : '',
-        radiusToko: parseInt(formRadius) || 50,
-        statusAntrian: formStatus
-      })
-      alert("Pengaturan berhasil disimpan!")
+      await update(ref(db, `toko/${TOKO_ID}/setting`), form)
+      setSuccessMsg('Pengaturan berhasil disimpan!')
+      setTimeout(() => setSuccessMsg(''), 3000)
     } catch (err) {
       console.error(err)
-      alert("Gagal menyimpan pengaturan.")
     } finally {
-      setIsSaving(false)
+      setSaving(false)
     }
   }
 
-  const isiLokasiSaya = () => {
-    if (!navigator.geolocation) return alert("Browser tidak mendukung GPS")
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setFormLat(pos.coords.latitude.toFixed(7))
-        setFormLng(pos.coords.longitude.toFixed(7))
-        alert("Lokasi berhasil diambil!")
-      },
-      () => alert("Gagal mengambil lokasi. Izinkan akses GPS.")
-    )
-  }
-
-  const resetTotal = async () => {
-    if (!window.confirm("⚠️ PERINGATAN:\n\nSemua antrian hari ini akan dihapus.\nNo Sale akan dicatat otomatis untuk promotor yang belum dapat Deal.\n\nLanjutkan?")) return
-    
-    setIsResetting(true)
-    try {
-      const hariIniKey = new Date().toISOString().split('T')[0]
-      const hariIniIndo = `${String(new Date().getDate()).padStart(2,'0')}-${String(new Date().getMonth()+1).padStart(2,'0')}-${new Date().getFullYear()}`
-      
-      // PERBAIKAN: Path checkin & antrian mengarah ke toko spesifik
-      const checkinSnap = await get(ref(db, `toko/${TOKO_ID}/checkinHarian`))
-      const dataCheckin = checkinSnap.val() || {}
-      
-      const aktSnap = await get(ref(db, `toko/${TOKO_ID}/statistikAktivitas`))
-      const dataAkt = aktSnap.val() || {}
-      const listHariIni = Object.values(dataAkt).filter((a: any) => a && a.tanggal === hariIniIndo)
-      const promotorDeal = new Set(listHariIni.filter((a: any) => a.aksi === 'BawaCustomer' && a.hasil === 'Deal').map((a: any) => String(a.nama).toLowerCase().replace(/\s+/g, '_')))
-      
-      // PERBAIKAN: Path mastersales
-      const masterSnap = await get(ref(db, 'mastersales'))
-      const masterData = masterSnap.val() || {}
-      const mapNama: any = {}
-      Object.values(masterData).forEach((item: any) => {
-        const rec = item.record ? item.record : item
-        const n = rec.NAMA_PROMOTOR || rec.nama
-        if (n) mapNama[String(n).trim().toLowerCase().replace(/\s+/g, '_')] = String(n).trim()
-      })
-      
-      let noSaleCount = 0
-      const bulanKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`
-      
-      for (const clean of Object.keys(dataCheckin)) {
-        const dataPromotor = dataCheckin[clean]
-        let sudahCheckinHariIni = false
-        if (dataPromotor[hariIniKey] || dataPromotor.tanggalKey === hariIniKey) sudahCheckinHariIni = true
-        
-        if (sudahCheckinHariIni && !promotorDeal.has(clean)) {
-          const namaAsli = mapNama[clean] || clean
-          const pathRiwayat = `toko/${TOKO_ID}/riwayatBulanan/${bulanKey}/${clean}`
-          const snapR = await get(ref(db, pathRiwayat))
-          const existing = snapR.exists() ? snapR.val() : { nama: namaAsli, lihat: 0, deal: 0, noSale: 0 }
-          if (typeof existing.noSale !== 'number') existing.noSale = 0
-          existing.noSale += 1
-          existing.nama = namaAsli
-          existing.lastUpdate = Date.now()
-          existing.bulanKey = bulanKey
-          await update(ref(db, pathRiwayat), existing)
-          noSaleCount++
-        }
-      }
-      
-      // PERBAIKAN: Path remove antrian mengarah ke toko spesifik
-      await remove(ref(db, `toko/${TOKO_ID}/antrian`))
-      await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: 'BUKA' })
-      
-      alert(`Reset berhasil!\n✅ Antrian dikosongkan.\n⛔ ${noSaleCount} promotor tercatat No Sale.`)
-      window.location.reload()
-      
-    } catch (err) {
-      console.error(err)
-      alert("Gagal reset total.")
-    } finally {
-      setIsResetting(false)
+  const ambilLokasiGPS = () => {
+    if (!navigator.geolocation) {
+      alert('Browser tidak mendukung geolokasi')
+      return
     }
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setForm(prev => ({
+        ...prev,
+        lat: String(pos.coords.latitude),
+        lng: String(pos.coords.longitude)
+      }))
+    }, (err) => {
+      alert('Gagal mengambil GPS: ' + err.message)
+    })
   }
 
-  if (authLoading || isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="w-8 h-8 text-cyan-500 animate-spin" /></div>
+  if (authLoading || loading || !mounted) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6 md:p-8 flex justify-center">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-2xl">
-        
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white uppercase">Pengaturan Toko</h1>
-            <p className="text-sm text-slate-400 uppercase">Identitas, Lokasi GPS, & Zona Bahaya</p>
+    <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-16">
+      
+      {/* SIDEBAR (Desktop) */}
+      <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
+        <div className="p-5 flex items-center gap-3 border-b border-border">
+          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
+            <img src="/logo-ufo.png" alt="UFO Logo" className="w-full h-full object-contain" />
           </div>
+          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Admin</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
         </div>
-
-        <form onSubmit={simpanPengaturan} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-          
-          <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase">Status Antrian Saat Ini</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setFormStatus('BUKA')} className={`py-3 rounded-xl font-bold text-sm transition-all border uppercase ${formStatus === 'BUKA' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'bg-slate-950 text-slate-400 border-slate-800'}`}>BUKA</button>
-              <button type="button" onClick={() => setFormStatus('TUTUP')} className={`py-3 rounded-xl font-bold text-sm transition-all border uppercase ${formStatus === 'TUTUP' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-slate-950 text-slate-400 border-slate-800'}`}>TUTUP</button>
-            </div>
-          </div>
-
-          <hr className="border-slate-800" />
-
-          <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase">Nama Toko</label>
-            <div className="relative">
-              <Store className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input type="text" value={formNamaToko} onChange={e => setFormNamaToko(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase" placeholder="UFO KEBONSARI" required />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase">Nama Sistem (Tampil di Login)</label>
-            <div className="relative">
-              <Type className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input type="text" value={formNamaSistem} onChange={e => setFormNamaSistem(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase" placeholder="SISTEM ANTRIAN WALK-IN" required />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase">URL Logo (Opsional)</label>
-            <div className="relative">
-              <ImageIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input type="url" value={formLogoUrl} onChange={e => setFormLogoUrl(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500" placeholder="https://..." />
-            </div>
-          </div>
-
-          <hr className="border-slate-800" />
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase">Koordinat Toko (GPS)</label>
-              <button type="button" onClick={isiLokasiSaya} className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 uppercase">
-                <Navigation className="w-3 h-3" /> Gunakan Lokasi Saya
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="relative">
-                <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input type="text" value={formLat} onChange={e => setFormLat(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase" placeholder="LATITUDE" />
-              </div>
-              <div className="relative">
-                <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input type="text" value={formLng} onChange={e => setFormLng(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase" placeholder="LONGITUDE" />
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="text-[10px] font-semibold text-slate-400 mb-1 block uppercase">Radius Maksimal (Meter)</label>
-              <input type="number" value={formRadius} onChange={e => setFormRadius(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-cyan-500 uppercase" placeholder="50" min="10" max="1000" />
-            </div>
-            
-            {formLat && formLng && (
-              <div className="rounded-xl overflow-hidden border border-slate-700 mt-2 h-48">
-                <MapComponent 
-                  tokoLat={parseFloat(formLat) || 0} 
-                  tokoLng={parseFloat(formLng) || 0} 
-                  radius={parseInt(formRadius) || 50} 
-                />
-              </div>
-            )}
-            <p className="text-[10px] text-slate-500 mt-2 uppercase">Kosongkan Latitude & Longitude jika ingin mematikan GPS.</p>
-          </div>
-
-          <div className="pt-4 border-t border-slate-800">
-            <button type="submit" disabled={isSaving} className="w-full flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-cyan-500/20 uppercase">
-              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              {isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
-            </button>
-          </div>
-        </form>
-
-        <div className="mt-8 bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <ShieldAlert className="w-6 h-6 text-red-500" />
-            <h3 className="text-lg font-bold text-red-400 uppercase">Zona Bahaya</h3>
-          </div>
-          <p className="text-xs text-slate-400 mb-5 leading-relaxed uppercase">
-            Tombol di bawah ini akan <strong>menghapus semua antrian hari ini</strong> dan mencatat <strong>No Sale otomatis</strong> untuk promotor yang sudah check-in tapi belum mendapatkan Deal. Tindakan ini tidak bisa dibatalkan.
-          </p>
-          <button 
-            onClick={resetTotal}
-            disabled={isResetting}
-            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-red-500/20 disabled:opacity-50 uppercase"
-          >
-            {isResetting ? <Loader2 className="w-5 h-5 animate-spin" /> : <RotateCcw className="w-5 h-5" />}
-            {isResetting ? 'MEMPROSES RESET...' : 'RESET ANTRIAN (TUTUP BUKU HARI INI)'}
+        <nav className="flex-1 p-3 space-y-1.5">
+          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
+          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
+        </nav>
+        <div className="p-3 border-t border-border">
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+            <LogOut className="w-3.5 h-3.5" /> Keluar
           </button>
         </div>
+      </aside>
+
+      {/* KONTEN UTAMA */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-4 md:p-6 overflow-y-auto max-w-3xl mx-auto space-y-6">
+        
+        {/* HEADER */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Pengaturan Toko</h1>
+            <p className="text-xs text-muted-foreground uppercase">Identitas, lokasi GPS, & zona wilayah</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
+              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 text-white shadow-sm">
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {successMsg && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-3 rounded-2xl text-xs font-bold text-center">
+            {successMsg}
+          </div>
+        )}
+
+        {/* FORMULIR PENGATURAN */}
+        <form onSubmit={handleSave} className="space-y-4">
+          
+          <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Identitas & Informasi Toko</h3>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase">Nama Toko</label>
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl">
+                <Store className="w-4 h-4 text-primary" />
+                <input 
+                  type="text" 
+                  value={form.namaToko} 
+                  onChange={e => setForm({...form, namaToko: e.target.value})}
+                  className="w-full bg-transparent text-xs font-bold text-foreground outline-none uppercase"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase">Nama Sistem (Tampil di Login)</label>
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl">
+                <Globe className="w-4 h-4 text-primary" />
+                <input 
+                  type="text" 
+                  value={form.namaSistem} 
+                  onChange={e => setForm({...form, namaSistem: e.target.value})}
+                  className="w-full bg-transparent text-xs font-bold text-foreground outline-none uppercase"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Koordinat Toko (GPS)</h3>
+              <button 
+                type="button" 
+                onClick={ambilLokasiGPS}
+                className="flex items-center gap-1.5 text-[10px] font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-xl hover:bg-primary/20 transition"
+              >
+                <MapPin className="w-3 h-3" /> Gunakan Lokasi Saya
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase">Latitude</label>
+                <input 
+                  type="text" 
+                  value={form.lat} 
+                  onChange={e => setForm({...form, lat: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase">Longitude</label>
+                <input 
+                  type="text" 
+                  value={form.lng} 
+                  onChange={e => setForm({...form, lng: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase">Radius Maksimal Absen (Meter)</label>
+              <input 
+                type="number" 
+                value={form.radiusMaks} 
+                onChange={e => setForm({...form, radiusMaks: e.target.value})}
+                className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={saving}
+            className="w-full py-3 bg-primary text-primary-foreground rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:opacity-95 transition shadow-sm"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Simpan Pengaturan
+          </button>
+
+        </form>
 
       </motion.div>
     </div>
