@@ -1,0 +1,51 @@
+import { MapPin, Users, Zap } from 'lucide-react'
+import Image from 'next/image'
+
+const features = [
+  { icon: Users, label: 'Antrian promotor' },
+  { icon: MapPin, label: 'Validasi lokasi' },
+  { icon: Zap, label: 'Real-time' },
+]
+
+export function LoginBrand() {
+  return (
+    <section className="flex flex-1 flex-col items-center justify-center text-center">
+      <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 rounded-[28px] bg-accent/40 blur-2xl"
+        />
+        {/* LOGO BARU DIMASUKKAN DI SINI */}
+        <div className="relative flex size-28 items-center justify-center overflow-hidden rounded-[28px] bg-transparent shadow-xl shadow-emerald-900/40">
+          <Image 
+            src="/logo-ufo.png" 
+            alt="UFO Elektronika" 
+            width={112} 
+            height={112} 
+            className="object-contain"
+            priority
+          />
+        </div>
+      </div>
+
+      <h1 className="mt-8 text-balance text-3xl font-extrabold tracking-tight text-foreground">
+        Sistem Antrian
+      </h1>
+      <p className="mt-2 text-sm font-medium text-muted-foreground">
+        {'UFO Elektronika · Kebonsari'}
+      </p>
+
+      <ul className="mt-8 flex flex-wrap justify-center gap-2 text-xs font-semibold">
+        {features.map(({ icon: Icon, label }) => (
+          <li
+            key={label}
+            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-muted-foreground"
+          >
+            <Icon className="size-3.5 text-primary" aria-hidden="true" />
+            {label}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

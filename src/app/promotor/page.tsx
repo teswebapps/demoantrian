@@ -275,23 +275,11 @@ export default function PromotorPage() {
 
   if (isLoading || !mounted || isLoadingCheckin) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
 
-  if (!userData) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="w-full max-w-sm bg-card p-8 rounded-3xl shadow-xl border border-border text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/15 flex items-center justify-center shadow-lg">
-            <ShieldCheck className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-2xl font-black text-foreground mb-2">Login Promotor</h1>
-          <p className="text-xs text-muted-foreground mb-8">Gunakan email Google yang sudah didaftarkan admin.</p>
-          <button onClick={handleLoginGoogle} className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg flex justify-center items-center gap-3 hover:brightness-110 transition">
-            Lanjutkan dengan Google
-          </button>
-        </div>
-      </div>
-    )
+    if (!userData) {
+    // Jika belum login, lempar ke halaman utama
+    if (typeof window !== 'undefined') window.location.href = '/'
+    return null
   }
-
   if (lockData?.locked) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
