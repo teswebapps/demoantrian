@@ -235,3 +235,60 @@ html:not(.dark) .bg-primary\/15 {
     transform: translateY(-6px);
   }
 }
+/* ========================================== */
+/* PAKSA MODE TERANG JADI 100% SOLID          */
+/* ========================================== */
+html:not(.dark) {
+  --background: #e2e8f0; /* Abu-abu kebiruan */
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --border: #cbd5e1;
+}
+
+html:not(.dark) body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Paksa card, header, dan elemen background menjadi putih solid */
+html:not(.dark) .bg-card,
+html:not(.dark) header {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Paksa teks agar tetap gelap dan kontras */
+html:not(.dark) .text-muted-foreground {
+  color: #475569 !important;
+}
+
+/* --- SOLUSI UNTUK IKON DAN TOMBOL --- */
+
+/* 1. Ikon Toko (Kiri Atas) - Biru Solid */
+html:not(.dark) .bg-primary\/15 {
+  background-color: #0ea5e9 !important; /* Biru Cyan Solid */
+  color: #ffffff !important; /* Ikon Putih */
+}
+
+/* 2. Tombol Tema (Matahari) - Kuning Solid */
+html:not(.dark) button[aria-label="Ganti tema"] {
+  background-color: #f59e0b !important; /* Kuning Solid */
+  color: #ffffff !important; /* Ikon Putih */
+}
+
+/* 3. Tombol Keluar (Panah) - Merah Solid */
+html:not(.dark) button[aria-label="Keluar"] {
+  background-color: #ef4444 !important; /* Merah Solid */
+  color: #ffffff !important; /* Ikon Putih */
+}
+
+/* 4. Status Antrian (Buka/Tutup) */
+html:not(.dark) .bg-accent\/15 {
+  background-color: #10b981 !important; /* Hijau Solid */
+  color: #ffffff !important;
+}
+html:not(.dark) .bg-destructive\/15 {
+  background-color: #ef4444 !important; /* Merah Solid */
+  color: #ffffff !important;
+}
