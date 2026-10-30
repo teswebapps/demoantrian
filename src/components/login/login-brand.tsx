@@ -11,13 +11,18 @@ export function LoginBrand() {
   return (
     <section className="flex flex-1 flex-col items-center justify-center text-center mt-10">
       <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
-        {/* Efek Cahaya Biru di belakang logo */}
+        {/* Efek Cahaya Biru Paksa (Hex Color) di belakang logo */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 rounded-[28px] bg-cyan-500/30 blur-2xl"
+          className="absolute inset-0 rounded-[28px] blur-2xl opacity-50"
+          style={{ backgroundColor: '#0ea5e9' }} // Biru Cyan Solid
         />
+        
         {/* Logo UFO */}
-        <div className="relative flex size-28 items-center justify-center overflow-hidden rounded-[28px] bg-transparent shadow-xl shadow-cyan-900/40">
+        <div 
+          className="relative flex size-28 items-center justify-center overflow-hidden rounded-[28px] bg-transparent shadow-2xl" 
+          style={{ boxShadow: '0 10px 30px -5px rgba(14, 165, 233, 0.5)' }} // Shadow biru
+        >
           <Image 
             src="/logo-ufo.png" 
             alt="UFO Elektronika" 
