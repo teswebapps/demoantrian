@@ -42,8 +42,9 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
 
       <div className="mt-3 flex items-center justify-between rounded-2xl bg-card px-4 py-3 border border-border shadow-sm">
         <span className="text-sm text-muted-foreground">Status antrian</span>
+        {/* Ditambahkan justify-center di sini */}
         <span
-          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+          className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
             isOpen ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'
           }`}
         >

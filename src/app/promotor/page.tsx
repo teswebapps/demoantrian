@@ -335,11 +335,11 @@ export default function PromotorPage() {
                 
                 <div className="mb-4 text-left">
                   <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase">Pilih Kategori</label>
-                  <div className="flex bg-secondary rounded-xl p-1 gap-1">
+                  <div className="flex bg-secondary rounded-xl p-1.5 gap-1.5">
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('HA')}
-                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
                         kategoriPilih === 'HA' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -348,7 +348,7 @@ export default function PromotorPage() {
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('AV')}
-                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
                         kategoriPilih === 'AV' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -388,11 +388,11 @@ export default function PromotorPage() {
 
                 <div className="mb-4">
                   <label className="text-xs font-bold text-muted-foreground mb-2 block uppercase">Pilih Kategori</label>
-                  <div className="flex bg-secondary rounded-xl p-1 gap-1">
+                  <div className="flex bg-secondary rounded-xl p-1.5 gap-1.5">
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('HA')}
-                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
                         kategoriPilih === 'HA' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -401,7 +401,7 @@ export default function PromotorPage() {
                     <button
                       type="button"
                       onClick={() => setKategoriPilih('AV')}
-                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                      className={`flex-1 py-3 px-2 rounded-lg text-sm font-bold transition-all ${
                         kategoriPilih === 'AV' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
