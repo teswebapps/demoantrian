@@ -486,7 +486,64 @@ export default function PromotorPage() {
             <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg active:scale-95 transition-all relative z-10">SELESAI IBADAH</button>
           </div>
         )}
-
+        {/* LIVE URUTAN ANTRIAN */}
+        <div className="space-y-4">
+          {['HA', 'AV'].map((kat) => {
+            const list = kat === 'HA' ? listHA : listAV;
+            const listStandby = list.filter(a => a.status === 'Standby');
+            const listMelayani = list.filter(a => a.status === 'Melayani');
+            
+            return (
+              <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase">
+                    <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-cyan-500' : 'bg-purple-500'}`}></span>
+                    Live Urutan {kat}
+                  </h3>
+                  <span className="text-[10px] font-bold bg-secondary text-muted-foreground px-2.5 py-1 rounded-md">
+                    {listStandby.length} Antri
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  {list.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic text-center py-2">Belum ada antrian</p>
+                  ) : (
+                    list.map((item, idx) => {
+                      const isSaya = item.nama.toLowerCase() === userData?.nama.toLowerCase();
+                      const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
+                      
+                      return (
+                        <div key={idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${isSaya ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/50 border border-transparent'}`}>
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
+                              {item.status === 'Melayani' ? '-' : (idx + 1)}
+                            </span>
+                            <span className={`text-xs font-bold uppercase ${isSaya ? 'text-primary' : 'text-foreground'}`}>
+                              {item.nama} {isSaya && '(Anda)'}
+                            </span>
+                          </div>
+                          
+                          {item.status === 'Melayani' ? (
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-500/20 text-blue-500">Melayani</span>
+                          ) : item.status === 'Dipanggil CS' ? (
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-500/20 text-purple-500">CS</span>
+                          ) : item.status === 'Ibadah' ? (
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500/20 text-amber-500">Ibadah</span>
+                          ) : isGiliranUtama ? (
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                          ) : (
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-secondary text-muted-foreground">Standby</span>
+                          )}
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
         {/* MENU AKTIVITAS HARI INI (FONT DIPERBESAR) */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
