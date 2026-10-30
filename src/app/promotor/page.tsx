@@ -584,16 +584,16 @@ export default function PromotorPage() {
                           </div>
                           
                           {item.status === 'Melayani' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-500/20 text-blue-500">Melayani</span>
-                          ) : item.status === 'Dipanggil CS' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-500/20 text-purple-500">Dipanggil CS/Gudang</span>
-                          ) : item.status === 'Ibadah' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500/20 text-amber-500">Ibadah</span>
-                          ) : isGiliranUtama ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
-                          ) : (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-secondary text-muted-foreground">Standby</span>
-                          )}
+  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 dark:bg-blue-500/20 text-white dark:text-blue-400">Melayani</span>
+) : item.status === 'Dipanggil CS' ? (
+  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">CS / GUDANG</span>
+) : item.status === 'Ibadah' ? (
+  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-400">Ibadah</span>
+) : isGiliranUtama ? (
+  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+) : (
+  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
+)}
                         </div>
                       )
                     })
