@@ -1,12 +1,11 @@
 'use client'
-import { useTheme } from '@/hooks/useTheme'
+
 import { useAuth } from '@/hooks/useAuth'
-import { useAntrian } from '@/hooks/useAntrian'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ref, update, remove, set, onValue, push, get } from 'firebase/database'
 import { db } from '@/lib/firebase'
+import { ref, update, remove, set, onValue, push, get } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Loader2, LogOut, Shield, Users, Clock, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
@@ -14,6 +13,8 @@ import {
   History, BarChart3, Coffee, LogOut as LogOutIcon,
   ShieldAlert, ChevronDown
 } from 'lucide-react'
+import { useTheme } from '@/hooks/useTheme'
+import { useAntrian } from '@/hooks/useAntrian'
 
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
@@ -72,6 +73,10 @@ export default function AdminPage() {
   const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
   const totalHA = antrian.filter(a => a.kategori === 'HA').length
   const totalAV = antrian.filter(a => a.kategori === 'AV').length
+
+  // Filter List Kategori untuk Live Antrian Admin
+  const listHA = antrian.filter(a => a.kategori === 'HA')
+  const listAV = antrian.filter(a => a.kategori === 'AV')
 
   // Filter Aktivitas
   const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
@@ -199,42 +204,69 @@ export default function AdminPage() {
           <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
         </div>
 
-        {/* TABEL LIVE ANTRIAN */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 md:p-6 shadow-sm mb-8">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6 uppercase"><Clock className="w-5 h-5 text-cyan-500" /> Live Antrian</h3>
-          {dataLoading ? <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-slate-500 animate-spin" /></div> : antrian.length === 0 ? (
-            <div className="text-center py-12 text-slate-500"><Users className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="uppercase font-medium">Belum ada promotor yang antri.</p></div>
-          ) : (
-            <div className="overflow-x-auto pb-2">
-              <table className="w-full text-left text-sm min-w-[600px]">
-                <thead className="text-xs text-slate-400 uppercase bg-slate-950/50">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">NO</th>
-                    <th className="px-4 py-3">NAMA</th>
-                    <th className="px-4 py-3">KATEGORI</th>
-                    <th className="px-4 py-3">STATUS</th>
-                    <th className="px-4 py-3 rounded-r-lg text-right">AKSI</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {antrian.map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-800/50 transition">
-                      <td className="px-4 py-3 text-slate-400 font-medium">{index + 1}</td>
-                      <td className="px-4 py-3 font-bold text-white uppercase">{item.nama}</td>
-                      <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${item.kategori === 'HA' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'}`}>{item.kategori}</span></td>
-                      <td className="px-4 py-3"><span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${item.status === 'Standby' ? 'bg-sky-500/20 text-sky-400' : 'bg-cyan-500/20 text-cyan-400'}`}>{item.status}</span></td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button onClick={() => hapusAntrian(item.nama)} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 border border-slate-700 transition-colors" title="Keluarkan"><Trash2 className="w-4 h-4" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </motion.div>
+        {/* LIVE URUTAN ANTRIAN (Gaya Tampilan Promotor) */}
+        <div className="space-y-4 mb-8">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider px-1">Live Urutan Antrian Toko</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {['HA', 'AV'].map((kat) => {
+              const list = kat === 'HA' ? listHA : listAV;
+              const listStandby = list.filter(a => a.status === 'Standby');
+              
+              return (
+                <div key={kat} className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2 uppercase">
+                      <span className={`w-2.5 h-2.5 rounded-full ${kat === 'HA' ? 'bg-cyan-500' : 'bg-purple-500'}`}></span>
+                      Live Urutan {kat}
+                    </h4>
+                    <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md">
+                      {listStandby.length} Antri
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {list.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic text-center py-4">Belum ada antrian</p>
+                    ) : (
+                      list.map((item, idx) => {
+                        const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
+                        
+                        return (
+                          <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-800">
+                            <div className="flex items-center gap-3">
+                              <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                                {item.status === 'Melayani' ? '-' : (idx + 1)}
+                              </span>
+                              <span className="text-xs font-bold uppercase text-white">
+                                {item.nama}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {item.status === 'Melayani' ? (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-500/20 text-blue-400">Melayani</span>
+                              ) : item.status === 'Dipanggil CS' ? (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-500/20 text-purple-400">CS</span>
+                              ) : item.status === 'Ibadah' ? (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500/20 text-amber-400">Ibadah</span>
+                              ) : isGiliranUtama ? (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                              ) : (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-800 text-slate-400">Standby</span>
+                              )}
+                              
+                              <button onClick={() => hapusAntrian(item.nama)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Keluarkan"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
         {/* MENU AKTIVITAS (Bisa Diklik) */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
