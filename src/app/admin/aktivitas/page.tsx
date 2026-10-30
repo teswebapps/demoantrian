@@ -5,9 +5,14 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Loader2, Users, Coffee, LogOut, ShieldAlert, Award, Calendar, X, Sun, Moon, History } from 'lucide-react'
+import { ArrowLeft, Loader2, Users, Coffee, LogOut, ShieldAlert, Award, Calendar, X, Sun, Moon, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
+
+const NAMA_BULAN = [
+  'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 
+  'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
+]
 
 export default function AktivitasAdminPage() {
   const { user, loading: authLoading } = useAuth('ADMIN')
@@ -16,37 +21,86 @@ export default function AktivitasAdminPage() {
   
   const [popupType, setPopupType] = useState<string | null>(null)
   const [statistikList, setStatistikList] = useState<any[]>([])
+  const [checkinList, setCheckinList] = useState<any[]>([])
+  const [whitelistUsers, setWhitelistUsers] = useState<any[]>([])
+  
   const [hariIniIndo, setHariIniIndo] = useState('')
+  const [todayKey, setTodayKey] = useState('')
+  const [periodeBulanIni, setPeriodeBulanIni] = useState('')
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
   useEffect(() => {
     const d = new Date()
     const tglIndo = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`
+    const tglKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    
     setHariIniIndo(tglIndo)
+    setTodayKey(tglKey)
+    setPeriodeBulanIni(`${NAMA_BULAN[d.getMonth()]} ${d.getFullYear()}`)
     
     if (!TOKO_ID) return
-    const unsub = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
+
+    const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
       const data = snap.val()
       const list: any[] = []
       if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
       setStatistikList(list)
+    })
+
+    const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach(promotorKey => {
+          const tglData = data[promotorKey]
+          if (tglData && typeof tglData === 'object') {
+            Object.keys(tglData).forEach(dateKey => {
+              list.push({ ...tglData[dateKey], promotorKey, dateKey })
+            })
+          }
+        })
+      }
+      setCheckinList(list)
+    })
+
+    const unsubUser = onValue(ref(db, 'users/whitelist'), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach(k => {
+          if (data[k].role !== 'ADMIN') list.push({ ...data[k], _key: k })
+        })
+      }
+      setWhitelistUsers(list)
       setLoading(false)
     })
-    return () => unsub()
+
+    return () => {
+      unsubStat()
+      unsubCheckin()
+      unsubUser()
+    }
   }, [TOKO_ID])
 
-  // Filter Aktivitas Hari Ini
+  const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
+
   const aktivitasHariIni = statistikList.filter(a => a.tanggal === hariIniIndo)
   const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
-  const listIbadah = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah')
+  const listIbadah = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
   const listKeluar = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick')
+  const checkinHariIni = checkinList.filter(c => c.tanggalKey === todayKey)
 
-  // Logika Rekap Promotor Keseluruhan
   const rekapPromotorMap = statistikList
-    .filter(a => a.aksi === 'BawaCustomer' && a.nama)
+    .filter(a => a.aksi === 'BawaCustomer' && a.nama && a.tanggal)
     .reduce((acc: any, curr: any) => {
+      const parts = String(curr.tanggal).split('-')
+      if (parts.length === 3) {
+        const blnThn = `${NAMA_BULAN[parseInt(parts[1]) - 1]} ${parts[2]}`
+        if (blnThn !== periodeBulanIni) return acc
+      }
+
       const nama = curr.nama.toUpperCase()
       if (!acc[nama]) {
         acc[nama] = { namaPromotor: nama, deal: 0, lihat: 0, noSale: 0, hariSet: new Set() }
@@ -63,8 +117,6 @@ export default function AktivitasAdminPage() {
     .map((item: any) => ({ ...item, hari: item.hariSet.size }))
     .sort((a: any, b: any) => b.deal - a.deal)
 
-  const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
-
   if (authLoading || loading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   }
@@ -72,27 +124,47 @@ export default function AktivitasAdminPage() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 flex justify-center transition-colors duration-300 pb-16">
       
-      {/* MODAL POPUP DETAIL AKTIVITAS & REKAP */}
       <AnimatePresence>
         {popupType && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-card rounded-3xl w-full max-w-lg border border-border shadow-2xl overflow-hidden">
               <div className="flex justify-between items-center p-5 border-b border-border">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
-                  {popupType === 'ibadah' && 'Ibadah Hari Ini'}
-                  {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
+                  {popupType === 'checkin' && `Check-in Promotor Hari Ini (${hariIniIndo})`}
+                  {popupType === 'bawa' && 'Bawa Customer Hari Ini (All Promotor)'}
+                  {popupType === 'ibadah' && 'Ibadah Hari Ini (All Promotor)'}
+                  {popupType === 'keluar' && 'Keluar Antrian Hari Ini (All Promotor)'}
                   {popupType === 'autokick' && 'Autokick (Pelanggaran)'}
-                  {popupType === 'rekapPromotor' && 'Rekap Bawa Customer per Promotor'}
+                  {popupType === 'rekapPromotor' && `Rekap Bawa Customer (${periodeBulanIni})`}
                 </h3>
                 <button onClick={() => setPopupType(null)} className="p-1.5 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
               <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5">
                 
+                {popupType === 'checkin' && (
+                  <div className="space-y-2">
+                    {whitelistUsers.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada promotor terdaftar</p>
+                    ) : (
+                      whitelistUsers.map((p, idx) => {
+                        const checkinData = checkinHariIni.find(c => c.nama.toLowerCase() === p.nama.toLowerCase())
+                        return (
+                          <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
+                            <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{p.nama}</span>
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-md ${checkinData ? 'bg-emerald-500/10 text-emerald-500' : 'bg-secondary text-muted-foreground'}`}>
+                              {checkinData ? formatJam(checkinData.waktu) : 'Belum Check-in'}
+                            </span>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                )}
+
                 {popupType === 'rekapPromotor' && (
                   <div className="space-y-2">
                     <div className="bg-secondary/50 p-2.5 rounded-xl text-center text-[11px] font-bold text-muted-foreground uppercase mb-3">
-                      Periode Keseluruhan Aktivitas
+                      Periode: {periodeBulanIni}
                     </div>
                     <div className="grid grid-cols-12 gap-1 px-3 py-2 bg-secondary rounded-xl text-[11px] font-bold text-muted-foreground uppercase">
                       <div className="col-span-5">Nama Promotor</div>
@@ -102,7 +174,7 @@ export default function AktivitasAdminPage() {
                       <div className="col-span-2 text-center">Hari</div>
                     </div>
                     {listRekapPromotor.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada data rekap</p>
+                      <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada data rekap bulan ini</p>
                     ) : (
                       listRekapPromotor.map((row: any, idx: number) => (
                         <div key={idx} className="grid grid-cols-12 gap-1 px-3 py-2.5 bg-white dark:bg-secondary/50 rounded-xl text-xs items-center border border-slate-200 dark:border-border shadow-sm">
@@ -138,7 +210,9 @@ export default function AktivitasAdminPage() {
                     {listIbadah.length === 0 ? <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada</p> : listIbadah.map((a, i) => (
                       <div key={i} className="flex justify-between items-center p-3 bg-white dark:bg-secondary/50 rounded-2xl text-xs border border-slate-200 dark:border-border shadow-sm">
                         <span className="font-bold text-slate-900 dark:text-foreground uppercase text-xs">{a.nama}</span>
-                        <span className="text-xs text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {formatJam(a.waktuMulai || a.waktu)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : ''}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -177,7 +251,6 @@ export default function AktivitasAdminPage() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl space-y-5">
         
-        {/* HEADER */}
         <div className="flex items-center gap-3">
           <Link href="/admin" className="p-2.5 bg-card border border-border rounded-2xl text-muted-foreground hover:text-foreground transition shadow-sm">
             <ArrowLeft className="w-4 h-4" />
@@ -191,11 +264,15 @@ export default function AktivitasAdminPage() {
           </button>
         </div>
 
-        {/* MENU KOTAK CARD AKTIVITAS & REKAP */}
         <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <button onClick={() => setPopupType('checkin')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 mt-1" />
+              <span className="text-[11px] font-bold text-foreground uppercase">Check-in Promotor</span>
+              <span className="absolute top-3 right-3 text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">{checkinHariIni.length}</span>
+            </button>
             <button onClick={() => setPopupType('bawa')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <Users className="w-4 h-4 text-sky-500 mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Bawa Customer</span>
@@ -216,12 +293,12 @@ export default function AktivitasAdminPage() {
               <span className="text-[11px] font-bold text-foreground uppercase">Autokick</span>
               <span className="absolute top-3 right-3 text-[9px] font-black bg-destructive text-white px-2 py-0.5 rounded-full">{listAutokick.length}</span>
             </button>
-            <button onClick={() => setPopupType('rekapPromotor')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-center gap-2 hover:bg-secondary transition shadow-sm text-foreground">
-              <Award className="w-4 h-4 text-emerald-500" />
+            <button onClick={() => setPopupType('rekapPromotor')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 hover:bg-secondary transition shadow-sm text-foreground">
+              <Award className="w-4 h-4 text-emerald-500 mt-1" />
               <span className="text-[11px] font-bold uppercase">Rekap Promotor</span>
             </button>
-            <Link href="/admin/total-bulanan" className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-center gap-2 hover:bg-secondary transition shadow-sm text-foreground">
-              <Calendar className="w-4 h-4 text-indigo-500" />
+            <Link href="/admin/total-bulanan" className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 hover:bg-secondary transition shadow-sm text-foreground col-span-2 md:col-span-1">
+              <Calendar className="w-4 h-4 text-indigo-500 mt-1" />
               <span className="text-[11px] font-bold uppercase">Total Bulanan</span>
             </Link>
           </div>
