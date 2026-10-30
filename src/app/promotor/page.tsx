@@ -206,7 +206,6 @@ export default function PromotorPage() {
         const kat = kategoriPilih
         await set(ref(db, pathAntrian), { nama: userData.nama, status: 'Standby', waktuStandby: Date.now(), kategori: kat, subkategori: kat, posisiTerkunci: 0 })
         await set(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`), { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'CheckIn', waktu: Date.now(), tanggal: tglIndo, hasil: kat })
         toast.success('Berhasil Check-in!')
       } else if (aksi === 'BawaCustomer') {
         await update(ref(db, pathAntrian), { status: 'Melayani', posisiTerkunci: 0, waktuMulaiMelayani: Date.now() })
