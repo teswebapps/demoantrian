@@ -7,7 +7,7 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
-import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, Coffee } from 'lucide-react'
+import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, CalendarDays } from 'lucide-react'
 
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
@@ -33,6 +33,11 @@ const getTanggalKey = (d?: Date) => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+const NAMA_BULAN = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+]
+
 export default function PromotorPage() {
   const { isDark, toggleTheme, mounted } = useTheme()
   const [userData, setUserData] = useState<any>(null)
@@ -54,6 +59,7 @@ export default function PromotorPage() {
   
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(false)
+  const [isBulananOpen, setIsBulananOpen] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
@@ -270,6 +276,28 @@ export default function PromotorPage() {
   const listIbadahSaya = aktivitasSaya.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah') && a.tanggal === hariIniIndo)
   const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
 
+  // LOGIKA REKAP BULANAN
+  const rekapBulananMap = aktivitasHariIni
+    .filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase() && a.aksi === 'BawaCustomer' && a.waktu)
+    .reduce((acc: any, curr: any) => {
+      const d = new Date(curr.waktu)
+      const bulanIdx = d.getMonth()
+      const tahun = d.getFullYear()
+      const key = `${tahun}-${String(bulanIdx + 1).padStart(2, '0')}`
+      const label = `${NAMA_BULAN[bulanIdx]} ${tahun}`
+
+      if (!acc[key]) {
+        acc[key] = { label, tahun, bulanIdx, deal: 0, lihat: 0 }
+      }
+      if (curr.hasil === 'Deal') acc[key].deal += 1
+      if (curr.hasil === 'Lihat') acc[key].lihat += 1
+      return acc
+    }, {})
+
+  const listRekapBulanan = Object.keys(rekapBulananMap)
+    .sort((a, b) => b.localeCompare(a)) // Urutkan dari bulan terbaru
+    .map(k => rekapBulananMap[k])
+
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
 
   if (isLoading || !mounted || isLoadingCheckin) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
@@ -423,7 +451,7 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: STANDBY (Nomor Dinamis HA/AV) */}
+        {/* STATUS: STANDBY */}
         {statusSaya === 'Standby' && (
           <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border relative overflow-hidden">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
@@ -486,12 +514,12 @@ export default function PromotorPage() {
             <button onClick={() => handleAksi('KembaliIbadah')} className="w-full py-4 bg-white text-amber-700 font-black rounded-xl shadow-lg active:scale-95 transition-all relative z-10">SELESAI IBADAH</button>
           </div>
         )}
+
         {/* LIVE URUTAN ANTRIAN */}
         <div className="space-y-4">
           {['HA', 'AV'].map((kat) => {
             const list = kat === 'HA' ? listHA : listAV;
             const listStandby = list.filter(a => a.status === 'Standby');
-            const listMelayani = list.filter(a => a.status === 'Melayani');
             
             return (
               <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
@@ -544,7 +572,8 @@ export default function PromotorPage() {
             )
           })}
         </div>
-        {/* MENU AKTIVITAS HARI INI (FONT DIPERBESAR) */}
+
+        {/* MENU AKTIVITAS HARI INI */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
@@ -553,7 +582,6 @@ export default function PromotorPage() {
           
           {isAktivitasOpen && (
             <div className="p-5 border-t border-border space-y-5">
-              
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><ShieldCheck className="w-4 h-4" /> Check-in</p>
                 <div className="bg-secondary rounded-xl p-3 text-sm flex justify-between items-center">
@@ -618,7 +646,41 @@ export default function PromotorPage() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
 
+        {/* MENU REKAP TOTAL BULANAN */}
+        <div className="bg-card border border-border rounded-3xl overflow-hidden mt-4">
+          <button onClick={() => setIsBulananOpen(!isBulananOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><CalendarDays className="w-5 h-5 text-muted-foreground" /> Rekap Total Bulanan</h3>
+            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${isBulananOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {isBulananOpen && (
+            <div className="p-5 border-t border-border space-y-3">
+              {listRekapBulanan.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic text-center py-2">Belum ada riwayat rekap bulanan</p>
+              ) : (
+                listRekapBulanan.map((rekap: any, idx: number) => (
+                  <div key={idx} className="bg-secondary/60 border border-border/50 rounded-2xl p-4 flex justify-between items-center">
+                    <div>
+                      <h4 className="text-sm font-black text-foreground uppercase">{rekap.label}</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Total customer dilayani</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-center">
+                        <span className="block text-[10px] font-bold text-emerald-500 uppercase">Deal</span>
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{rekap.deal}</span>
+                      </div>
+                      <div className="bg-amber-500/15 border border-amber-500/30 px-3 py-1.5 rounded-xl text-center">
+                        <span className="block text-[10px] font-bold text-amber-500 uppercase">Lihat</span>
+                        <span className="text-sm font-black text-amber-600 dark:text-amber-400">{rekap.lihat}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
