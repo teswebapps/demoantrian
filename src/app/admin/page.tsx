@@ -11,7 +11,7 @@ import {
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
   Trash2, X, Calendar, Sun, Moon,
   History, BarChart3, Coffee, LogOut as LogOutIcon,
-  ShieldAlert
+  ShieldAlert, Award
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [popupType, setPopupType] = useState<string | null>(null)
   
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
+  const [semuaAktivitas, setSemuaAktivitas] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
@@ -38,10 +39,11 @@ export default function AdminPage() {
       const data = snap.val()
       const list: any[] = []
       if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
-      setAktivitasHariIni(list)
+      setSemuaAktivitas(list)
+      setAktivitasHariIni(list.filter(a => a.tanggal === hariIniIndo))
     })
     return () => unsub()
-  }, [TOKO_ID])
+  }, [TOKO_ID, hariIniIndo])
 
   if (authLoading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   if (error) return <div className="min-h-screen flex items-center justify-center bg-background text-destructive">{error}</div>
@@ -78,21 +80,41 @@ export default function AdminPage() {
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
   // Filter Aktivitas Hari Ini
-  const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
-  const listIbadah = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah' && a.tanggal === hariIniIndo)
-  const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick' && a.tanggal === hariIniIndo)
-  const listKeluar = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
+  const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
+  const listIbadah = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah')
+  const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick')
+  const listKeluar = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
+
+  // Logika Rekap Promotor (Berdasarkan Gambar Contoh)
+  const rekapPromotorMap = semuaAktivitas
+    .filter(a => a.aksi === 'BawaCustomer' && a.nama)
+    .reduce((acc: any, curr: any) => {
+      const nama = curr.nama.toUpperCase()
+      if (!acc[nama]) {
+        acc[nama] = { namaPromotor: nama, deal: 0, lihat: 0, noSale: 0, hariSet: new Set() }
+      }
+      if (curr.hasil === 'Deal') acc[nama].deal += 1
+      else if (curr.hasil === 'Lihat') acc[nama].lihat += 1
+      else if (curr.hasil === 'No Sale' || curr.hasil === 'Tidak Deal') acc[nama].noSale += 1
+      
+      if (curr.tanggal) acc[nama].hariSet.add(curr.tanggal)
+      return acc
+    }, {})
+
+  const listRekapPromotor = Object.values(rekapPromotorMap)
+    .map((item: any) => ({ ...item, hari: item.hariSet.size }))
+    .sort((a: any, b: any) => b.deal - a.deal)
 
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
 
   return (
     <div className="min-h-screen bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-16">
       
-      {/* MODAL POPUP AKTIVITAS & LIVE ANTRIAN */}
+      {/* MODAL POPUP AKTIVITAS & LIVE ANTRIAN / REKAP */}
       <AnimatePresence>
         {popupType && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-card rounded-3xl w-full max-w-md border border-border shadow-2xl overflow-hidden">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="bg-card rounded-3xl w-full max-w-lg border border-border shadow-2xl overflow-hidden">
               <div className="flex justify-between items-center p-5 border-b border-border">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
                   {popupType === 'liveHA' && 'Live Urutan Antrian HA'}
@@ -101,6 +123,7 @@ export default function AdminPage() {
                   {popupType === 'ibadah' && 'Ibadah Hari Ini'}
                   {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
                   {popupType === 'autokick' && 'Autokick (Pelanggaran)'}
+                  {popupType === 'rekapPromotor' && 'Rekap Bawa Customer per Promotor'}
                 </h3>
                 <button onClick={() => setPopupType(null)} className="p-1.5 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
@@ -169,6 +192,34 @@ export default function AdminPage() {
                         </div>
                       )
                     })}
+                  </div>
+                )}
+
+                {popupType === 'rekapPromotor' && (
+                  <div className="space-y-2">
+                    <div className="bg-secondary/50 p-2.5 rounded-xl text-center text-[11px] font-bold text-muted-foreground uppercase mb-3">
+                      Periode Keseluruhan Aktivitas
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 px-3 py-2 bg-secondary rounded-xl text-[11px] font-bold text-muted-foreground uppercase">
+                      <div className="col-span-5">Nama Promotor</div>
+                      <div className="col-span-2 text-center">Deal</div>
+                      <div className="col-span-2 text-center">Lihat</div>
+                      <div className="col-span-1 text-center">No Sale</div>
+                      <div className="col-span-2 text-center">Hari</div>
+                    </div>
+                    {listRekapPromotor.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada data rekap</p>
+                    ) : (
+                      listRekapPromotor.map((row: any, idx: number) => (
+                        <div key={idx} className="grid grid-cols-12 gap-1 px-3 py-2.5 bg-white dark:bg-secondary/50 rounded-xl text-xs items-center border border-slate-200 dark:border-border shadow-sm">
+                          <div className="col-span-5 font-bold text-slate-900 dark:text-foreground uppercase truncate">{row.namaPromotor}</div>
+                          <div className="col-span-2 text-center font-bold text-emerald-500">{row.deal}</div>
+                          <div className="col-span-2 text-center font-bold text-amber-500">{row.lihat}</div>
+                          <div className="col-span-1 text-center font-bold text-destructive">{row.noSale}</div>
+                          <div className="col-span-2 text-center font-bold text-muted-foreground">{row.hari}</div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
@@ -272,53 +323,55 @@ export default function AdminPage() {
           <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
         </div>
 
-        {/* MENU AKTIVITAS & LIVE ANTRIAN DI BAWAH */}
-        <div className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm space-y-4">
+        {/* MENU AKTIVITAS & LIVE ANTRIAN DI BAWAH (Gaya Kotak Card Sesuai Gambar Referensi) */}
+        <div className="bg-card border border-border rounded-3xl p-4 md:p-6 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
           
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <button onClick={() => setPopupType('liveHA')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+            <button onClick={() => setPopupType('liveHA')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <span className="w-2 h-2 rounded-full bg-cyan-500 absolute top-3 left-3"></span>
               <Users className="w-4 h-4 text-cyan-500 mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Live Antrian HA</span>
               <span className="text-[10px] text-muted-foreground font-semibold">{listHA.filter(a => a.status === 'Standby').length} Antri</span>
             </button>
 
-            <button onClick={() => setPopupType('liveAV')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+            <button onClick={() => setPopupType('liveAV')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <span className="w-2 h-2 rounded-full bg-purple-500 absolute top-3 left-3"></span>
               <Users className="w-4 h-4 text-purple-500 mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Live Antrian AV</span>
               <span className="text-[10px] text-muted-foreground font-semibold">{listAV.filter(a => a.status === 'Standby').length} Antri</span>
             </button>
 
-            <button onClick={() => setPopupType('bawa')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+            <button onClick={() => setPopupType('bawa')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <Users className="w-4 h-4 text-sky-500 mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Bawa Customer</span>
-              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-sky-500 text-white px-2 py-0.5 rounded-full">{listBawa.length}</span>
+              <span className="absolute top-3 right-3 text-[9px] font-black bg-sky-500 text-white px-2 py-0.5 rounded-full">{listBawa.length}</span>
             </button>
-            <button onClick={() => setPopupType('ibadah')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+            <button onClick={() => setPopupType('ibadah')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <Coffee className="w-4 h-4 text-amber-500 mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Ibadah</span>
-              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">{listIbadah.length}</span>
+              <span className="absolute top-3 right-3 text-[9px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">{listIbadah.length}</span>
             </button>
-            <button onClick={() => setPopupType('keluar')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+            <button onClick={() => setPopupType('keluar')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <LogOutIcon className="w-4 h-4 text-rose-500 mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Keluar Antrian</span>
-              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full">{listKeluar.length}</span>
+              <span className="absolute top-3 right-3 text-[9px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full">{listKeluar.length}</span>
             </button>
-            <button onClick={() => setPopupType('autokick')} className="bg-secondary/60 border border-border/60 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
+            <button onClick={() => setPopupType('autokick')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
               <ShieldAlert className="w-4 h-4 text-destructive mt-1" />
               <span className="text-[11px] font-bold text-foreground uppercase">Autokick</span>
-              <span className="absolute top-2.5 right-2.5 text-[9px] font-black bg-destructive text-white px-2 py-0.5 rounded-full">{listAutokick.length}</span>
+              <span className="absolute top-3 right-3 text-[9px] font-black bg-destructive text-white px-2 py-0.5 rounded-full">{listAutokick.length}</span>
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
-            <Link href="/admin/aktivitas" className="bg-primary/10 border border-primary/20 text-primary rounded-2xl py-3 text-center text-[11px] font-bold uppercase hover:bg-primary/20 transition flex items-center justify-center gap-2 shadow-sm">
-              <BarChart3 className="w-4 h-4" /> Aktivitas & Rekap Promotor
-            </Link>
-            <Link href="/admin/total-bulanan" className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 rounded-2xl py-3 text-center text-[11px] font-bold uppercase hover:bg-indigo-500/20 transition flex items-center justify-center gap-2 shadow-sm">
-              <Calendar className="w-4 h-4" /> Total Bulanan
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            <button onClick={() => setPopupType('rekapPromotor')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-center gap-2.5 hover:bg-secondary transition shadow-sm text-foreground">
+              <Award className="w-5 h-5 text-emerald-500" />
+              <span className="text-xs font-bold uppercase">Rekap Promotor</span>
+            </button>
+            <Link href="/admin/total-bulanan" className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-center gap-2.5 hover:bg-secondary transition shadow-sm text-foreground">
+              <Calendar className="w-5 h-5 text-indigo-500" />
+              <span className="text-xs font-bold uppercase">Total Bulanan</span>
             </Link>
           </div>
         </div>
