@@ -57,19 +57,22 @@ export function LoginPanel() {
   return (
     <section
       aria-labelledby="login-title"
-      className="mt-10 rounded-[28px] bg-card/80 p-5 shadow-2xl shadow-black/40 backdrop-blur-xl border border-border"
+      className="mt-8 rounded-[28px] bg-card border border-border p-6 shadow-2xl shadow-black/10 dark:shadow-black/40 backdrop-blur-xl relative overflow-hidden"
     >
-      <h2 id="login-title" className="text-lg font-bold text-foreground">
-        Masuk untuk mulai
+      {/* Efek Gradien Tipis di Card */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-600"></div>
+
+      <h2 id="login-title" className="text-xl font-black text-foreground text-center">
+        Selamat Datang
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Gunakan akun Google yang sudah terdaftar oleh admin toko.
+      <p className="mt-2 text-sm text-muted-foreground text-center mb-6">
+        Silakan masuk menggunakan akun Google yang sudah terdaftar.
       </p>
 
       {error && (
         <div
           role="alert"
-          className="mt-4 flex items-start gap-3 rounded-2xl bg-destructive/10 p-3.5 text-sm text-destructive"
+          className="mb-4 flex items-start gap-3 rounded-2xl bg-destructive/10 p-3.5 text-sm text-destructive border border-destructive/20"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
@@ -81,18 +84,18 @@ export function LoginPanel() {
         onClick={handleLogin}
         disabled={loading}
         aria-busy={loading}
-        className="mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-slate-900 shadow-lg shadow-black/20 transition hover:bg-slate-100 active:scale-[0.98] disabled:opacity-70"
+        className="group relative flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-slate-800 border border-slate-200 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-[0.98] disabled:opacity-70"
       >
         {loading ? (
-          <Loader2 className="size-5 animate-spin text-slate-900" />
+          <Loader2 className="size-5 animate-spin text-slate-800" />
         ) : (
           <GoogleIcon className="size-5" />
         )}
         {loading ? 'Menghubungkan...' : 'Lanjutkan dengan Google'}
       </button>
 
-      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-        <ShieldCheck className="size-3.5 text-accent" aria-hidden="true" />
+      <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <ShieldCheck className="size-4 text-cyan-500" aria-hidden="true" />
         {'Login aman · data hanya untuk keperluan antrian'}
       </div>
     </section>

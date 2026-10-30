@@ -9,14 +9,15 @@ const features = [
 
 export function LoginBrand() {
   return (
-    <section className="flex flex-1 flex-col items-center justify-center text-center">
+    <section className="flex flex-1 flex-col items-center justify-center text-center mt-10">
       <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
+        {/* Efek Cahaya Biru di belakang logo */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 rounded-[28px] bg-accent/40 blur-2xl"
+          className="absolute inset-0 rounded-[28px] bg-cyan-500/30 blur-2xl"
         />
-        {/* LOGO BARU DIMASUKKAN DI SINI */}
-        <div className="relative flex size-28 items-center justify-center overflow-hidden rounded-[28px] bg-transparent shadow-xl shadow-emerald-900/40">
+        {/* Logo UFO */}
+        <div className="relative flex size-28 items-center justify-center overflow-hidden rounded-[28px] bg-transparent shadow-xl shadow-cyan-900/40">
           <Image 
             src="/logo-ufo.png" 
             alt="UFO Elektronika" 
@@ -39,9 +40,9 @@ export function LoginBrand() {
         {features.map(({ icon: Icon, label }) => (
           <li
             key={label}
-            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-muted-foreground"
+            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-muted-foreground border border-border"
           >
-            <Icon className="size-3.5 text-primary" aria-hidden="true" />
+            <Icon className="size-3.5 text-cyan-500" aria-hidden="true" />
             {label}
           </li>
         ))}
