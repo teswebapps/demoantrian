@@ -190,7 +190,8 @@ export default function PromotorPage() {
     const pathStatistik = `toko/${TOKO_ID}/statistikAktivitas`
     
     try {
-      if (aksi === 'CheckIn') {
+      
+       if (aksi === 'CheckIn') {
         const lockSnap = await get(ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`))
         if (lockSnap.exists()) {
           const l = lockSnap.val()
@@ -203,6 +204,27 @@ export default function PromotorPage() {
             return
           }
         }
+        
+        // Ambil waktu check-in harian yang sudah ada (supaya jam check-in awal tidak berubah)
+        const checkinSnap = await get(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`))
+        const waktuCheckinAsli = checkinSnap.exists() ? checkinSnap.val().waktu : Date.now()
+
+        const kat = kategoriPilih
+        await set(ref(db, pathAntrian), { 
+          nama: userData.nama, 
+          status: 'Standby', 
+          waktuStandby: waktuCheckinAsli, // <-- Dikunci pakai waktu check-in pertama kali hari ini!
+          kategori: kat, 
+          subkategori: kat, 
+          posisiTerkunci: 0 
+        })
+
+        if (!checkinSnap.exists()) {
+          await set(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`), { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: Date.now() })
+        }
+        
+        toast.success('Berhasil Check-in!')
+      }
         const kat = kategoriPilih
         await set(ref(db, pathAntrian), { nama: userData.nama, status: 'Standby', waktuStandby: Date.now(), kategori: kat, subkategori: kat, posisiTerkunci: 0 })
         await set(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`), { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: Date.now() })
