@@ -146,35 +146,35 @@ export default function AktivitasAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-8 flex justify-center transition-colors duration-300">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl space-y-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 flex justify-center transition-colors duration-300">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl space-y-5">
         
         {/* HEADER */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link href="/admin" className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition shadow-sm">
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white uppercase">Aktivitas & Rekap</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 uppercase">Monitoring operasional dan kinerja promotor</p>
+            <h1 className="text-lg md:text-2xl font-bold text-slate-800 dark:text-white uppercase">Aktivitas & Rekap</h1>
+            <p className="text-[11px] md:text-sm text-slate-500 dark:text-slate-400 uppercase">Monitoring operasional & kinerja</p>
           </div>
-          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors shadow-sm">
+          <button onClick={toggleTheme} className="p-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-500 transition-colors shadow-sm">
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
 
         {/* 1. JAM CHECK-IN ALL PROMOTOR HARI INI */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 uppercase flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-500" /> Jam Check-in Promotor Hari Ini ({hariIniIndo})
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
+          <h3 className="text-xs md:text-sm font-bold text-slate-800 dark:text-white mb-3 uppercase flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" /> Jam Check-in Hari Ini ({hariIniIndo})
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {whitelistUsers.map((p, idx) => {
               const checkinData = checkinHariIni.find(c => c.nama.toLowerCase() === p.nama.toLowerCase())
               return (
-                <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase truncate pr-2">{p.nama}</span>
-                  <span className={`text-xs font-black px-2 py-1 rounded-md ${checkinData ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
+                <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-700 dark:text-slate-200 uppercase truncate pr-1 text-[11px]">{p.nama}</span>
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${checkinData ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
                     {checkinData ? formatJam(checkinData.waktu) : 'Belum'}
                   </span>
                 </div>
@@ -184,35 +184,35 @@ export default function AktivitasAdminPage() {
         </div>
 
         {/* 2. REKAP HARIAN PROMOTOR (DEAL, LIHAT, NO SALE) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 uppercase flex items-center gap-2">
-            <Award className="w-5 h-5 text-cyan-500" /> Rekap Performa Harian Promotor
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
+          <h3 className="text-xs md:text-sm font-bold text-slate-800 dark:text-white mb-3 uppercase flex items-center gap-2">
+            <Award className="w-4 h-4 text-cyan-500" /> Rekap Performa Harian Promotor
           </h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[500px]">
-              <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-950/50">
+            <table className="w-full text-left text-xs md:text-sm min-w-[450px]">
+              <thead className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-950/50">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg">Nama Promotor</th>
-                  <th className="px-4 py-3 text-center">Check-in</th>
-                  <th className="px-4 py-3 text-center">Deal</th>
-                  <th className="px-4 py-3 text-center">Lihat</th>
-                  <th className="px-4 py-3 text-center rounded-r-lg">Status No Sale</th>
+                  <th className="px-3 py-2.5 rounded-l-lg">Nama Promotor</th>
+                  <th className="px-3 py-2.5 text-center">Check-in</th>
+                  <th className="px-3 py-2.5 text-center">Deal</th>
+                  <th className="px-3 py-2.5 text-center">Lihat</th>
+                  <th className="px-3 py-2.5 text-center rounded-r-lg">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {rekapHarianPromotor.map((r, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="px-4 py-3 font-bold text-slate-800 dark:text-white uppercase">{r.nama}</td>
-                    <td className="px-4 py-3 text-center font-medium text-slate-600 dark:text-slate-300">{r.jamCheckin || '-'}</td>
-                    <td className="px-4 py-3 text-center font-black text-emerald-500">{r.deal}</td>
-                    <td className="px-4 py-3 text-center font-black text-amber-500">{r.lihat}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2.5 font-bold text-slate-800 dark:text-white uppercase text-[11px] md:text-xs">{r.nama}</td>
+                    <td className="px-3 py-2.5 text-center font-medium text-slate-600 dark:text-slate-300 text-[11px]">{r.jamCheckin || '-'}</td>
+                    <td className="px-3 py-2.5 text-center font-black text-emerald-500 text-[11px]">{r.deal}</td>
+                    <td className="px-3 py-2.5 text-center font-black text-amber-500 text-[11px]">{r.lihat}</td>
+                    <td className="px-3 py-2.5 text-center">
                       {r.noSale ? (
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-rose-500/10 text-rose-500 border border-rose-500/20">No Sale</span>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-rose-500/10 text-rose-500 border border-rose-500/20">No Sale</span>
                       ) : r.sudahCheckin ? (
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-500">Aktif</span>
+                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-500">Aktif</span>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">Belum Masuk</span>
+                        <span className="text-[10px] text-slate-400 italic">Belum Masuk</span>
                       )}
                     </td>
                   </tr>
@@ -222,43 +222,43 @@ export default function AktivitasAdminPage() {
           </div>
         </div>
 
-        {/* 3. AKTIVITAS SEMUA PROMOTOR HARI INI (BAWA CUSTOMER, IBADAH, KELUAR) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 3. AKTIVITAS SEMUA PROMOTOR HARI INI */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           
           {/* Bawa Customer */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-sky-500" /> Bawa Customer ({listBawaHariIni.length})</h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {listBawaHariIni.length === 0 ? <p className="text-xs text-slate-400 italic">Belum ada aktivitas</p> : listBawaHariIni.map((a, i) => (
-                <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700 dark:text-white uppercase">{a.nama}</span>
-                  <span className={`font-black uppercase px-2 py-0.5 rounded text-[10px] ${a.hasil === 'Deal' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>{a.hasil || 'Proses'}</span>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+            <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-2.5 flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-sky-500" /> Bawa Customer ({listBawaHariIni.length})</h4>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {listBawaHariIni.length === 0 ? <p className="text-[11px] text-slate-400 italic">Belum ada aktivitas</p> : listBawaHariIni.map((a, i) => (
+                <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl flex justify-between items-center text-[11px]">
+                  <span className="font-bold text-slate-700 dark:text-white uppercase truncate pr-1">{a.nama}</span>
+                  <span className={`font-black uppercase px-1.5 py-0.5 rounded text-[9px] shrink-0 ${a.hasil === 'Deal' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>{a.hasil || 'Proses'}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Ibadah */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3 flex items-center gap-2"><Coffee className="w-4 h-4 text-amber-500" /> Ibadah ({listIbadahHariIni.length})</h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {listIbadahHariIni.length === 0 ? <p className="text-xs text-slate-400 italic">Belum ada aktivitas</p> : listIbadahHariIni.map((a, i) => (
-                <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700 dark:text-white uppercase">{a.nama}</span>
-                  <span className="text-slate-400">{formatJam(a.waktu)}</span>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+            <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-2.5 flex items-center gap-1.5"><Coffee className="w-3.5 h-3.5 text-amber-500" /> Ibadah ({listIbadahHariIni.length})</h4>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {listIbadahHariIni.length === 0 ? <p className="text-[11px] text-slate-400 italic">Belum ada aktivitas</p> : listIbadahHariIni.map((a, i) => (
+                <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl flex justify-between items-center text-[11px]">
+                  <span className="font-bold text-slate-700 dark:text-white uppercase truncate pr-1">{a.nama}</span>
+                  <span className="text-slate-400 text-[10px] shrink-0">{formatJam(a.waktu)}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Keluar Antrian */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3 flex items-center gap-2"><LogOut className="w-4 h-4 text-rose-500" /> Keluar Antrian ({listKeluarHariIni.length})</h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {listKeluarHariIni.length === 0 ? <p className="text-xs text-slate-400 italic">Belum ada aktivitas</p> : listKeluarHariIni.map((a, i) => (
-                <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700 dark:text-white uppercase">{a.nama}</span>
-                  <span className="text-slate-400">{formatJam(a.waktu)}</span>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+            <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-2.5 flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5 text-rose-500" /> Keluar Antrian ({listKeluarHariIni.length})</h4>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {listKeluarHariIni.length === 0 ? <p className="text-[11px] text-slate-400 italic">Belum ada aktivitas</p> : listKeluarHariIni.map((a, i) => (
+                <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl flex justify-between items-center text-[11px]">
+                  <span className="font-bold text-slate-700 dark:text-white uppercase truncate pr-1">{a.nama}</span>
+                  <span className="text-slate-400 text-[10px] shrink-0">{formatJam(a.waktu)}</span>
                 </div>
               ))}
             </div>
@@ -267,41 +267,41 @@ export default function AktivitasAdminPage() {
         </div>
 
         {/* 4. TOTAL BULANAN KESELURUHAN ALL PROMOTOR */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 md:p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase">Total Bulanan Keseluruhan Promotor</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">Akumulasi seluruh performa toko</p>
+              <h3 className="text-xs md:text-sm font-bold text-slate-800 dark:text-white uppercase">Total Bulanan Keseluruhan</h3>
+              <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 uppercase">Akumulasi performa toko</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
               <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Total Deal</p>
-                <p className="text-xl font-black text-emerald-500">{totalDealAll}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase">Deal All</p>
+                <p className="text-base md:text-xl font-black text-emerald-500">{totalDealAll}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Total Lihat</p>
-                <p className="text-xl font-black text-amber-500">{totalLihatAll}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase">Lihat All</p>
+                <p className="text-base md:text-xl font-black text-amber-500">{totalLihatAll}</p>
               </div>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[400px]">
-              <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-950/50">
+            <table className="w-full text-left text-xs md:text-sm min-w-[350px]">
+              <thead className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-950/50">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg">Bulan</th>
-                  <th className="px-4 py-3 text-center">Deal All</th>
-                  <th className="px-4 py-3 text-center rounded-r-lg">Lihat All</th>
+                  <th className="px-3 py-2.5 rounded-l-lg">Bulan</th>
+                  <th className="px-3 py-2.5 text-center">Deal All</th>
+                  <th className="px-3 py-2.5 text-center rounded-r-lg">Lihat All</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {dataBulananAll.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400">Belum ada data rekap bulanan</td></tr>
+                  <tr><td colSpan={3} className="px-3 py-6 text-center text-slate-400 text-xs">Belum ada data rekap bulanan</td></tr>
                 ) : dataBulananAll.map((b, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                    <td className="px-4 py-3 font-bold text-slate-800 dark:text-white uppercase">{b.namaBln} {b.tahun}</td>
-                    <td className="px-4 py-3 text-center font-black text-emerald-500">{b.deal}</td>
-                    <td className="px-4 py-3 text-center font-black text-amber-500">{b.lihat}</td>
+                    <td className="px-3 py-2.5 font-bold text-slate-800 dark:text-white uppercase text-[11px] md:text-xs">{b.namaBln} {b.tahun}</td>
+                    <td className="px-3 py-2.5 text-center font-black text-emerald-500 text-[11px]">{b.deal}</td>
+                    <td className="px-3 py-2.5 text-center font-black text-amber-500 text-[11px]">{b.lihat}</td>
                   </tr>
                 ))}
               </tbody>
