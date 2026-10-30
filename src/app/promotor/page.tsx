@@ -569,7 +569,11 @@ export default function PromotorPage() {
                       const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
                       
                       return (
-                        <div key={idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${isSaya ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/50 border border-transparent'}`}>
+                       <div key={idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${
+  isSaya 
+    ? 'bg-primary/15 dark:bg-primary/20 border border-primary/30 shadow-sm' 
+    : 'bg-card dark:bg-secondary/50 border border-border/60 shadow-sm'
+}`}>
                           <div className="flex items-center gap-3">
                             <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
                               {item.status === 'Melayani' ? '-' : (idx + 1)}
