@@ -17,13 +17,11 @@ export function LoginPanel() {
     setError(null)
     setLoading(true)
     try {
-      // 1. Login Google via Firebase
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
 
       if (!user.email) throw new Error('Akun Google tidak mengirimkan email.')
 
-      // 2. Cek apakah email terdaftar sebagai ADMIN atau PROMOTOR
       const emailKey = user.email.replace(/\./g, ',')
       const snap = await get(ref(db, 'users/whitelist/' + emailKey))
 
@@ -35,7 +33,6 @@ export function LoginPanel() {
       const data = snap.val()
       const role = data.role
 
-      // 3. Arahkan ke halaman yang sesuai
       if (role === 'ADMIN') {
         router.push('/admin')
       } else if (role === 'PROMOTOR') {
@@ -57,9 +54,9 @@ export function LoginPanel() {
   return (
     <section
       aria-labelledby="login-title"
-      className="mt-8 rounded-[28px] bg-card border border-border p-6 shadow-2xl shadow-black/10 dark:shadow-black/40 backdrop-blur-xl relative overflow-hidden"
+      className="mt-8 rounded-[28px] bg-card border border-border p-6 shadow-2xl shadow-black/5 dark:shadow-black/40 relative overflow-hidden"
     >
-      {/* Efek Gradien Tipis di Card */}
+      {/* Garis Gradien Biru di atas card */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-600"></div>
 
       <h2 id="login-title" className="text-xl font-black text-foreground text-center">
@@ -79,12 +76,17 @@ export function LoginPanel() {
         </div>
       )}
 
+      {/* TOMBOL GOOGLE 3D EFFECT */}
       <button
         type="button"
         onClick={handleLogin}
         disabled={loading}
-        aria-busy={loading}
-        className="group relative flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-slate-800 border border-slate-200 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-[0.98] disabled:opacity-70"
+        className="group relative flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-slate-800 border border-slate-200 
+        shadow-[0_6px_0_0_#e2e8f0] 
+        transition-all duration-150 ease-out
+        hover:translate-y-[2px] hover:shadow-[0_4px_0_0_#e2e8f0]
+        active:translate-y-[6px] active:shadow-none
+        disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-[0_6px_0_0_#e2e8f0]"
       >
         {loading ? (
           <Loader2 className="size-5 animate-spin text-slate-800" />
