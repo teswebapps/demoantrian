@@ -526,7 +526,7 @@ export default function PromotorPage() {
         {statusSaya === 'Dipanggil CS' && (
           <div className="bg-purple-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
             <Package className="w-12 h-12 mx-auto mb-4" />
-            <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS</h2>
+            <h2 className="text-2xl font-black mb-2 uppercase">Dipanggil CS/GUDANG</h2>
             <p className="text-xs text-purple-100 mb-8">Posisi #{dataSaya?.posisiTerkunci || '-'} Anda aman terkunci.</p>
             <button onClick={() => handleAksi('KembaliCS')} className="w-full py-4 bg-white text-purple-700 font-black rounded-xl shadow-lg active:scale-95 transition-all">KEMBALI ANTRI</button>
           </div>
@@ -586,7 +586,7 @@ export default function PromotorPage() {
                           {item.status === 'Melayani' ? (
   <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 dark:bg-blue-500/20 text-white dark:text-blue-400">Melayani</span>
 ) : item.status === 'Dipanggil CS' ? (
-  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">CS / GUDANG</span>
+  <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">Dipanggil CS/GUDANG</span>
 ) : item.status === 'Ibadah' ? (
   <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-400">Ibadah</span>
 ) : isGiliranUtama ? (
