@@ -1,3 +1,5 @@
+'use client'
+
 import { LogOut, Store, Sun, Moon } from 'lucide-react'
 
 type AppHeaderProps = {
@@ -15,7 +17,6 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
         <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
           <Store className="size-5" aria-hidden="true" />
         </div>
-        {/* Tulisan "Toko" sudah dihapus */}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-semibold leading-tight text-foreground">
             {storeName}
