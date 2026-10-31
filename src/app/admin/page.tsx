@@ -67,7 +67,7 @@ export default function AdminPage() {
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
   return (
-    <div className="min-h-[100dvh] bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-20 md:pb-6">
+    <div className="min-h-[100dvh] bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-12 md:pb-6">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
@@ -84,9 +84,9 @@ export default function AdminPage() {
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">
-        <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
-  <LogOut className="w-3.5 h-3.5" /> Keluar
-</button>
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+            <LogOut className="w-3.5 h-3.5" /> Keluar
+          </button>
         </div>
       </aside>
 
@@ -132,7 +132,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
