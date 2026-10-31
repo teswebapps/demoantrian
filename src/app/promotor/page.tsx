@@ -7,7 +7,8 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
-import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, CalendarDays } from 'lucide-react'
+import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, History, ChevronDown, Users, CalendarDays, CheckCircle2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
@@ -15,7 +16,6 @@ import { TurnCard } from '@/components/queue/turn-card'
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
 
-// IKON MASJID CUSTOM
 const MosqueIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M12 2c-1.5 2-4 3-4 6 0 1.5.5 2.5 1 3H5v10h14V11h-4c.5-.5 1-1.5 1-3 0-3-2.5-4-4-6z" />
@@ -50,6 +50,7 @@ export default function PromotorPage() {
   const [userLoc, setUserLoc] = useState<any>(null)
   const [jarak, setJarak] = useState<number | null>(null)
   const [showClosing, setShowClosing] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   
   const [sudahCheckinHariIni, setSudahCheckinHariIni] = useState(false)
   const [jamCheckin, setJamCheckin] = useState<number | null>(null)
@@ -91,10 +92,11 @@ export default function PromotorPage() {
     return () => unsubscribe()
   }, [])
 
-  const handleLoginGoogle = async () => {
-    try { await signInWithPopup(auth, googleProvider) } catch (err) { toast.error('Login gagal.') }
+  const handleLogout = async () => { 
+    setShowLogoutConfirm(false)
+    await signOut(auth)
+    setUserData(null) 
   }
-  const handleLogout = async () => { await signOut(auth); setUserData(null) }
 
   useEffect(() => {
     if (!userData || !todayKey) return
@@ -204,17 +206,14 @@ export default function PromotorPage() {
           }
         }
 
-        // 1. Cek apakah sudah ada catatan check-in hari ini di database
         const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`)
         const checkinSnap = await get(checkinRef)
 
         let waktuStandbyFinal;
 
         if (checkinSnap.exists()) {
-          // Jika sudah pernah check-in hari ini, AMBIL JAM ASLINYA dan jangan diubah!
           waktuStandbyFinal = checkinSnap.val().waktu
         } else {
-          // Jika ini adalah check-in pertama kali hari ini, catat waktu sekarang
           waktuStandbyFinal = Date.now()
           await set(checkinRef, { 
             nama: userData.nama, 
@@ -225,11 +224,10 @@ export default function PromotorPage() {
         }
 
         const kat = kategoriPilih
-        // 2. Masukkan ke antrian dengan menggunakan waktuStandbyFinal yang terkunci
         await set(ref(db, pathAntrian), { 
           nama: userData.nama, 
           status: 'Standby', 
-          waktuStandby: waktuStandbyFinal, // <-- Jam check-in awal dijamin tidak akan berubah!
+          waktuStandby: waktuStandbyFinal, 
           kategori: kat, 
           subkategori: kat, 
           posisiTerkunci: 0 
@@ -293,7 +291,7 @@ export default function PromotorPage() {
     } catch (err) { 
       console.error(err)
       toast.error('Terjadi kesalahan.')
-    } finally { setIsProcessing(false) }
+    } finally { setIsLoading(false); setIsProcessing(false) }
   }
 
   const aktivitasSaya = aktivitasHariIni.filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
@@ -303,7 +301,6 @@ export default function PromotorPage() {
   const listIbadahSaya = aktivitasSaya.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah') && a.tanggal === hariIniIndo)
   const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
 
-  // LOGIKA REKAP BULANAN
   const rekapBulananMap = aktivitasHariIni
     .filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase() && a.aksi === 'BawaCustomer' && a.waktu)
     .reduce((acc: any, curr: any) => {
@@ -334,7 +331,7 @@ export default function PromotorPage() {
     return null
   }
 
- if (lockData?.locked) {
+  if (lockData?.locked) {
     const sisa = Number(lockData.waktuSelesaiLock || 0) - Date.now()
     const sudahHabis = sisa <= 0
 
@@ -364,11 +361,47 @@ export default function PromotorPage() {
         </div>
 
         <button 
-          onClick={handleLogout} 
+          onClick={() => setShowLogoutConfirm(true)} 
           className="bg-white text-rose-600 font-bold py-3.5 px-8 rounded-xl shadow-lg hover:bg-rose-50 transition active:scale-95 text-sm uppercase tracking-wide"
         >
           Keluar Aplikasi
         </button>
+
+        {/* MODAL KONFIRMASI LOGOUT */}
+        <AnimatePresence>
+          {showLogoutConfirm && (
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-card text-foreground border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
+              >
+                <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <LogOut className="w-8 h-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">KELUAR APLIKASI</h3>
+                  <p className="text-xs text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi promotor?</p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
+                  >
+                    Ya, Keluar
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     )
   }
@@ -382,7 +415,7 @@ export default function PromotorPage() {
       <AppHeader 
         storeName="UFO Malang Kebonsari" 
         isOpen={setting?.statusAntrian !== 'TUTUP'} 
-        onLogout={handleLogout}
+        onLogout={() => setShowLogoutConfirm(true)}
         onToggleTheme={toggleTheme}
         isDark={isDark}
       />
@@ -626,7 +659,7 @@ export default function PromotorPage() {
           })}
         </div>
 
-        {/* MENU AKTIVITAS HARI INI & REKAP BULANAN DI DALAMNYA */}
+        {/* MENU AKTIVITAS HARI INI & REKAP BULANAN */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6">
           <button onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase"><History className="w-5 h-5 text-muted-foreground" /> Aktivitas Hari Ini</h3>
@@ -700,7 +733,7 @@ export default function PromotorPage() {
                 </div>
               </div>
 
-              {/* REKAP TOTAL BULANAN DI DALAM ACCORDION AKTIVITAS */}
+              {/* REKAP TOTAL BULANAN */}
               <div className="pt-2 border-t border-border/60">
                 <p className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-1"><CalendarDays className="w-4 h-4" /> Rekap Total Bulanan</p>
                 <div className="space-y-2">
@@ -741,6 +774,42 @@ export default function PromotorPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL KONFIRMASI LOGOUT (Z-INDEX TERTINGGI AGAR PASTI MUNCUL) */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card text-foreground border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
+            >
+              <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <LogOut className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">KELUAR APLIKASI</h3>
+                <p className="text-xs text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi promotor?</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
+                >
+                  Ya, Keluar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
