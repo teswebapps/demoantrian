@@ -83,7 +83,6 @@ export default function AktivitasAdminPage() {
     }
   }, [TOKO_ID])
 
-  // Sinkronisasi kelas dark pada document root
   useEffect(() => {
     if (mounted) {
       if (isDark) {
@@ -133,7 +132,7 @@ export default function AktivitasAdminPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-20 md:pb-6">
+    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-16 md:pb-6">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
@@ -150,9 +149,9 @@ export default function AktivitasAdminPage() {
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">
-          <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
-  <LogOut className="w-3.5 h-3.5" />
-</button>
+          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+            <LogOut className="w-3.5 h-3.5" /> Keluar
+          </button>
         </div>
       </aside>
 
@@ -206,7 +205,7 @@ export default function AktivitasAdminPage() {
                       <p className="text-xs text-muted-foreground italic text-center py-4">Belum ada data rekap bulan ini</p>
                     ) : (
                       listRekapPromotor.map((row: any, idx: number) => (
-                        <div key={idx} className="grid grid-cols-12 gap-1 px-3 py-2.5 bg-secondary/50 rounded-xl text-xs items-center border border-border/60 shadow-sm">
+                        <div key={idx} className="grid grid-cols-12 gap-1 px-3 py-2.5 bg-secondary/50 rounded-2xl text-xs items-center border border-border/60 shadow-sm">
                           <div className="col-span-5 font-bold text-foreground uppercase truncate">{row.namaPromotor}</div>
                           <div className="col-span-2 text-center font-bold text-emerald-500">{row.deal}</div>
                           <div className="col-span-2 text-center font-bold text-amber-500">{row.lihat}</div>
@@ -291,7 +290,7 @@ export default function AktivitasAdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 text-white shadow-sm">
+            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>

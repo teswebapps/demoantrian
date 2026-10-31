@@ -91,7 +91,7 @@ export default function ManajemenPage() {
   
   const [selectedSales, setSelectedSales] = useState('')
   const [selectedKategori, setSelectedKategori] = useState('HA')
-  const [selectedPosisi, setSelectedPosisi] = useState('1')
+  const [selectedPosisi, setSelectedPosisi] = useState('')
   
   const [selectedLockSales, setSelectedLockSales] = useState('')
   const [lockAction, setLockAction] = useState('LOCK')
@@ -331,7 +331,7 @@ export default function ManajemenPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-4 md:pb-6">
+    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-20 md:pb-6">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
