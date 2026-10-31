@@ -15,7 +15,7 @@ export interface UserData {
 }
 
 export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
-  // 1. Ambil langsung dari localStorage saat pertama kali render (Anti Kedip / Anti Minta Login)
+  // 1. Ambil session langsung dari localStorage agar langsung dikenali sejak milidetik pertama
   const [user, setUser] = useState<UserData | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -28,7 +28,7 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
     return null
   })
 
-  // 2. Jika ada cache, loading langsung false! Tidak ada jeda mutar-mutar.
+  // 2. Jika ada cache tersimpan, matikan status loading seketika (tidak ada jeda kedip/login)
   const [loading, setLoading] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('ufo_user_session')) {
       return false
@@ -45,8 +45,8 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       const cachedData = localStorage.getItem('ufo_user_session')
 
-      // Jika firebaseUser sempat bernilai null (biasanya terjadi saat habis minimize lama / wake up),
-      // TAPI kita punya cache lokal yang sah, ABAIKAN null tersebut agar user tidak tertendang!
+      // Jika karena minimize lama lalu Firebase sempat mengirim sinyal null sesaat,
+      // tapi kita PUNYA data di cache lokal, JANGAN TENDANG USER! Pertahankan sesinya.
       if (!firebaseUser) {
         if (cachedData) {
           setLoading(false)
@@ -83,7 +83,7 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
             tokoId: data.tokoId || 'ufo-kebonsari',
           }
         } else if (cachedData) {
-          // Fallback aman jika database telat merespons saat bangun dari minimize
+          // Fallback darurat jika koneksi lambat saat dibuka dari minimize
           userData = JSON.parse(cachedData)
         } else {
           await signOut(auth)
@@ -103,11 +103,11 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
         }
 
         setUser(userData)
+        // Perbarui cache lokal agar terus segar
         localStorage.setItem('ufo_user_session', JSON.stringify(userData))
         setError(null)
       } catch (err) {
         console.error('Auth error saat wake up:', err)
-        // Jika offline atau jaringan lambat saat dibuka dari minimize, tetap pakai cache lama yang aman
         if (!localStorage.getItem('ufo_user_session')) {
           setError('Gagal memverifikasi sesi.')
         }
