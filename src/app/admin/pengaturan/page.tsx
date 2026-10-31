@@ -4,8 +4,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, update, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, MapPin, Globe, ShieldAlert } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, MapPin, Globe, ShieldAlert, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -82,7 +82,7 @@ export default function PengaturanAdminPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-16">
       
-      {/* SIDEBAR (Desktop) - Sudah Dilengkapi Menu Darurat */}
+      {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
         <div className="p-5 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
@@ -121,12 +121,6 @@ export default function PengaturanAdminPage() {
             </button>
           </div>
         </div>
-
-        {successMsg && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-3 rounded-2xl text-xs font-bold text-center">
-            {successMsg}
-          </div>
-        )}
 
         {/* FORMULIR PENGATURAN */}
         <form onSubmit={handleSave} className="space-y-4">
@@ -215,8 +209,22 @@ export default function PengaturanAdminPage() {
           </button>
 
         </form>
-
       </motion.div>
+
+      {/* POPUP NOTIFIKASI BERHASIL (Floating Toast) */}
+      <AnimatePresence>
+        {successMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold border border-emerald-500/30"
+          >
+            <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
+            <span>{successMsg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
