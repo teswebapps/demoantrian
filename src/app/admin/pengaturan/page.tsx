@@ -47,13 +47,12 @@ export default function PengaturanAdminPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    setSuccessMsg('')
     try {
       await update(ref(db, `toko/${TOKO_ID}/setting`), form)
-      setSuccessMsg('Pengaturan berhasil disimpan!')
-      setTimeout(() => setSuccessMsg(''), 3000)
+      setSuccessMsg('Pengaturan toko berhasil disimpan.')
     } catch (err) {
       console.error(err)
+      alert('Gagal menyimpan pengaturan.')
     } finally {
       setSaving(false)
     }
@@ -211,18 +210,31 @@ export default function PengaturanAdminPage() {
         </form>
       </motion.div>
 
-      {/* POPUP NOTIFIKASI BERHASIL (Floating Toast) */}
+      {/* MODAL POPUP BERHASIL (Persis seperti halaman manajemen/darurat) */}
       <AnimatePresence>
         {successMsg && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.9 }} 
-            animate={{ opacity: 1, y: 0, scale: 1 }} 
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold border border-emerald-500/30"
-          >
-            <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
-            <span>{successMsg}</span>
-          </motion.div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
+            >
+              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">BERHASIL</h3>
+                <p className="text-xs text-muted-foreground">{successMsg}</p>
+              </div>
+              <button 
+                onClick={() => setSuccessMsg('')}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
+              >
+                OK
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
