@@ -15,22 +15,22 @@ export interface UserData {
 }
 
 export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
-  // 1. Ambil langsung dari localStorage tanpa syarat
+  // Ambil data cache dari localStorage
   const [user, setUser] = useState<UserData | null>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const cached = localStorage.getItem('ufo_user_session')
+        const cached = localStorage.getItem('ufo_persistent_session')
         if (cached) return JSON.parse(cached)
       } catch (e) {
-        console.error('Gagal baca cache:', e)
+        console.error('Gagal baca persistent session:', e)
       }
     }
     return null
   })
 
-  // 2. Jika sudah ada user di cache, loading langsung false! (Tidak ada jeda kedip/login)
   const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('ufo_user_session')) {
+    // Jika ada cache, langsung matikan loading agar halaman langsung terbuka
+    if (typeof window !== 'undefined' && localStorage.getItem('ufo_persistent_session')) {
       return false
     }
     return true
@@ -43,16 +43,30 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
     setPersistence(auth, browserLocalPersistence).catch(() => {})
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
-      // Jika firebaseUser null (misal baru buka aplikasi atau habis dari recent apps),
-      // tapi kita PUNYA cache di localStorage, JANGAN KELUARKAN USER! Tetap pertahankan.
-      const cachedData = localStorage.getItem('ufo_user_session')
-      
+      const savedSession = localStorage.getItem('ufo_persistent_session')
+
       if (!firebaseUser) {
-        if (cachedData) {
-          // Abaikan sinyal null dari firebase, gunakan cache lokal yang ada
-          setLoading(false)
-          return
+        // Jika Firebase mendeteksi null (misal habis clear apps), 
+        // TAPI kita punya data email tersimpan di localStorage, kita coba verifikasi data tersebut
+        if (savedSession) {
+          try {
+            const parsedUser: UserData = JSON.parse(savedSession)
+            // Validasi ulang kilat ke database menggunakan email yang tersimpan
+            const emailKey = parsedUser.email.replace(/\./g, ',')
+            const snap = await get(ref(db, 'users/whitelist/' + emailKey))
+            
+            if (snap.exists()) {
+              // Whitelist masih sah! Auto-login kan kembali usernya secara diam-diam
+              setUser(parsedUser)
+              setLoading(false)
+              return
+            }
+          } catch (e) {
+            console.error('Gagal memulihkan sesi dari storage:', e)
+          }
         }
+
+        // Kalau benar-benar belum pernah login atau data tidak valid
         setUser(null)
         setLoading(false)
         if (requireRole) router.push('/')
@@ -62,10 +76,6 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
       try {
         const email = firebaseUser.email
         if (!email) {
-          if (!cachedData) {
-            await signOut(auth)
-            setUser(null)
-          }
           setLoading(false)
           return
         }
@@ -73,26 +83,24 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
         const emailKey = email.replace(/\./g, ',')
         const snap = await get(ref(db, 'users/whitelist/' + emailKey))
 
-        let userData: UserData
-        if (snap.exists()) {
-          const data = snap.val()
-          userData = {
-            uid: firebaseUser.uid,
-            email: email,
-            nama: data.nama || firebaseUser.displayName || email,
-            role: data.role || 'PROMOTOR',
-            tokoId: data.tokoId || 'ufo-kebonsari',
+        if (!snap.exists()) {
+          if (!savedSession) {
+            await signOut(auth)
+            setUser(null)
+            setError(`Email ${email} belum didaftarkan.`)
+            setLoading(false)
+            if (requireRole) router.push('/')
+            return
           }
-        } else if (cachedData) {
-          // Kalau database gagal/offline tapi ada cache, pakai cache lama yang aman
-          userData = JSON.parse(cachedData)
-        } else {
-          await signOut(auth)
-          localStorage.removeItem('ufo_user_session')
-          setError(`Email ${email} belum didaftarkan.`)
-          setLoading(false)
-          if (requireRole) router.push('/')
-          return
+        }
+
+        const data = snap.exists() ? snap.val() : {}
+        const userData: UserData = {
+          uid: firebaseUser.uid,
+          email: email,
+          nama: data.nama || firebaseUser.displayName || email,
+          role: data.role || 'PROMOTOR',
+          tokoId: data.tokoId || 'ufo-kebonsari',
         }
 
         if (requireRole && userData.role !== requireRole) {
@@ -104,12 +112,12 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
         }
 
         setUser(userData)
-        localStorage.setItem('ufo_user_session', JSON.stringify(userData))
+        // Simpan sesi secara permanen ke localStorage agar tahan clear apps
+        localStorage.setItem('ufo_persistent_session', JSON.stringify(userData))
         setError(null)
       } catch (err) {
-        console.error('Auth sync error:', err)
-        // Jika error jaringan saat buka ulang, dan ada cache, tetap biarkan login
-        if (!localStorage.getItem('ufo_user_session')) {
+        console.error('Auth error:', err)
+        if (!savedSession) {
           setError('Gagal memverifikasi sesi.')
         }
       } finally {
@@ -121,7 +129,7 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
   }, [requireRole, router])
 
   const logout = async () => {
-    localStorage.removeItem('ufo_user_session')
+    localStorage.removeItem('ufo_persistent_session')
     await signOut(auth)
     router.push('/')
   }
