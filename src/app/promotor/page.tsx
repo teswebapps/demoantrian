@@ -334,19 +334,41 @@ export default function PromotorPage() {
     return null
   }
 
-  if (lockData?.locked) {
+ if (lockData?.locked) {
+    const sisa = Number(lockData.waktuSelesaiLock || 0) - Date.now()
+    const sudahHabis = sisa <= 0
+
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 rounded-full bg-destructive/15 flex items-center justify-center mb-6">
-          <Lock className="w-12 h-12 text-destructive animate-pulse" />
+      <div className="fixed inset-0 z-50 bg-rose-600 text-white flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mb-6 shadow-lg">
+          <Lock className="w-12 h-12 text-white animate-pulse" />
         </div>
-        <h1 className="text-3xl font-black mb-2 text-destructive uppercase">Akun Dikunci</h1>
-        <p className="text-lg font-semibold mb-6 text-destructive/80">Alasan: {lockData.alasan || '-'}</p>
-        <div className="bg-card p-8 rounded-[2rem] w-full max-w-sm border border-destructive/20 shadow-xl">
-          <p className="text-sm uppercase tracking-wider mb-2 text-muted-foreground font-bold">Sisa Waktu</p>
-          <div className="text-6xl font-black text-destructive tracking-tighter">{sisaWaktu}</div>
+        <h1 className="text-3xl font-black mb-2 uppercase tracking-wider">AKUN ANDA DIKUNCI</h1>
+        <p className="text-base font-semibold mb-6 text-rose-100 max-w-xs">
+          Alasan Sanksi: <span className="underline decoration-white/50">{lockData.alasan || 'Pelanggaran Disiplin Toko'}</span>
+        </p>
+        
+        <div className="bg-rose-950/40 backdrop-blur-md p-6 rounded-[2rem] w-full max-w-sm border border-white/20 shadow-2xl mb-8">
+          {!sudahHabis ? (
+            <>
+              <p className="text-xs uppercase tracking-widest mb-1 text-rose-200 font-bold">Sisa Waktu Hukuman</p>
+              <div className="text-5xl font-black text-white tracking-tighter my-2">{sisaWaktu}</div>
+              <p className="text-[11px] text-rose-200/80 mt-2">Harap tunggu hingga timer selesai.</p>
+            </>
+          ) : (
+            <div className="py-2">
+              <p className="text-lg font-black text-white mb-1 uppercase tracking-wide">Waktu Hukuman Telah Selesai</p>
+              <p className="text-xs text-rose-100 font-medium">Silakan hubungi Admin untuk membuka kunci akun Anda.</p>
+            </div>
+          )}
         </div>
-        <button onClick={handleLogout} className="mt-8 bg-secondary text-secondary-foreground font-bold py-3 px-8 rounded-xl hover:bg-secondary/80 transition">Keluar</button>
+
+        <button 
+          onClick={handleLogout} 
+          className="bg-white text-rose-600 font-bold py-3.5 px-8 rounded-xl shadow-lg hover:bg-rose-50 transition active:scale-95 text-sm uppercase tracking-wide"
+        >
+          Keluar Aplikasi
+        </button>
       </div>
     )
   }

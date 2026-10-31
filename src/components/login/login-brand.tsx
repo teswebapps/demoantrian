@@ -1,3 +1,8 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/firebase'
+import { ref, onValue } from 'firebase/database'
 import { MapPin, Users, Zap } from 'lucide-react'
 import Image from 'next/image'
 
@@ -8,6 +13,24 @@ const features = [
 ]
 
 export function LoginBrand() {
+  const [setting, setSetting] = useState({
+    namaSistem: 'ANTRIAN WALK-IN PROMOTOR',
+    namaToko: 'UFO MALANG KEBONSARI'
+  })
+
+  useEffect(() => {
+    const unsub = onValue(ref(db, 'toko/ufo-kebonsari/setting'), (snap) => {
+      const data = snap.val()
+      if (data) {
+        setSetting({
+          namaSistem: data.namaSistem || 'ANTRIAN WALK-IN PROMOTOR',
+          namaToko: data.namaToko || 'UFO MALANG KEBONSARI'
+        })
+      }
+    })
+    return () => unsub()
+  }, [])
+
   return (
     <section className="flex flex-col items-center justify-center text-center w-full">
       <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
@@ -34,11 +57,14 @@ export function LoginBrand() {
         </div>
       </div>
 
-      <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-foreground text-center leading-tight">
-        Sistem Antrian<br />Promotor
+      {/* Nama Sistem dari Pengaturan */}
+      <h1 className="mt-6 text-xl md:text-2xl font-extrabold tracking-tight text-foreground text-center uppercase leading-tight">
+        {setting.namaSistem}
       </h1>
-      <p className="mt-2 text-sm font-medium text-muted-foreground">
-        UFO Malang · Kebonsari
+      
+      {/* Nama Toko dari Pengaturan */}
+      <p className="mt-2 text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        {setting.namaToko}
       </p>
 
       <ul className="mt-5 flex flex-wrap justify-center gap-2 text-xs font-semibold">

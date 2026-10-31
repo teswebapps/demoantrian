@@ -5,9 +5,14 @@ import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2, UserPlus, UserMinus, Play, Lock, Unlock, RotateCcw, ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon } from 'lucide-react'
+import { 
+  Loader2, UserPlus, UserMinus, Play, Lock, Unlock, RotateCcw, 
+  ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon, 
+  Trash2, UserX, KeyRound, Clock, FileText 
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
+import { CustomModal } from '@/components/ui/CustomModal'
 
 export default function ManajemenPage() {
   const { user, loading: authLoading, logout } = useAuth('ADMIN')
@@ -28,6 +33,23 @@ export default function ManajemenPage() {
   const [lockAction, setLockAction] = useState('LOCK')
   const [lockReason, setLockReason] = useState('Pulang tanpa keluar antrian')
   const [lockDuration, setLockDuration] = useState('60')
+
+  // State untuk Modal Kustom Global
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean
+    type: 'confirm' | 'alert' | 'success' | 'error'
+    title: string
+    message: string
+    confirmText?: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    type: 'alert',
+    title: '',
+    message: '',
+    confirmText: 'OK',
+    onConfirm: () => {}
+  })
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
@@ -58,7 +80,10 @@ export default function ManajemenPage() {
 
   const handleTambahPromotor = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formNama || !formEmail) return alert('Isi semua field!')
+    if (!formNama || !formEmail) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Peringatan', message: 'Isi semua field!', onConfirm: () => {} })
+      return
+    }
     setIsProcessing(true)
     try {
       const emailKey = formEmail.trim().toLowerCase().replace(/\./g, ',')
@@ -69,14 +94,26 @@ export default function ManajemenPage() {
         tokoId: TOKO_ID
       })
       await push(ref(db, 'mastersales'), { record: { NAMA_PROMOTOR: formNama.toUpperCase(), EMAIL: formEmail.trim().toLowerCase() } })
-      alert(`Berhasil! Promotor ${formNama.toUpperCase()} sudah bisa login.`)
+      
+      setModalConfig({
+        isOpen: true,
+        type: 'success',
+        title: 'Berhasil',
+        message: `Promotor ${formNama.toUpperCase()} sudah bisa login.`,
+        onConfirm: () => {}
+      })
       setFormNama('')
       setFormEmail('')
-    } catch (err) { alert('Gagal menambah promotor.') } finally { setIsProcessing(false) }
+    } catch (err) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal menambah promotor.', onConfirm: () => {} })
+    } finally { setIsProcessing(false) }
   }
 
   const handleMasukanAntri = async () => {
-    if (!selectedSales) return alert('Pilih promotor!')
+    if (!selectedSales) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Peringatan', message: 'Pilih promotor terlebih dahulu!', onConfirm: () => {} })
+      return
+    }
     setIsProcessing(true)
     try {
       const clean = selectedSales.trim().toLowerCase().replace(/\s+/g, '_')
@@ -87,42 +124,65 @@ export default function ManajemenPage() {
         kategori: selectedKategori, subkategori: selectedKategori,
         posisiTerkunci: 0, timerMulai: 0, timerAksi: ''
       })
-      alert('Berhasil memasukkan promotor ke antrian.')
+      setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Berhasil memasukkan promotor ke antrian.', onConfirm: () => {} })
       setSelectedSales('')
-    } catch (err: any) { alert(err.message) } finally { setIsProcessing(false) }
+    } catch (err: any) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: err.message, onConfirm: () => {} })
+    } finally { setIsProcessing(false) }
   }
 
   const handleKeluarkanAntrian = async () => {
-    if (!selectedSales) return alert('Pilih promotor!')
+    if (!selectedSales) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Peringatan', message: 'Pilih promotor terlebih dahulu!', onConfirm: () => {} })
+      return
+    }
     setIsProcessing(true)
     try {
       const clean = selectedSales.trim().toLowerCase().replace(/\s+/g, '_')
       await remove(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
-      alert('Berhasil mengeluarkan promotor dari antrian.')
+      setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Berhasil mengeluarkan promotor dari antrian.', onConfirm: () => {} })
       setSelectedSales('')
-    } catch (err) { alert('Gagal mengeluarkan promotor.') } finally { setIsProcessing(false) }
+    } catch (err) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal mengeluarkan promotor.', onConfirm: () => {} })
+    } finally { setIsProcessing(false) }
   }
 
-  const handleHapusPermanen = async () => {
-    if (!selectedSales) return alert('Pilih promotor!')
-    if (!window.confirm(`Hapus permanen ${selectedSales}?`)) return
-    setIsProcessing(true)
-    try {
-      const target = masterSales.find(s => s.nama === selectedSales)
-      if (target) {
-        await remove(ref(db, 'mastersales/' + target._key))
-        if (target.email) {
-          const emailKey = target.email.toLowerCase().replace(/\./g, ',')
-          await remove(ref(db, 'users/whitelist/' + emailKey))
-        }
+  const handleHapusPermanen = () => {
+    if (!selectedSales) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Peringatan', message: 'Pilih promotor terlebih dahulu!', onConfirm: () => {} })
+      return
+    }
+    setModalConfig({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Konfirmasi Hapus',
+      message: `Hapus permanen ${selectedSales}? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Ya, Hapus',
+      onConfirm: async () => {
+        setIsProcessing(true)
+        try {
+          const target = masterSales.find(s => s.nama === selectedSales)
+          if (target) {
+            await remove(ref(db, 'mastersales/' + target._key))
+            if (target.email) {
+              const emailKey = target.email.toLowerCase().replace(/\./g, ',')
+              await remove(ref(db, 'users/whitelist/' + emailKey))
+            }
+          }
+          setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Promotor dihapus permanen.', onConfirm: () => {} })
+          setSelectedSales('')
+        } catch (err) {
+          setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal menghapus.', onConfirm: () => {} })
+        } finally { setIsProcessing(false) }
       }
-      alert('Promotor dihapus permanen.')
-      setSelectedSales('')
-    } catch (err) { alert('Gagal menghapus.') } finally { setIsProcessing(false) }
+    })
   }
 
   const handlePaksaBawaCustomer = async () => {
-    if (!selectedSales) return alert('Pilih promotor!')
+    if (!selectedSales) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Peringatan', message: 'Pilih promotor terlebih dahulu!', onConfirm: () => {} })
+      return
+    }
     setIsProcessing(true)
     try {
       const clean = selectedSales.trim().toLowerCase().replace(/\s+/g, '_')
@@ -134,40 +194,75 @@ export default function ManajemenPage() {
         tanggal: new Date().toLocaleDateString('id-ID').split('/').join('-'),
         waktuMulai: Date.now(), keterangan: 'Dipaksa Admin'
       })
-      alert('Promotor dipaksa melayani customer.')
+      setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Promotor dipaksa melayani customer.', onConfirm: () => {} })
       setSelectedSales('')
-    } catch (err) { alert('Gagal memproses.') } finally { setIsProcessing(false) }
+    } catch (err) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal memproses.', onConfirm: () => {} })
+    } finally { setIsProcessing(false) }
   }
 
   const handleLockUnlock = async () => {
-    if (!selectedLockSales) return alert('Pilih promotor!')
+    if (!selectedLockSales) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Peringatan', message: 'Pilih promotor terlebih dahulu!', onConfirm: () => {} })
+      return
+    }
     setIsProcessing(true)
     try {
       const clean = selectedLockSales.trim().toLowerCase().replace(/\s+/g, '_')
-      if (lockAction === 'LOCK') {
-        await update(ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`), {
+      const lockRef = ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`)
+      
+      if (lockAction === 'UNLOCK') {
+        // Cek dulu apakah promotor benar-benar sedang dikunci
+        const snap = await get(lockRef)
+        if (!snap.exists() || !snap.val().locked) {
+          setModalConfig({ 
+            isOpen: true, 
+            type: 'error', 
+            title: 'Informasi', 
+            message: `${selectedLockSales} tidak dalam status terkunci.`, 
+            onConfirm: () => {} 
+          })
+          setIsProcessing(false)
+          return
+        }
+
+        // Jika benar terkunci, proses buka kunci
+        await update(lockRef, {
+          locked: false, alasan: '', waktuSelesaiLock: 0, waktuMulaiLock: 0
+        })
+        setModalConfig({ isOpen: true, type: 'success', title: 'Kunci Dibuka', message: `${selectedLockSales} dibuka kuncinya.`, onConfirm: () => {} })
+      } else {
+        // Proses Mengunci Akun
+        await update(lockRef, {
           nama: selectedLockSales, locked: true, alasan: lockReason,
           waktuMulaiLock: Date.now(), waktuSelesaiLock: Date.now() + (parseInt(lockDuration) * 60000)
         })
         await remove(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
-        alert(`${selectedLockSales} dikunci selama ${lockDuration} menit.`)
-      } else {
-        await update(ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`), {
-          locked: false, alasan: '', waktuSelesaiLock: 0, waktuMulaiLock: 0
-        })
-        alert(`${selectedLockSales} dibuka kuncinya.`)
+        setModalConfig({ isOpen: true, type: 'success', title: 'Akun Dikunci', message: `${selectedLockSales} dikunci selama ${lockDuration} menit.`, onConfirm: () => {} })
       }
       setSelectedLockSales('')
-    } catch (err) { alert('Gagal memproses lock.') } finally { setIsProcessing(false) }
+    } catch (err) {
+      setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal memproses lock.', onConfirm: () => {} })
+    } finally { setIsProcessing(false) }
   }
 
-  const handleResetTotal = async () => {
-    if (!window.confirm("⚠️ PERINGATAN: Hapus semua antrian aktif hari ini?")) return
-    setIsProcessing(true)
-    try {
-      await remove(ref(db, `toko/${TOKO_ID}/antrian`))
-      alert('Semua antrian berhasil direset.')
-    } catch (err) { alert('Gagal reset.') } finally { setIsProcessing(false) }
+  const handleResetTotal = () => {
+    setModalConfig({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Peringatan Reset',
+      message: '⚠️ Hapus semua antrian aktif hari ini?',
+      confirmText: 'Ya, Reset',
+      onConfirm: async () => {
+        setIsProcessing(true)
+        try {
+          await remove(ref(db, `toko/${TOKO_ID}/antrian`))
+          setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Semua antrian berhasil direset.', onConfirm: () => {} })
+        } catch (err) {
+          setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal reset antrian.', onConfirm: () => {} })
+        } finally { setIsProcessing(false) }
+      }
+    })
   }
 
   if (authLoading || !mounted) {
@@ -185,11 +280,19 @@ export default function ManajemenPage() {
           </div>
           <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Admin</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
         </div>
-        <nav className="flex-1 p-3 space-y-1.5">
-          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
-          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
-          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><ShieldAlert className="w-4 h-4" /> Darurat</Link>
-          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
+       <nav className="flex-1 p-3 space-y-1.5">
+          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
+            <LayoutDashboard className="w-4 h-4" /> Dashboard
+          </Link>
+          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
+            <History className="w-4 h-4" /> Aktivitas & Rekap
+          </Link>
+          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
+            <ShieldAlert className="w-4 h-4" /> Darurat
+          </Link>
+          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs">
+            <Settings className="w-4 h-4" /> Pengaturan
+          </Link>
         </nav>
         <div className="p-3 border-t border-border">
           <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
@@ -229,7 +332,7 @@ export default function ManajemenPage() {
             </form>
           </div>
 
-          {/* MANAJEMEN URUTAN ANTRIAN */}
+          {/* MANAJEMEN URUTAN ANTRIAN (Hanya tombol Masuk, Keluar, Paksa) */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Manajemen Urutan Antrian</h3>
             <div className="space-y-3">
@@ -246,52 +349,89 @@ export default function ManajemenPage() {
                 <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
 
-              {/* TOMBOL AKSI ANTRIAN SESUAI WARNA REQUEST */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button onClick={handleMasukanAntri} disabled={isProcessing} className="py-3 bg-emerald-600 text-white font-bold rounded-2xl text-[11px] uppercase hover:bg-emerald-700 transition shadow-sm">Masukkan Promotor ke Antrian</button>
-                <button onClick={handleKeluarkanAntrian} disabled={isProcessing} className="py-3 bg-amber-500 text-white font-bold rounded-2xl text-[11px] uppercase hover:bg-amber-600 transition shadow-sm">Keluarkan Promotor dari Antrian</button>
+                <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className="py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 active:scale-95">
+                  <UserPlus className="w-4 h-4" /> Masukkan ke Antrian
+                </button>
+                <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className="py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-amber-500/20 active:scale-95">
+                  <UserMinus className="w-4 h-4" /> Keluarkan dari Antrian
+                </button>
               </div>
 
-              <button onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3 bg-blue-600 text-white font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-sm">
+              <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/20 active:scale-95">
                 <Play className="w-4 h-4" /> Paksa Bawa Customer
               </button>
-
-              <button onClick={handleHapusPermanen} disabled={isProcessing} className="w-full py-3 bg-rose-600 text-white font-bold rounded-2xl text-[11px] uppercase flex items-center justify-center gap-2 hover:bg-rose-700 transition shadow-sm">Hapus Promotor Permanen</button>
             </div>
           </div>
 
-          {/* TINDAKAN DARURAT */}
+          {/* TINDAKAN DARURAT (Termasuk Hapus Permanen dan ikon modern tanpa emoji jadul) */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
             <div className="space-y-3">
               <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
-                <option value="">-- Pilih Promotor untuk Lock --</option>
+                <option value="">-- Pilih Promotor untuk Lock / Hapus --</option>
                 {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
               </select>
-              <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
-                <option value="LOCK">🔒 Kunci Akun</option>
-                <option value="UNLOCK">🔓 Buka Kunci</option>
-              </select>
+
+              <div className="relative">
+                <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none appearance-none">
+                  <option value="LOCK">Kunci Akun Promotor</option>
+                  <option value="UNLOCK">Buka Kunci Akun</option>
+                </select>
+              </div>
+
               {lockAction === 'LOCK' && (
                 <>
-                  <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan hukuman" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
-                  <input type="number" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" />
+                  <div className="relative">
+                    <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan hukuman" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" />
+                  </div>
+                  <div className="relative">
+                    <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <input type="number" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" />
+                  </div>
                 </>
               )}
-              <button onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3 bg-rose-600 text-white font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-700 transition shadow-sm">
+
+              <button type="button" onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-rose-600/20 active:scale-95">
                 {lockAction === 'LOCK' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 {lockAction === 'LOCK' ? 'Kunci Akun' : 'Buka Kunci'}
               </button>
 
-              <hr className="border-border" />
+              {/* Tombol Hapus Promotor Permanen dipindah ke sini */}
+              <button type="button" onClick={() => { setSelectedSales(selectedLockSales); handleHapusPermanen(); }} disabled={isProcessing || !selectedLockSales} className="w-full py-3.5 bg-rose-700 hover:bg-rose-800 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-rose-700/20 active:scale-95">
+                <Trash2 className="w-4 h-4" /> Hapus Promotor Permanen
+              </button>
+
+              <hr className="border-border my-2" />
               
-              <button onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3 bg-rose-600 text-white font-bold rounded-2xl text-xs uppercase flex items-center justify-center gap-2 shadow-sm hover:bg-rose-700 transition"><RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI</button>
+              <button type="button" onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3.5 bg-rose-900 hover:bg-rose-950 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 active:scale-95 transition">
+                <RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI
+              </button>
             </div>
           </div>
 
         </div>
 
       </motion.div>
+
+      {/* Global Custom Modal */}
+      <CustomModal 
+        isOpen={modalConfig.isOpen}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        onConfirm={modalConfig.onConfirm}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

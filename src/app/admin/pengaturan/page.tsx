@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { ref, update, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, MapPin, Globe } from 'lucide-react'
+import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, MapPin, Globe, ShieldAlert } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -82,7 +82,7 @@ export default function PengaturanAdminPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-16">
       
-      {/* SIDEBAR (Desktop) */}
+      {/* SIDEBAR (Desktop) - Sudah Dilengkapi Menu Darurat */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
         <div className="p-5 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
@@ -93,6 +93,7 @@ export default function PengaturanAdminPage() {
         <nav className="flex-1 p-3 space-y-1.5">
           <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
           <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
+          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><ShieldAlert className="w-4 h-4" /> Darurat</Link>
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">

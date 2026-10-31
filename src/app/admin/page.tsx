@@ -37,12 +37,14 @@ export default function AdminPage() {
     return null 
   }
 
-  const toggleStatusAntrian = async () => {
-    if (!TOKO_ID || isUpdating) return
+  const ubahStatusAntrian = async (statusBaru: 'BUKA' | 'TUTUP') => {
+    if (!TOKO_ID || isUpdating || setting?.statusAntrian === statusBaru) return
     setIsUpdating(true)
-    const statusBaru = setting?.statusAntrian === 'BUKA' ? 'TUTUP' : 'BUKA'
-    try { await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: statusBaru }) } 
-    catch (err) { console.error(err) } finally { setIsUpdating(false) }
+    try { 
+      await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: statusBaru }) 
+    } 
+    catch (err) { console.error(err) } 
+    finally { setIsUpdating(false) }
   }
 
   const hapusAntrian = async (nama: string) => {
@@ -65,7 +67,7 @@ export default function AdminPage() {
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
   return (
-    <div className="min-h-screen bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-16">
+    <div className="min-h-screen bg-background flex relative font-sans text-foreground transition-colors duration-300">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
@@ -83,8 +85,8 @@ export default function AdminPage() {
         </nav>
         <div className="p-3 border-t border-border">
          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
-  <LogOut className="w-3.5 h-3.5" /> Keluar
-</button>
+           <LogOut className="w-3.5 h-3.5" /> Keluar
+         </button>
         </div>
       </aside>
 
@@ -100,10 +102,36 @@ export default function AdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={toggleStatusAntrian} disabled={isUpdating} className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold tracking-wide transition-all border shadow-sm uppercase ${setting?.statusAntrian === 'BUKA' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>
-              {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : setting?.statusAntrian === 'BUKA' ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-              {setting?.statusAntrian === 'BUKA' ? 'DIBUKA' : 'DITUTUP'}
-            </button>
+            
+           {/* TOMBOL BUKA & TUTUP ANTRIAN (TERPISAH & ABU-ABU JIKA DISABLE) */}
+            <div className="flex items-center gap-1.5 flex-1 md:flex-none">
+              <button 
+                onClick={() => ubahStatusAntrian('BUKA')} 
+                disabled={isUpdating || setting?.statusAntrian === 'BUKA'} 
+                className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold tracking-wide transition-all shadow-sm uppercase ${
+                  setting?.statusAntrian === 'BUKA' 
+                    ? 'bg-emerald-600 text-white shadow-emerald-500/20 cursor-default' 
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border border-transparent'
+                }`}
+              >
+                {isUpdating && setting?.statusAntrian !== 'BUKA' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlock className="w-3.5 h-3.5" />}
+                BUKA
+              </button>
+              
+              <button 
+                onClick={() => ubahStatusAntrian('TUTUP')} 
+                disabled={isUpdating || setting?.statusAntrian === 'TUTUP'} 
+                className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold tracking-wide transition-all shadow-sm uppercase ${
+                  setting?.statusAntrian === 'TUTUP' 
+                    ? 'bg-rose-600 text-white shadow-rose-500/20 cursor-default' 
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border border-transparent'
+                }`}
+              >
+                {isUpdating && setting?.statusAntrian !== 'TUTUP' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+                TUTUP
+              </button>
+            </div>
+
             <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -118,7 +146,7 @@ export default function AdminPage() {
           <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
         </div>
 
-        {/* LIVE URUTAN ANTRIAN HA & AV (PERSIS SEPERTI HALAMAN PROMOTOR DI HALAMAN UTAMA) */}
+        {/* LIVE URUTAN ANTRIAN HA & AV */}
         <div className="space-y-4">
           {['HA', 'AV'].map((kat) => {
             const list = kat === 'HA' ? listHA : listAV;
