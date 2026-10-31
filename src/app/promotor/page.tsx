@@ -193,6 +193,14 @@ export default function PromotorPage() {
     
     try {
       if (aksi === 'CheckIn') {
+        // --- PENGAMAN: TOLAK MASUK ANTRIAN JIKA ADMIN MENUTUP ANTRIAN ---
+        if (setting?.statusAntrian === 'TUTUP') {
+          toast.error('❌ Maaf, antrian saat ini sedang DITUTUP oleh Admin. Anda tidak dapat masuk antrian.')
+          setIsProcessing(false)
+          return
+        }
+        // -------------------------------------------------------------
+
         const lockSnap = await get(ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`))
         if (lockSnap.exists()) {
           const l = lockSnap.val()
@@ -478,7 +486,7 @@ export default function PromotorPage() {
                   className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
                 >
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
-                  {isProcessing ? 'Memproses...' : 'MASUK ANTRIAN'}
+                  {isProcessing ? 'Memproses...' : setting?.statusAntrian === 'TUTUP' ? 'ANTRIAN DITUTUP' : 'MASUK ANTRIAN'}
                 </button>
               </div>
             ) : (
@@ -526,7 +534,7 @@ export default function PromotorPage() {
 
                 <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || setting?.statusAntrian === 'TUTUP' || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
-                  {isProcessing ? 'Memproses...' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN'}
+                  {isProcessing ? 'Memproses...' : setting?.statusAntrian === 'TUTUP' ? 'ANTRIAN DITUTUP' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN'}
                 </button>
               </div>
             )}
