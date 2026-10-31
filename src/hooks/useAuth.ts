@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { onAuthStateChanged, User, signOut } from 'firebase/auth'
+import { onAuthStateChanged, User, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { ref, get } from 'firebase/database'
 import { useRouter } from 'next/navigation'
 import { auth, db } from '@/lib/firebase'
@@ -15,15 +15,38 @@ export interface UserData {
 }
 
 export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
-  const [user, setUser] = useState<UserData | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Ambil cache awal dari localStorage supaya tidak kedip/minta login saat baru buka aplikasi
+  const [user, setUser] = useState<UserData | null>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('ufo_user_session')
+      if (cached) {
+        try { return JSON.parse(cached) } catch { return null }
+      }
+    }
+    return null
+  })
+  
+  const [loading, setLoading] = useState<boolean>(() => {
+    // Jika sudah ada cache di localStorage, langsung set loading false agar tidak mutar-mutar
+    if (typeof window !== 'undefined' && localStorage.getItem('ufo_user_session')) {
+      return false
+    }
+    return true
+  })
+
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
+    // Pastikan persistensi login diatur ke LocalStorage agar tidak gampang logout sendiri
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.error('Gagal set persistence:', err)
+    })
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
       if (!firebaseUser) {
         setUser(null)
+        localStorage.removeItem('ufo_user_session')
         setLoading(false)
         if (requireRole) router.push('/')
         return
@@ -33,6 +56,7 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
         const email = firebaseUser.email
         if (!email) {
           await signOut(auth)
+          localStorage.removeItem('ufo_user_session')
           setError('Email tidak ditemukan di akun Google.')
           setLoading(false)
           return
@@ -43,6 +67,7 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
 
         if (!snap.exists()) {
           await signOut(auth)
+          localStorage.removeItem('ufo_user_session')
           setError(`Email ${email} belum didaftarkan. Hubungi admin toko.`)
           setLoading(false)
           if (requireRole) router.push('/')
@@ -67,10 +92,15 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
         }
 
         setUser(userData)
+        // Simpan sesi ke localStorage agar awet meskipun ganti halaman atau minimize browser
+        localStorage.setItem('ufo_user_session', JSON.stringify(userData))
         setError(null)
       } catch (err: any) {
         console.error('Auth error:', err)
-        setError(err.message || 'Terjadi kesalahan saat verifikasi akun.')
+        // Jika offline atau error jaringan sesaat, dan kita sudah punya cache user, biarkan tetap login
+        if (!localStorage.getItem('ufo_user_session')) {
+          setError(err.message || 'Terjadi kesalahan saat verifikasi akun.')
+        }
       } finally {
         setLoading(false)
       }
@@ -80,6 +110,7 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
   }, [requireRole, router])
 
   const logout = async () => {
+    localStorage.removeItem('ufo_user_session')
     await signOut(auth)
     router.push('/')
   }
