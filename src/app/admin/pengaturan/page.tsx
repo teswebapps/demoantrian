@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, update, onValue } from 'firebase/database'
@@ -15,6 +17,7 @@ export default function PengaturanAdminPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const [form, setForm] = useState({
     namaToko: '',
@@ -58,6 +61,11 @@ export default function PengaturanAdminPage() {
     }
   }
 
+  const handleConfirmLogout = async () => {
+    setShowLogoutConfirm(false)
+    await logout()
+  }
+
   const ambilLokasiGPS = () => {
     if (!navigator.geolocation) {
       alert('Browser tidak mendukung geolokasi')
@@ -96,7 +104,7 @@ export default function PengaturanAdminPage() {
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+          <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
             <LogOut className="w-3.5 h-3.5" /> Keluar
           </button>
         </div>
@@ -115,7 +123,7 @@ export default function PengaturanAdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 text-white shadow-sm">
+            <button onClick={() => setShowLogoutConfirm(true)} className="md:hidden p-2.5 rounded-full bg-rose-600 text-white shadow-sm">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -210,7 +218,7 @@ export default function PengaturanAdminPage() {
         </form>
       </motion.div>
 
-      {/* MODAL POPUP BERHASIL (Persis seperti halaman manajemen/darurat) */}
+      {/* MODAL POPUP BERHASIL */}
       <AnimatePresence>
         {successMsg && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -233,6 +241,42 @@ export default function PengaturanAdminPage() {
               >
                 OK
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL KONFIRMASI LOGOUT */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
+            >
+              <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <LogOut className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">KELUAR APLIKASI</h3>
+                <p className="text-xs text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi admin?</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={handleConfirmLogout}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
+                >
+                  Ya, Keluar
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
