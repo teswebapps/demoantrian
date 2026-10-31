@@ -270,31 +270,55 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  // FUNGSI RESET ISTIRAHAT (HANYA MENGELUARKAN YANG STATUSNYA 'Standby')
+  // FUNGSI RESET ISTIRAHAT CERDAS (DENGAN PROTEKSI GANDA SHIFT PAGI & SHIFT SIANG)
   const handleResetIstirahat = () => {
     setModalConfig({
       isOpen: true,
       type: 'confirm',
       title: 'Reset Istirahat',
-      message: '⚠️ Keluarkan semua promotor yang berstatus Standby untuk istirahat? (Promotor yang sedang Melayani/Ibadah/CS akan aman)',
+      message: '⚠️ Jalankan reset istirahat gelombang ini? (Melayani/Ibadah/CS dan shift lain yang belum waktunya akan aman)',
       confirmText: 'Ya, Reset',
       onConfirm: async () => {
         setIsProcessing(true)
         try {
+          const now = new Date()
+          const currentHour = now.getHours()
+
           for (const item of daftarAntrian) {
             if (item.status === 'Standby') {
-              const cleanNama = item.nama.trim().toLowerCase().replace(/\s+/g, '_')
-              await remove(ref(db, `toko/${TOKO_ID}/antrian/${cleanNama}`))
-              await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
-                nama: item.nama,
-                aksi: 'KeluarAntrian',
-                waktu: Date.now(),
-                tanggal: hariIniIndo,
-                hasil: 'Reset Istirahat'
-              })
+              const waktuMasuk = item.waktuStandby ? new Date(item.waktuStandby).getHours() : 0
+              let shouldReset = false
+
+              // Jika admin klik di gelombang istirahat siang (12:00 - 15:00)
+              if (currentHour >= 12 && currentHour < 15) {
+                // Hanya reset Shift Pagi (yang masuk sebelum jam 12:00)
+                if (waktuMasuk < 12) shouldReset = true
+              } 
+              // Jika admin klik di gelombang istirahat sore (15:00 ke atas)
+              else if (currentHour >= 15) {
+                // Hanya reset Shift Siang (yang masuk di atas jam 12:00)
+                // Promotor pagi yang masih nyangkut standby tidak akan ikut tersapu
+                if (waktuMasuk >= 12) shouldReset = true
+              } 
+              // Jika ditekan pagi hari
+              else {
+                shouldReset = true
+              }
+
+              if (shouldReset) {
+                const cleanNama = item.nama.trim().toLowerCase().replace(/\s+/g, '_')
+                await remove(ref(db, `toko/${TOKO_ID}/antrian/${cleanNama}`))
+                await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
+                  nama: item.nama,
+                  aksi: 'KeluarAntrian',
+                  waktu: Date.now(),
+                  tanggal: hariIniIndo,
+                  hasil: 'Reset Istirahat'
+                })
+              }
             }
           }
-          setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Antrian Standby telah di-reset untuk istirahat.', onConfirm: () => {} })
+          setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Reset istirahat gelombang ini berhasil dijalankan.', onConfirm: () => {} })
         } catch (err) {
           setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal melakukan reset istirahat.', onConfirm: () => {} })
         } finally { setIsProcessing(false) }
