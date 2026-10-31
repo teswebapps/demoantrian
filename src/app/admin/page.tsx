@@ -10,7 +10,7 @@ import {
   Loader2, LogOut, Users, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
   Trash2, X, Sun, Moon,
-  History, BarChart3, Calendar, Coffee, LogOut as LogOutIcon, ShieldAlert
+  History, BarChart3, Calendar, Coffee, ShieldAlert
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
@@ -22,6 +22,7 @@ export default function AdminPage() {
   
   const [isUpdating, setIsUpdating] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false) // <--- STATE POPUP LOGOUT ADMIN
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
@@ -84,7 +85,7 @@ export default function AdminPage() {
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
         </nav>
         <div className="p-3 border-t border-border">
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
+          <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
             <LogOut className="w-3.5 h-3.5" /> Keluar
           </button>
         </div>
@@ -103,7 +104,7 @@ export default function AdminPage() {
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
             
-           {/* TOMBOL BUKA & TUTUP ANTRIAN (TERPISAH & ABU-ABU JIKA DISABLE) */}
+           {/* TOMBOL BUKA & TUTUP ANTRIAN */}
             <div className="flex items-center gap-1.5 flex-1 md:flex-none">
               <button 
                 onClick={() => ubahStatusAntrian('BUKA')} 
@@ -132,7 +133,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
+            <button onClick={() => setShowLogoutConfirm(true)} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -209,6 +210,45 @@ export default function AdminPage() {
         </div>
 
       </main>
+
+      {/* MODAL KONFIRMASI LOGOUT ADMIN */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card text-foreground border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
+            >
+              <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <LogOut className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">KELUAR APLIKASI</h3>
+                <p className="text-xs text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi admin?</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowLogoutConfirm(false)
+                    logout()
+                  }}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
+                >
+                  Ya, Keluar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
