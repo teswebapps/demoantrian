@@ -14,17 +14,27 @@ export function BottomNav() {
   ]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center pb-safe pt-2 md:hidden shadow-lg transition-colors duration-300">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border flex justify-around items-center py-2.5 px-2 md:hidden shadow-2xl transition-colors duration-300">
       {menus.map((menu) => {
         const isActive = pathname === menu.href
         const Icon = menu.icon
         return (
-          <Link key={menu.name} href={menu.href} className={`flex flex-col items-center gap-1 w-full py-2 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            <Icon className={`w-5 h-5 ${isActive ? 'fill-primary/20' : ''}`} />
-            <span className="text-[10px] font-bold">{menu.name}</span>
+          <Link 
+            key={menu.name} 
+            href={menu.href} 
+            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 rounded-2xl transition-all duration-200 ${
+              isActive 
+                ? 'text-primary font-extrabold scale-105' 
+                : 'text-muted-foreground hover:text-foreground font-medium'
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-primary/15 text-primary' : ''}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] tracking-tight">{menu.name}</span>
           </Link>
         )
       })}
-    </div>
+    </nav>
   )
 }
