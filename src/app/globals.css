@@ -1,12 +1,11 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* Ubah variabel font-sans di sini menjadi Inter */
-  --font-sans: 'Inter', var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -29,6 +28,14 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Paksa font Inter secara global ke seluruh elemen body */
+body {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Sisa kode ke bawah (bagian :root, dark mode, light mode, dll) biarkan tetap seperti biasa */
 }
 :root {
   color-scheme: dark;
