@@ -67,7 +67,7 @@ export default function AdminPage() {
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
   return (
-    <div className="min-h-screen bg-background flex relative font-sans text-foreground transition-colors duration-300">
+    <div className="min-h-[100dvh] bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-20 md:pb-6">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">

@@ -133,7 +133,7 @@ export default function AktivitasAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-16">
+    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-20 md:pb-6">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">

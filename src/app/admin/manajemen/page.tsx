@@ -3,16 +3,80 @@
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Loader2, UserPlus, UserMinus, Play, Lock, Unlock, RotateCcw, 
   ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon, 
-  Trash2, KeyRound, Clock, FileText, ChevronDown 
+  Trash2, KeyRound, Clock, FileText, ChevronDown, Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 import { CustomModal } from '@/components/ui/CustomModal'
+
+interface Option {
+  label: string
+  value: string
+}
+
+function CustomSelect({ options, value, onChange, placeholder = 'Pilih opsi...', icon }: { options: Option[], value: string, onChange: (val: string) => void, placeholder?: string, icon?: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const selectedOption = options.find(opt => opt.value === value)
+  const displayLabel = selectedOption ? selectedOption.label : placeholder
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-10 text-xs font-medium text-foreground text-left focus:outline-none flex items-center justify-between shadow-sm transition-all hover:bg-slate-200/50 dark:hover:bg-secondary"
+      >
+        {icon && <span className="absolute left-4 text-muted-foreground">{icon}</span>}
+        <span className={`truncate ${!value ? 'text-muted-foreground' : 'text-foreground font-bold uppercase'}`}>
+          {displayLabel}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-2 w-full bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+          {options.length === 0 ? (
+            <div className="p-3 text-xs text-muted-foreground text-center italic">Tidak ada pilihan</div>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value)
+                  setIsOpen(false)
+                }}
+                className={`w-full px-4 py-3 text-xs text-left font-medium uppercase transition-colors flex items-center justify-between hover:bg-primary/10 hover:text-primary ${
+                  value === opt.value ? 'bg-primary/10 text-primary font-bold' : 'text-foreground'
+                }`}
+              >
+                <span>{opt.label}</span>
+                {value === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ManajemenPage() {
   const { user, loading: authLoading, logout } = useAuth('ADMIN')
@@ -34,7 +98,6 @@ export default function ManajemenPage() {
   const [lockReason, setLockReason] = useState('')
   const [lockDuration, setLockDuration] = useState('60')
 
-  // State untuk Modal Kustom Global
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean
     type: 'confirm' | 'alert' | 'success' | 'error'
@@ -268,7 +331,7 @@ export default function ManajemenPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-24">
+    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-20 md:pb-6">
       
       {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
@@ -334,26 +397,25 @@ export default function ManajemenPage() {
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Atur Antrian</h3>
             <div className="space-y-3">
-              <div className="relative">
-                <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
-                  <option value="">-- Pilih Promotor --</option>
-                  {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
-                </select>
-                <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
-                  <ChevronDown className="w-4 h-4" />
-                </div>
-              </div>
+              
+              <CustomSelect 
+                options={masterSales.map(s => ({ label: s.nama, value: s.nama }))}
+                value={selectedSales}
+                onChange={setSelectedSales}
+                placeholder="-- Pilih Promotor --"
+                icon={<Users className="w-4 h-4" />}
+              />
               
               <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
-                    <option value="HA">Kategori HA</option>
-                    <option value="AV">Kategori AV</option>
-                  </select>
-                  <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
-                    <ChevronDown className="w-4 h-4" />
-                  </div>
-                </div>
+                <CustomSelect 
+                  options={[
+                    { label: 'Kategori HA', value: 'HA' },
+                    { label: 'Kategori AV', value: 'AV' }
+                  ]}
+                  value={selectedKategori}
+                  onChange={setSelectedKategori}
+                  placeholder="Pilih Kategori"
+                />
                 <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
 
@@ -377,30 +439,24 @@ export default function ManajemenPage() {
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
             <div className="space-y-3">
               
-              {/* Dropdown Pilih Promotor */}
-              <div className="relative">
-                <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
-                  <option value="">-- Pilih Promotor untuk Lock / Hapus --</option>
-                  {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
-                </select>
-                <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
-                  <ChevronDown className="w-4 h-4" />
-                </div>
-              </div>
+              <CustomSelect 
+                options={masterSales.map(s => ({ label: s.nama, value: s.nama }))}
+                value={selectedLockSales}
+                onChange={setSelectedLockSales}
+                placeholder="-- Pilih Promotor untuk Lock / Hapus --"
+                icon={<Users className="w-4 h-4" />}
+              />
 
-              {/* Dropdown Aksi (Kunci / Buka Kunci) dengan ChevronDown */}
-              <div className="relative">
-                <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
-                  <option value="LOCK">Lock Akun Promotor</option>
-                  <option value="UNLOCK">Unlock Akun Promotor</option>
-                </select>
-                <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
-                  <ChevronDown className="w-4 h-4" />
-                </div>
-              </div>
+              <CustomSelect 
+                options={[
+                  { label: 'Lock Akun Promotor', value: 'LOCK' },
+                  { label: 'Unlock Akun Promotor', value: 'UNLOCK' }
+                ]}
+                value={lockAction}
+                onChange={setLockAction}
+                placeholder="Pilih Aksi"
+                icon={<KeyRound className="w-4 h-4" />}
+              />
 
               {lockAction === 'LOCK' && (
                 <>
