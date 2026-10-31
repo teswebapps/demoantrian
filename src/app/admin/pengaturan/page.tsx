@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, update, onValue } from 'firebase/database'
