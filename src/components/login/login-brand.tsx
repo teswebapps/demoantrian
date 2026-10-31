@@ -58,22 +58,23 @@ export function LoginBrand() {
       </div>
 
       {/* Nama Sistem dari Pengaturan */}
-      <h1 className="mt-6 text-xl md:text-2xl font-extrabold tracking-tight text-foreground text-center uppercase leading-tight">
+      <h1 className="mt-6 text-xl md:text-2xl font-extrabold tracking-tight text-white text-center uppercase leading-tight">
         {setting.namaSistem}
       </h1>
       
       {/* Nama Toko dari Pengaturan */}
-      <p className="mt-2 text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+      <p className="mt-2 text-xs md:text-sm font-semibold text-slate-300 uppercase tracking-wide">
         {setting.namaToko}
       </p>
 
+      {/* Badge Fitur dengan Efek Timbul 3D */}
       <ul className="mt-5 flex flex-wrap justify-center gap-2 text-xs font-semibold">
         {features.map(({ icon: Icon, label }) => (
           <li
             key={label}
-            className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-muted-foreground border border-border"
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 px-4 py-2 text-slate-200 border border-slate-700/80 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] font-medium"
           >
-            <Icon className="size-3.5 text-cyan-500" aria-hidden="true" />
+            <Icon className="size-3.5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" aria-hidden="true" />
             {label}
           </li>
         ))}
