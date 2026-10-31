@@ -288,7 +288,7 @@ export default function ManajemenPage() {
             <History className="w-4 h-4" /> Aktivitas & Rekap
           </Link>
           <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
-            <ShieldAlert className="w-4 h-4" /> Darurat
+            <ShieldAlert className="w-4 h-4" /> Kontrol Antrian
           </Link>
           <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs">
             <Settings className="w-4 h-4" /> Pengaturan
@@ -307,7 +307,7 @@ export default function ManajemenPage() {
         {/* HEADER */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Manajemen & Darurat</h1>
+            <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">AKSI CEPAT</h1>
             <p className="text-xs text-muted-foreground uppercase">Kontrol Penuh Admin</p>
           </div>
           <div className="flex items-center gap-2">
@@ -334,7 +334,7 @@ export default function ManajemenPage() {
 
           {/* MANAJEMEN URUTAN ANTRIAN (Hanya tombol Masuk, Keluar, Paksa) */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Manajemen Urutan Antrian</h3>
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Atur Antrian</h3>
             <div className="space-y-3">
               <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none">
                 <option value="">-- Pilih Promotor --</option>
