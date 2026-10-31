@@ -231,7 +231,7 @@ export default function ManajemenPage() {
         setModalConfig({ isOpen: true, type: 'success', title: 'Kunci Dibuka', message: `${selectedLockSales} dibuka kuncinya.`, onConfirm: () => {} })
       } else {
         await update(lockRef, {
-          nama: selectedLockSales, locked: true, alasan: lockReason || 'Pulang tanpa keluar antrian',
+          nama: selectedLockSales, locked: true, alasan: lockReason || 'isi alasan lock',
           waktuMulaiLock: Date.now(), waktuSelesaiLock: Date.now() + (parseInt(lockDuration) * 60000)
         })
         await remove(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
@@ -335,4 +335,133 @@ export default function ManajemenPage() {
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Atur Antrian</h3>
             <div className="space-y-3">
               <div className="relative">
-                <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-
+                <select value={selectedSales} onChange={e => setSelectedSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
+                  <option value="">-- Pilih Promotor --</option>
+                  {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
+                </select>
+                <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
+                    <option value="HA">Kategori HA</option>
+                    <option value="AV">Kategori AV</option>
+                  </select>
+                  <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className="py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 active:scale-95">
+                  <UserPlus className="w-4 h-4" /> Masukkan ke Antrian
+                </button>
+                <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className="py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-amber-500/20 active:scale-95">
+                  <UserMinus className="w-4 h-4" /> Keluarkan dari Antrian
+                </button>
+              </div>
+
+              <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/20 active:scale-95">
+                <Play className="w-4 h-4" /> Paksa Bawa Customer
+              </button>
+            </div>
+          </div>
+
+          {/* TINDAKAN DARURAT */}
+          <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
+            <div className="space-y-3">
+              
+              {/* Dropdown Pilih Promotor */}
+              <div className="relative">
+                <select value={selectedLockSales} onChange={e => setSelectedLockSales(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-4 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
+                  <option value="">-- Pilih Promotor untuk Lock / Hapus --</option>
+                  {masterSales.map(s => <option key={s._key} value={s.nama}>{s.nama}</option>)}
+                </select>
+                <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Dropdown Aksi (Kunci / Buka Kunci) dengan ChevronDown */}
+              <div className="relative">
+                <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <select value={lockAction} onChange={e => setLockAction(e.target.value)} className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-10 text-xs font-medium text-foreground focus:outline-none appearance-none">
+                  <option value="LOCK">Lock Akun Promotor</option>
+                  <option value="UNLOCK">Unlock Akun Promotor</option>
+                </select>
+                <div className="absolute right-3.5 top-3.5 text-muted-foreground pointer-events-none">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              {lockAction === 'LOCK' && (
+                <>
+                  <div className="relative">
+                    <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <input 
+                      type="text" 
+                      value={lockReason} 
+                      onChange={e => setLockReason(e.target.value)} 
+                      placeholder="Masukkan alasan (misal: Pulang tanpa keluar antrian)" 
+                      className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" 
+                    />
+                  </div>
+                  <div className="relative">
+                    <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <input 
+                      type="number" 
+                      value={lockDuration} 
+                      onChange={e => setLockDuration(e.target.value)} 
+                      placeholder="Durasi (menit)" 
+                      className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" 
+                    />
+                  </div>
+                </>
+              )}
+
+              <button type="button" onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-rose-600/20 active:scale-95">
+                {lockAction === 'LOCK' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                {lockAction === 'LOCK' ? 'Kunci Akun' : 'Buka Kunci'}
+              </button>
+
+              <button type="button" onClick={() => { setSelectedSales(selectedLockSales); handleHapusPermanen(); }} disabled={isProcessing || !selectedLockSales} className="w-full py-3.5 bg-rose-700 hover:bg-rose-800 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-rose-700/20 active:scale-95">
+                <Trash2 className="w-4 h-4" /> Hapus Promotor Permanen
+              </button>
+
+              <hr className="border-border my-2" />
+              
+              <button type="button" onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3.5 bg-rose-900 hover:bg-rose-950 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 active:scale-95 transition">
+                <RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </motion.div>
+
+      {/* Global Custom Modal */}
+      <CustomModal 
+        isOpen={modalConfig.isOpen}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        onConfirm={modalConfig.onConfirm}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+    </div>
+  )
+}
