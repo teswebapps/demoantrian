@@ -416,7 +416,7 @@ export default function ManajemenPage() {
                   onChange={setSelectedKategori}
                   placeholder="Pilih Kategori"
                 />
-                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Posisi" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
+                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Masukkan nomor antrian" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
