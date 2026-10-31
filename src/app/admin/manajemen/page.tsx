@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { 
   Loader2, UserPlus, UserMinus, Play, Lock, Unlock, RotateCcw, 
   ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon, 
-  Trash2, KeyRound, Clock, FileText, ChevronDown, Users
+  Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
@@ -85,6 +85,7 @@ export default function ManajemenPage() {
   
   const [masterSales, setMasterSales] = useState<any[]>([])
   const [daftarAntrian, setDaftarAntrian] = useState<any[]>([])
+  const [hariIniIndo, setHariIniIndo] = useState('')
   
   const [formNama, setFormNama] = useState('')
   const [formEmail, setFormEmail] = useState('')
@@ -115,6 +116,11 @@ export default function ManajemenPage() {
   })
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
+
+  useEffect(() => {
+    const d = new Date()
+    setHariIniIndo(`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`)
+  }, [])
 
   useEffect(() => {
     if (!TOKO_ID) return
@@ -254,7 +260,7 @@ export default function ManajemenPage() {
       })
       await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
         nama: selectedSales, aksi: 'BawaCustomer', waktu: Date.now(),
-        tanggal: new Date().toLocaleDateString('id-ID').split('/').join('-'),
+        tanggal: hariIniIndo,
         waktuMulai: Date.now(), keterangan: 'Dipaksa Admin'
       })
       setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Promotor dipaksa melayani customer.', onConfirm: () => {} })
@@ -262,6 +268,38 @@ export default function ManajemenPage() {
     } catch (err) {
       setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal memproses.', onConfirm: () => {} })
     } finally { setIsProcessing(false) }
+  }
+
+  // FUNGSI RESET ISTIRAHAT (HANYA MENGELUARKAN YANG STATUSNYA 'Standby')
+  const handleResetIstirahat = () => {
+    setModalConfig({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Reset Istirahat',
+      message: '⚠️ Keluarkan semua promotor yang berstatus Standby untuk istirahat? (Promotor yang sedang Melayani/Ibadah/CS akan aman)',
+      confirmText: 'Ya, Reset',
+      onConfirm: async () => {
+        setIsProcessing(true)
+        try {
+          for (const item of daftarAntrian) {
+            if (item.status === 'Standby') {
+              const cleanNama = item.nama.trim().toLowerCase().replace(/\s+/g, '_')
+              await remove(ref(db, `toko/${TOKO_ID}/antrian/${cleanNama}`))
+              await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
+                nama: item.nama,
+                aksi: 'KeluarAntrian',
+                waktu: Date.now(),
+                tanggal: hariIniIndo,
+                hasil: 'Reset Istirahat'
+              })
+            }
+          }
+          setModalConfig({ isOpen: true, type: 'success', title: 'Berhasil', message: 'Antrian Standby telah di-reset untuk istirahat.', onConfirm: () => {} })
+        } catch (err) {
+          setModalConfig({ isOpen: true, type: 'error', title: 'Gagal', message: 'Gagal melakukan reset istirahat.', onConfirm: () => {} })
+        } finally { setIsProcessing(false) }
+      }
+    })
   }
 
   const handleLockUnlock = async () => {
@@ -348,10 +386,10 @@ export default function ManajemenPage() {
           <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
             <History className="w-4 h-4" /> Aktivitas & Rekap
           </Link>
-          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
+          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs">
             <ShieldAlert className="w-4 h-4" /> Kontrol Antrian
           </Link>
-          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs">
+          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs">
             <Settings className="w-4 h-4" /> Pengaturan
           </Link>
         </nav>
@@ -497,6 +535,11 @@ export default function ManajemenPage() {
               </button>
 
               <hr className="border-border my-2" />
+
+              {/* TOMBOL RESET ISTIRAHAT */}
+              <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 transition">
+                <Coffee className="w-4 h-4" /> RESET ISTIRAHAT (STANDBY)
+              </button>
               
               <button type="button" onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3.5 bg-rose-900 hover:bg-rose-950 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 active:scale-95 transition">
                 <RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI
