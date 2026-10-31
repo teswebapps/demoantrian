@@ -30,13 +30,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Paksa font Inter secara global ke seluruh elemen body */
-body {
-  font-family: 'Inter', sans-serif !important;
-}
-
-/* Sisa kode ke bawah (bagian :root, dark mode, light mode, dll) biarkan tetap seperti biasa */
-}
 :root {
   color-scheme: dark;
   --background: oklch(0.16 0.03 258);
@@ -63,12 +56,13 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif !important;
   }
 }
 
 .leaflet-container {
   background: var(--secondary);
-  font-family: var(--font-geist-sans);
+  font-family: 'Inter', sans-serif;
 }
 
 .map-tiles-dark {
@@ -84,11 +78,12 @@ body {
 .leaflet-container .leaflet-control-attribution a {
   color: var(--primary);
 }
+
 /* ========================================== */
-/* TEMA TERANG (LIGHT MODE)                   */
+/* TEMA TERANG (LIGHT MODE) 100% SOLID        */
 /* ========================================== */
 html:not(.dark) {
-  --background: #f8fafc;
+  --background: #f1f5f9;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
@@ -96,225 +91,19 @@ html:not(.dark) {
   --primary-foreground: #ffffff;
   --secondary: #e2e8f0;
   --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #10b981;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --border: #e2e8f0;
-}
-
-html:not(.dark) body {
-  background-color: var(--background);
-  color: var(--foreground);
-}
-/* ========================================== */
-/* TEMA TERANG (LIGHT MODE) YANG LEBIH HIDUP  */
-/* ========================================== */
-html:not(.dark) {
-  /* Background utama diberi sentuhan biru sangat muda (Slate-50) */
-  --background: #f1f5f9; 
-  --foreground: #0f172a;
-  
-  /* Card dibuat putih bersih agar kontras dengan background */
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  
-  /* Warna primer (Cyan) tetap cerah */
-  --primary: #0ea5e9;
-  --primary-foreground: #ffffff;
-  
-  /* Warna sekunder untuk kotak-kotak kecil */
-  --secondary: #e2e8f0;
-  --secondary-foreground: #1e293b;
-  
   --muted: #f8fafc;
-  --muted-foreground: #64748b;
+  --muted-foreground: #475569;
   --accent: #10b981;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --border: #cbd5e1;
 }
 
-/* Memastikan body dan card mengikuti variabel di atas */
-html:not(.dark) body {
-  background-color: var(--background);
-  color: var(--foreground);
-}
-
-/* Memberikan shadow halus pada card di mode terang agar tidak terlihat datar */
-html:not(.dark) .bg-card {
-  background-color: var(--card);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border-color: var(--border);
-}
-
-/* Memperbaiki warna teks header agar tidak menyatu dengan background */
-html:not(.dark) header {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-bottom: 1px solid var(--border);
-}
-/* ========================================== */
-/* PAKSA MODE TERANG JADI SOLID & PADAT       */
-/* ========================================== */
-html:not(.dark) {
-  --background: #e2e8f0; /* Background halaman abu-abu kebiruan */
-  --foreground: #0f172a;
-  --card: #ffffff;       /* Card putih bersih */
-  --border: #cbd5e1;
-}
-
 html:not(.dark) body {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
 }
 
-/* Paksa semua card, header, dan elemen background menjadi putih solid (TIDAK TRANSPARAN) */
-html:not(.dark) .bg-card,
-html:not(.dark) .bg-gradient-to-br,
-html:not(.dark) .bg-gradient-to-t,
-html:not(.dark) .bg-secondary\/50,
-html:not(.dark) .bg-background\/80,
-html:not(.dark) header {
-  background: #ffffff !important;
-  background-image: none !important; /* Hilangkan gradien */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-  border-color: #cbd5e1 !important;
-}
-
-/* Paksa teks agar tetap gelap dan kontras */
-html:not(.dark) .text-muted-foreground {
-  color: #475569 !important;
-}
-/* ========================================== */
-/* PAKSA MODE TERANG JADI 100% SOLID          */
-/* ========================================== */
-html:not(.dark) {
-  --background: #e2e8f0; 
-  --foreground: #0f172a;
-  --card: #ffffff;       
-  --border: #cbd5e1;
-}
-
-html:not(.dark) body {
-  background-color: var(--background) !important;
-  color: var(--foreground) !important;
-}
-
-/* Paksa semua card, header, ikon, dan tombol menjadi solid */
-html:not(.dark) .bg-card,
-html:not(.dark) .bg-secondary,
-html:not(.dark) .bg-primary\/15,
-html:not(.dark) .bg-destructive\/15,
-html:not(.dark) .bg-accent\/15,
-html:not(.dark) header {
-  background-color: #ffffff !important;
-  background-image: none !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Paksa ikon dan teks agar tidak transparan */
-html:not(.dark) .text-muted-foreground {
-  color: #475569 !important;
-}
-html:not(.dark) .text-primary {
-  color: #0ea5e9 !important;
-}
-html:not(.dark) .text-destructive {
-  color: #ef4444 !important;
-}
-html:not(.dark) .text-accent {
-  color: #10b981 !important;
-}
-
-/* Tombol keluar dan ikon toko */
-html:not(.dark) button.bg-destructive\/15 {
-  background-color: #fee2e2 !important; /* Merah muda solid */
-  color: #ef4444 !important;
-}
-html:not(.dark) .bg-primary\/15 {
-  background-color: #e0f2fe !important; /* Biru muda solid */
-  color: #0ea5e9 !important;
-}
-@keyframes float {
-  50% {
-    transform: translateY(-6px);
-  }
-}
-/* ========================================== */
-/* PAKSA MODE TERANG JADI 100% SOLID          */
-/* ========================================== */
-html:not(.dark) {
-  --background: #e2e8f0; /* Abu-abu kebiruan */
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --border: #cbd5e1;
-}
-
-html:not(.dark) body {
-  background-color: var(--background) !important;
-  color: var(--foreground) !important;
-}
-
-/* Paksa card, header, dan elemen background menjadi putih solid */
-html:not(.dark) .bg-card,
-html:not(.dark) header {
-  background: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Paksa teks agar tetap gelap dan kontras */
-html:not(.dark) .text-muted-foreground {
-  color: #475569 !important;
-}
-
-/* --- SOLUSI UNTUK IKON DAN TOMBOL --- */
-
-/* 1. Ikon Toko (Kiri Atas) - Biru Solid */
-html:not(.dark) .bg-primary\/15 {
-  background-color: #0ea5e9 !important; /* Biru Cyan Solid */
-  color: #ffffff !important; /* Ikon Putih */
-}
-
-/* 2. Tombol Tema (Matahari) - Kuning Solid */
-html:not(.dark) button[aria-label="Ganti tema"] {
-  background-color: #f59e0b !important; /* Kuning Solid */
-  color: #ffffff !important; /* Ikon Putih */
-}
-
-/* 3. Tombol Keluar (Panah) - Merah Solid */
-html:not(.dark) button[aria-label="Keluar"] {
-  background-color: #ef4444 !important; /* Merah Solid */
-  color: #ffffff !important; /* Ikon Putih */
-}
-
-/* 4. Status Antrian (Buka/Tutup) */
-html:not(.dark) .bg-accent\/15 {
-  background-color: #10b981 !important; /* Hijau Solid */
-  color: #ffffff !important;
-}
-html:not(.dark) .bg-destructive\/15 {
-  background-color: #ef4444 !important; /* Merah Solid */
-  color: #ffffff !important;
-}
-/* ========================================== */
-/* PAKSA MODE TERANG JADI 100% SOLID (FINAL)  */
-/* ========================================== */
-html:not(.dark) {
-  --background: #f1f5f9; /* Background halaman abu-abu kebiruan */
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --border: #cbd5e1;
-}
-
-html:not(.dark) body {
-  background-color: var(--background) !important;
-  color: var(--foreground) !important;
-}
-
-/* Paksa semua card, header, dan elemen background menjadi putih solid */
 html:not(.dark) .bg-card,
 html:not(.dark) header,
 html:not(.dark) .bg-secondary\/50 {
@@ -323,55 +112,41 @@ html:not(.dark) .bg-secondary\/50 {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
 }
 
-/* --- Paksa Badge & Tab menjadi Solid --- */
+html:not(.dark) .text-muted-foreground {
+  color: #475569 !important;
+}
 
-/* Tab HA/AV yang aktif */
 html:not(.dark) .bg-primary {
   background-color: #0ea5e9 !important;
   color: #ffffff !important;
 }
 
-/* Badge "Buka" (Hijau) */
 html:not(.dark) .bg-accent\/15 {
   background-color: #10b981 !important;
   color: #ffffff !important;
 }
 
-/* Badge "Tutup" / "Keluar" (Merah) */
 html:not(.dark) .bg-destructive\/15 {
   background-color: #ef4444 !important;
   color: #ffffff !important;
 }
 
-/* Badge "Deal" (Hijau di Aktivitas) */
 html:not(.dark) .bg-emerald-500\/20 {
   background-color: #10b981 !important;
   color: #ffffff !important;
 }
 
-/* Badge "Lihat" (Kuning di Aktivitas) */
 html:not(.dark) .bg-amber-500\/20 {
   background-color: #f59e0b !important;
   color: #ffffff !important;
 }
 
-/* Badge "Proses" (Biru di Aktivitas) */
 html:not(.dark) .bg-blue-500\/20 {
   background-color: #3b82f6 !important;
   color: #ffffff !important;
 }
 
-/* Tombol Ikon Toko */
 html:not(.dark) .bg-primary\/15 {
   background-color: #0ea5e9 !important;
   color: #ffffff !important;
-}
-/* Paksa titik (dot) status antrian menjadi putih di mode terang */
-html:not(.dark) .bg-accent\/15 .bg-accent,
-html:not(.dark) .bg-accent\/15 .animate-ping {
-  background-color: #ffffff !important; /* Titik Putih */
-}
-
-html:not(.dark) .bg-destructive\/15 .bg-destructive {
-  background-color: #ffffff !important; /* Titik Putih (untuk Tutup) */
 }
