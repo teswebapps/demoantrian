@@ -2,14 +2,14 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
-import { ref, update, remove, onValue, push } from 'firebase/database'
+import { ref, update, onValue, push } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Loader2, LogOut, Users, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
-  Trash2, X, Sun, Moon,
+  X, Sun, Moon,
   History, BarChart3, Calendar, Coffee, ShieldAlert
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
@@ -46,15 +46,6 @@ export default function AdminPage() {
     } 
     catch (err) { console.error(err) } 
     finally { setIsUpdating(false) }
-  }
-
-  const hapusAntrian = async (nama: string) => {
-    if (!window.confirm(`Keluarkan ${nama} dari antrian?`)) return
-    try {
-      const clean = nama.trim().toLowerCase().replace(/\s+/g, '_')
-      await remove(ref(db, `toko/${TOKO_ID}/antrian/` + clean))
-      await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), { nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: hariIniIndo, hasil: 'Admin' })
-    } catch (err) { console.error(err) }
   }
 
   // Hitung Statistik
@@ -195,9 +186,9 @@ export default function AdminPage() {
                             ) : (
                               <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
                             )}
-                            <button onClick={() => hapusAntrian(item.nama)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            
+                            {/* TOMBOL TONG SAMPAH SUDAH DIHAPUS DARI SINI */}
+                            
                           </div>
                         </div>
                       )

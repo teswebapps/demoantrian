@@ -1,0 +1,142 @@
+[33m135e3a6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m perbaikan login
+[33me9eea71[m perbaikan login
+[33mc885279[m perbaikan login
+[33mca378ad[m perbaikan login
+[33m168795d[m perbaikan login
+[33md309828[m perbaikan login
+[33m4025eb4[m perbaikan login
+[33m014b803[m perbaikan login
+[33m70da99c[m perbaikan login
+[33mf8d15c2[m perbaikan
+[33m718788c[m perbaikan
+[33m224f602[m perbaikan
+[33m9ab995f[m Fix: seragamkan path database ke ufo-kebonsari
+[33m3ddec86[m perbaikan
+[33mc46be8b[m fix: seragamkan seluruh jalur realtime database ke ufo-kebonsari
+[33me7e13d7[m fix: seragamkan seluruh jalur realtime database ke ufo-kebonsari
+[33mf30c34b1[m fix: add offline guard and role fallback without breaking realtime sync
+[33m69f93be[m fix(auth): implement local-cache priority to survive background kill
+[33m07e9704[m fix(auth): resolve login bounce issue by adding persistent storage and safe cache fallback
+[33m462df28[m fix: hapus favicon bawaan nextjs
+[33m22fcf94[m security: tambahkan masa kedaluwarsa 7 hari dan enkripsi pada session localStorage
+[33m82eae80[m fix: hapus favicon bawaan nextjs
+[33m422b57d[m fix: hapus favicon bawaan nextjs
+[33m5832ccb[m security: tambahkan masa kedaluwarsa 7 hari dan enkripsi pada session localStorage
+[33m1a9f654[m fix: hapus favicon bawaan nextjs
+[33m5360d96[m fix: hapus favicon bawaan nextjs
+[33m73aa8fd[m fix: perbaiki sintaks error dan duplikasi pada globals.css
+[33m651840d[m fix: bersihkan duplikasi tailwind css dan terapkan font inter secara mutlak
+[33mdc18297[m style: ubah font utama aplikasi menjadi Inter
+[33m52ec71b[m fix: pertahankan sesi auth saat minimize lama agar tidak minta login
+[33m0890e12[m fix: pertahankan sesi login saat lama minimize atau wake up
+[33m81b9502[m fix: tambahkan auto-restore sesi agar tetap login setelah clear apps
+[33m98ad27f[m fix: kunci total sesi login agar tidak pernah minta login ulang
+[33ma379d34[m fix: cegah logout otomatis saat layar hp promotor mati atau sleep
+[33m635e33f[m fix: perbaiki sesi login agar promotor dan admin tidak bolak balik logout
+[33mc853883[m feat: tambah logika cerdas reset istirahat filter shift pagi dan siang
+[33m1dbcf7c[m fix: update layout tsx dengan metadata pwa dan apple touch icon
+[33m203f989[m feat: tambahkan manifest json untuk mode pwa full screen dan perbarui admin layout
+[33md203d0b[m Fix:add reset istrihat
+[33mc6fcbec[m feat: pindahkan tombol reset istirahat ke halaman kontrol darurat
+[33m5038227[m feat: tambahkan tombol reset istirahat manual untuk membersihkan antrian standby
+[33meb73b98[m Fix: Layout login pas full layar tanpa scroll
+[33m0bf45a7[m Fix: Layout login pas full layar tanpa scroll
+[33mc1ea0d2[m Fix: Layout login pas full layar tanpa scroll
+[33m61bf698[m fix: pastikan tombol keluar pada app-header memicu modal konfirmasi
+[33m6cf3f28[m fix: hapus force-dynamic agar kompatibel dengan cacheComponents
+[33m715842b[m feat: tambahkan konfirmasi popup logout pada halaman pengaturan
+[33m0a15f47[m Fix: Layout login pas full layar tanpa scroll
+[33m55a2bb2[m feat: tambahkan popup notifikasi sukses pada halaman pengaturan admin
+[33m67c28d8[m feat: tambahkan security headers dan pertahankan config turbopack
+[33meb89a84[m update: perketat security firebase rules, env config, dan layout admin
+[33m01fa489[m Fix: Layout login pas full layar tanpa scroll
+[33m3eb7717[m Fix: Layout login pas full layar tanpa scroll
+[33mcbe926a[m fix: rapikan UI manajemen admin dan pastikan tombol keluar mobile solid
+[33m737ef90[m fix: rapikan UI manajemen admin dan pastikan tombol keluar mobile solid
+[33m86319bb[m fix: rapikan UI manajemen admin dan pastikan tombol keluar mobile solid
+[33m624bdff[m fix: perbaiki layout kategori responsive di hp, hilangkan garis hitam, dan ubah tombol keluar jadi solid
+[33m3db0820[m feat: rapikan layout bawah, hilangkan garis hitam, dan implementasi custom select dropdown
+[33m4138b93[m feat: perbarui dropdown manajemen dengan icon chevron down dan input alasan lock kustom
+[33m6d9ec56[m feat: perbarui dropdown manajemen dengan icon chevron down dan input alasan lock kustom
+[33mc61e9dd[m feat: perbarui UI halaman login dengan efek glassmorphism dan tombol 3D timbul
+[33m4a01ad5[m feat: perbarui UI halaman login dengan efek glassmorphism dan tombol 3D timbul
+[33m86d5475[m perbaikan all admin
+[33m1bdaefc[m perbaikan
+[33m438c985[m perbaikan
+[33m4d68e14[m perbaikan
+[33m17c53d5[m perbaikan
+[33mca83a64[m perbaikan
+[33mfef0b0c[m perbaikan
+[33m91140c7[m perbaikan
+[33mb64c0de[m perbaikan
+[33m6d70192[m perbaikan
+[33mdfddbb5[m perbaikan
+[33m3b33598[m perbaikan
+[33m362fe64[m perbaikan
+[33m93cc87f[m perbaikan
+[33m69d116a[m perbaikan
+[33me7c51eb[m perbaikan
+[33mf24f487[m perbaikan
+[33ma2c3ef3[m perbaikan
+[33m394a4a3[m perbaikan
+[33mf44d29c[m tombol
+[33m49ac4fb[m chechkin
+[33m1cdb6f7[m chckein
+[33mdc85019[m chcekin
+[33m20a3182[m chechkin
+[33m96f8ba1[m tes
+[33m692e7b2[m tesweb
+[33m67d34bd[m  tes web
+[33m70720f9[m page admin
+[33m8c4e22d[m update admin
+[33m6632ad7[m waktu checkin
+[33mfcd9c7f[m update aktivitas
+[33m58a98b9[m aktivitas promotor
+[33md60d9d7[m Tambah Live Urutan Antrian di halaman Promotor
+[33m16df1fb[m Fix: Titik status antrian putih di mode terang
+[33m864e065[m Final: Perbaikan tab HA/AV dan tampilan mode terang
+[33m89b5980[m Fix: Paksa warna solid di mode terang untuk header dan tombol
+[33me503a70[m page promotor
+[33m44dc0ca[m Kembalikan kode Dashboard Admin
+[33m0279398[m Perbaikan tampilan login agar padat dan pas di HP
+[33m054f996[m Fix: Layout login pas full layar tanpa scroll
+[33me88f817[m Kembalikan judul login yang sempat berubah
+[33m5bd8b64[m Fix: Pindahkan kode login ke /login dan redirect dari /
+[33m6cc6191[m Update halaman login: logo UFO, neon biru, tombol 3D, Firebase
+[33me2a5e49[m Efek timbul 3D pada tombol Google
+[33m089e640[m Efek timbul 3D pada tombol Google
+[33mee8c108[m Fix: Paksa neon logo jadi biru hex
+[33m6eb5a94[m Update tampilan login: tema biru, card mewah, tombol google baru
+[33m79bf310[m Redesign halaman login & ganti logo UFO
+[33m4786e22[m Perbesar ukuran font di menu aktivitas promotor
+[33m108942e[m Fix: Nomor antrian dinamis sesuai kategori HA/AV
+[33m19e8d5f[m Perbaikan mode terang solid dan logika pilih kategori HA/AV
+[33med708aa[m Perbaikan mode terang: hapus efek blur dan paksa card solid
+[33m3e244af[m Perbaikan mode terang agar lebih menarik dan tidak pucat
+[33m1646ccf[m perbaikan halaman pormotor
+[33m70a9ca0[m Tambah rincian waktu dan total Deal/Lihat di aktivitas promotor
+[33m8e8d919[m pembaruan promotor
+[33m704a33d[m Hapus tombol tambah promotor ganda di dashboard
+[33m0c7c45e[m Fix: Tambah layout admin untuk BottomNav
+[33m445795e[m Fix: Tambah koma di databaseURL firebase config
+[33m5baebaa[m Pindah ke Firebase project baru
+[33mefb52b7[m Force update: Perbaikan useTheme
+[33m9ff5d71[m Fix: Perbaiki posisi useTheme di admin/page.tsx
+[33m20e1138[m Fix: Panggil useTheme dengan benar di semua halaman admin
+[33m9d1c7ab[m Fix: Ganti useThemeMode ke useTheme di halaman Admin
+[33m15f0e12[m Selesai: Perbaikan tampilan UI, tema instan, dan sinkronisasi Firebase
+[33mdd9c46a[m new model
+[33m5a05e5d[m Revert: Kembalikan tombol ke desain asli, hapus komponen animasi
+[33maca23cb[m Fix: Tombol animasi & perbaikan build
+[33m953fa2a[m Feat: Tambah tombol animasi + fix posisi antrian HA/AV
+[33m5bc6d18[m Fix: Hitung posisi antrian sesuai kategori HA/AV
+[33m0fe62fc[m Fix: Tambah dropdown kategori HA/AV
+[33m92d84f9[m Fix: Tambah pilihan kategori HA/AV saat check-in
+[33m3d56664[m Fix: Tema terang/gelap di halaman rekap dan total bulanan
+[33mf02f114[m Fix: UI Admin clean modern, tombol tema, menu aktivitas interaktif
+[33m896726f[m Fix: Tambah tombol keluar HP, horizontal scroll, dan panel lock master sales
+[33mddf477f[m Fix final: buat ulang folder pengaturan
+[33m56c4f5c[m Hapus file pengaturan lama
+[33m0edb57e[m Hapus halaman statistik lama yang tidak terpakai
+[33md9c1aec[m Fix: Perbaiki TypeScript di halaman pengaturan
+[33m5047fda[m Initial commit: Aplikasi Antrian UFO
