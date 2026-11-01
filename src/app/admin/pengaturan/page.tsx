@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { ref, update, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, MapPin, Globe, ShieldAlert, CheckCircle2 } from 'lucide-react'
+import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, Globe, ShieldAlert, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -62,43 +62,6 @@ export default function PengaturanAdminPage() {
   const handleConfirmLogout = async () => {
     setShowLogoutConfirm(false)
     await logout()
-  }
-
-  const ambilLokasiGPS = () => {
-    if (!navigator.geolocation) {
-      alert('Browser tidak mendukung geolokasi')
-      return
-    }
-    
-    // Tampilkan pesan loading
-    alert('Sedang mencari sinyal GPS... Pastikan Anda berada di area terbuka dan GPS HP menyala.')
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setForm(prev => ({
-          ...prev,
-          lat: String(pos.coords.latitude),
-          lng: String(pos.coords.longitude)
-        }))
-      }, 
-      (err) => {
-        // Tampilkan pesan error yang lebih jelas
-        if (err.code === 1) {
-          alert('Akses Lokasi Ditolak. Buka Setelan HP -> Aplikasi -> Chrome/PWA -> Izin Lokasi -> Izinkan.')
-        } else if (err.code === 2) {
-          alert('Sinyal GPS Tidak Ditemukan. Pastikan GPS HP menyala dan Anda berada di luar ruangan.')
-        } else if (err.code === 3) {
-          alert('Waktu Habis. Sinyal GPS terlalu lemah. Coba lagi.')
-        } else {
-          alert('Gagal mengambil GPS: ' + err.message)
-        }
-      },
-      {
-        enableHighAccuracy: false, // Ubah ke false agar lebih mudah dapat sinyal
-        timeout: 15000, // Tunggu maksimal 15 detik
-        maximumAge: 60000 // Gunakan lokasi terakhir (jika ada) yang umurnya < 1 menit
-      }
-    )
   }
 
   if (authLoading || loading || !mounted) {
@@ -182,22 +145,14 @@ export default function PengaturanAdminPage() {
           </div>
 
           <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Koordinat Toko (GPS)</h3>
-              <button 
-                type="button" 
-                onClick={ambilLokasiGPS}
-                className="flex items-center gap-1.5 text-[10px] font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-xl hover:bg-primary/20 transition"
-              >
-                <MapPin className="w-3 h-3" /> Gunakan Lokasi Saya
-              </button>
-            </div>
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Koordinat Toko (Manual)</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-muted-foreground uppercase">Latitude</label>
                 <input 
                   type="text" 
+                  placeholder="-7.xxxxx"
                   value={form.lat} 
                   onChange={e => setForm({...form, lat: e.target.value})}
                   className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none"
@@ -207,6 +162,7 @@ export default function PengaturanAdminPage() {
                 <label className="text-[11px] font-bold text-muted-foreground uppercase">Longitude</label>
                 <input 
                   type="text" 
+                  placeholder="112.xxxxx"
                   value={form.lng} 
                   onChange={e => setForm({...form, lng: e.target.value})}
                   className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none"
