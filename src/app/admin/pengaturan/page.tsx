@@ -69,15 +69,36 @@ export default function PengaturanAdminPage() {
       alert('Browser tidak mendukung geolokasi')
       return
     }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setForm(prev => ({
-        ...prev,
-        lat: String(pos.coords.latitude),
-        lng: String(pos.coords.longitude)
-      }))
-    }, (err) => {
-      alert('Gagal mengambil GPS: ' + err.message)
-    })
+    
+    // Tampilkan pesan loading
+    alert('Sedang mencari sinyal GPS... Pastikan Anda berada di area terbuka dan GPS HP menyala.')
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm(prev => ({
+          ...prev,
+          lat: String(pos.coords.latitude),
+          lng: String(pos.coords.longitude)
+        }))
+      }, 
+      (err) => {
+        // Tampilkan pesan error yang lebih jelas
+        if (err.code === 1) {
+          alert('Akses Lokasi Ditolak. Buka Setelan HP -> Aplikasi -> Chrome/PWA -> Izin Lokasi -> Izinkan.')
+        } else if (err.code === 2) {
+          alert('Sinyal GPS Tidak Ditemukan. Pastikan GPS HP menyala dan Anda berada di luar ruangan.')
+        } else if (err.code === 3) {
+          alert('Waktu Habis. Sinyal GPS terlalu lemah. Coba lagi.')
+        } else {
+          alert('Gagal mengambil GPS: ' + err.message)
+        }
+      },
+      {
+        enableHighAccuracy: false, // Ubah ke false agar lebih mudah dapat sinyal
+        timeout: 15000, // Tunggu maksimal 15 detik
+        maximumAge: 60000 // Gunakan lokasi terakhir (jika ada) yang umurnya < 1 menit
+      }
+    )
   }
 
   if (authLoading || loading || !mounted) {
