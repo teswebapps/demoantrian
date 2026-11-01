@@ -22,7 +22,10 @@ export default function AdminPage() {
   
   const [isUpdating, setIsUpdating] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
+  
+  // State untuk pop-up logout
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
@@ -48,13 +51,18 @@ export default function AdminPage() {
     finally { setIsUpdating(false) }
   }
 
+  const handleLogoutClick = async () => {
+    setIsLoggingOut(true)
+    await logout()
+    setIsLoggingOut(false)
+  }
+
   // Hitung Statistik
   const totalStandby = antrian.filter(a => a.status === 'Standby').length
   const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
   const totalHA = antrian.filter(a => a.kategori === 'HA').length
   const totalAV = antrian.filter(a => a.kategori === 'AV').length
 
-  // Filter List Kategori untuk Live Antrian
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
@@ -124,7 +132,11 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <button onClick={() => setShowLogoutConfirm(true)} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
+            <button 
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)} 
+              className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition"
+            >
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -186,9 +198,6 @@ export default function AdminPage() {
                             ) : (
                               <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
                             )}
-                            
-                            {/* TOMBOL TONG SAMPAH SUDAH DIHAPUS DARI SINI */}
-                            
                           </div>
                         </div>
                       )
@@ -222,18 +231,17 @@ export default function AdminPage() {
               <div className="flex gap-2 pt-2">
                 <button 
                   onClick={() => setShowLogoutConfirm(false)}
+                  disabled={isLoggingOut}
                   className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
                 >
                   Batal
                 </button>
                 <button 
-                  onClick={() => {
-                    setShowLogoutConfirm(false)
-                    logout()
-                  }}
-                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
+                  onClick={handleLogoutClick}
+                  disabled={isLoggingOut}
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2"
                 >
-                  Ya, Keluar
+                  {isLoggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ya, Keluar'}
                 </button>
               </div>
             </motion.div>
