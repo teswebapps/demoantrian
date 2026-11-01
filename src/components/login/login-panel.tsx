@@ -30,8 +30,10 @@ export function LoginPanel() {
       }
 
       const data = snap.val()
-      if (data.role === 'ADMIN') router.push('/admin')
-      else if (data.role === 'PROMOTOR') router.push('/promotor')
+      
+      // 👇 MENGGUNAKAN HARD REDIRECT AGAR SESSION FIREBASE SIAP SEBELUM PINDAH HALAMAN
+      if (data.role === 'ADMIN') window.location.href = '/admin'
+      else if (data.role === 'PROMOTOR') window.location.href = '/promotor'
       else {
         await auth.signOut()
         throw new Error('Role akun tidak valid.')

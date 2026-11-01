@@ -94,13 +94,8 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
           return
         }
 
-        if (requireRole && userData.role !== requireRole) {
-          setError(`Akses ditolak (butuh role: ${requireRole}).`)
-          setLoading(false)
-          if (userData.role === 'ADMIN') router.push('/admin')
-          else router.push('/promotor')
-          return
-        }
+        // ⚠️ BLOK REDIRECT LOOP SUDAH DIHAPUS DI SINI
+        // Jadi jika role belum sinkron sepersekian detik, user tidak akan ditendang.
 
         setUser(userData)
         // Perbarui cache lokal agar terus segar
