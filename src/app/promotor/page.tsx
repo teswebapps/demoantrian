@@ -212,10 +212,11 @@ export default function PromotorPage() {
         if (lockSaya && lockSaya.locked) {
           const now = Date.now()
 
-          // ⬇️ PERUBAHAN: lock dengan lockStarted=false BELUM dianggap aktif.
-          // Timer baru akan mulai saat promotor klik "Konfirmasi Kehadiran" (lihat handleAksi CheckIn).
+          // Lock belum mulai (menunggu konfirmasi kehadiran promotor).
+          // Jangan aktifkan layar lock, TAPI jangan juga reset kalau state lokal
+          // sudah di-set oleh handleAksi (lockStarted true) — cegah flicker.
           if (!lockSaya.lockStarted) {
-            setLockData(null)
+            setLockData((prev: any) => (prev && prev.lockStarted) ? prev : null)
             return
           }
 
@@ -240,6 +241,17 @@ export default function PromotorPage() {
 
   useEffect(() => {
     if (!lockData || !userData) return
+    // Set nilai awal segera supaya countdown tidak kosong sesaat
+    const expiredAwal = Number(lockData.waktuSelesaiLock) || 0
+    if (expiredAwal === 0) {
+      setSisaWaktu('∞')
+    } else {
+      const sisaAwal = Math.max(0, expiredAwal - Date.now())
+      const mAwal = Math.floor(sisaAwal / 60000)
+      const sAwal = Math.floor((sisaAwal % 60000) / 1000)
+      setSisaWaktu(`${mAwal}:${sAwal.toString().padStart(2, '0')}`)
+    }
+
     const interval = setInterval(() => {
       const expired = Number(lockData.waktuSelesaiLock) || 0
       if (expired === 0) { setSisaWaktu('∞'); return }
@@ -368,6 +380,17 @@ export default function PromotorPage() {
                 waktuMulaiLock: mulai,
                 waktuSelesaiLock: selesai,
               })
+              // ⬇️ KUNCI PERBAIKAN: set state lokal SEKARANG supaya layar merah
+              // langsung muncul tanpa menunggu listener onValue Firebase.
+              const lockBaru = {
+                ...l,
+                lockStarted: true,
+                waktuMulaiLock: mulai,
+                waktuSelesaiLock: selesai,
+              }
+              setLockData(lockBaru)
+              const mAwal = Math.floor((selesai - mulai) / 60000)
+              setSisaWaktu(`${mAwal}:00`)
               toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}. Timer ${Number(l.durasiMenit) || 60} menit dimulai sekarang.`)
               return
             }
@@ -376,6 +399,7 @@ export default function PromotorPage() {
             const now = Date.now()
             const expired = Number(l.waktuSelesaiLock) || 0
             if (expired === 0 || now < expired) {
+              setLockData(l) // pastikan state sinkron
               toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
               return
             }
