@@ -19,6 +19,81 @@ interface Option { label: string; value: string }
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
 
+/**
+ * ============================================================
+ * HELPER LOCK PROMOTOR (DIPAKAI DI HALAMAN PROMOTOR)
+ * ============================================================
+ * Timer hukuman TIDAK jalan saat admin menekan tombol Lock.
+ * Timer baru mulai saat promotor melakukan KONFIRMASI KEHADIRAN.
+ *
+ * Cara pakai di halaman promotor (di handler konfirmasi kehadiran):
+ *
+ *   import { mulaiTimerLockJikaBelum, cekLockPromotor } from '@/lib/lockPromotor'
+ *
+ *   // 1. Sebelum menyimpan check-in, cek apakah promotor terkunci
+ *   const status = await cekLockPromotor(db, TOKO_ID, namaPromotor)
+ *   if (status.terkunci) {
+ *      // tampilkan layar lock dengan status.sisaMs
+ *      return
+ *   }
+ *
+ *   // 2. Kalau belum pernah mulai (admin lock, promotor baru check-in),
+ *   //    mulai timer sekarang dan tampilkan layar lock.
+ *   const hasil = await mulaiTimerLockJikaBelum(db, TOKO_ID, namaPromotor)
+ *   if (hasil.baruMulai) {
+ *      setLockInfo({ aktif: true, sisaMs: hasil.sisaMs })
+ *      return  // batalkan check-in
+ *   }
+ *
+ *   // 3. Lanjutkan check-in normal
+ * ============================================================
+ */
+export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
+  const key = cleanKey(nama)
+  const lockRef = ref(db, `toko/${tokoId}/lockPromotor/${key}`)
+  const snap = await get(lockRef)
+  if (!snap.exists()) return { terkunci: false, sisaMs: 0, data: null }
+  const lock = snap.val()
+  if (!lock?.locked) return { terkunci: false, sisaMs: 0, data: lock }
+
+  // Belum pernah mulai → belum dianggap terkunci (biar promotor check-in dulu)
+  if (!lock.lockStarted) return { terkunci: false, sisaMs: 0, data: lock, belumMulai: true }
+
+  const sisa = (lock.waktuSelesaiLock || 0) - Date.now()
+  if (sisa > 0) return { terkunci: true, sisaMs: sisa, data: lock }
+
+  // Sudah habis → auto unlock
+  await remove(lockRef)
+  return { terkunci: false, sisaMs: 0, data: null }
+}
+
+export async function mulaiTimerLockJikaBelum(db: any, tokoId: string, nama: string) {
+  const key = cleanKey(nama)
+  const lockRef = ref(db, `toko/${tokoId}/lockPromotor/${key}`)
+  const snap = await get(lockRef)
+  if (!snap.exists()) return { baruMulai: false, sisaMs: 0 }
+  const lock = snap.val()
+  if (!lock?.locked) return { baruMulai: false, sisaMs: 0 }
+
+  // Kalau sudah pernah mulai, hitung sisa
+  if (lock.lockStarted) {
+    const sisa = (lock.waktuSelesaiLock || 0) - Date.now()
+    if (sisa > 0) return { baruMulai: false, sisaMs: sisa, terkunci: true }
+    await remove(lockRef)
+    return { baruMulai: false, sisaMs: 0 }
+  }
+
+  // BELUM PERNAH MULAI → mulai sekarang (dipicu konfirmasi kehadiran)
+  const mulai = Date.now()
+  const selesai = mulai + (lock.durasiMenit || 60) * 60000
+  await update(lockRef, {
+    lockStarted: true,
+    waktuMulaiLock: mulai,
+    waktuSelesaiLock: selesai,
+  })
+  return { baruMulai: true, sisaMs: selesai - mulai, terkunci: true }
+}
+
 function CustomSelect({ options, value, onChange, placeholder = 'Pilih opsi...', icon }: { options: Option[], value: string, onChange: (val: string) => void, placeholder?: string, icon?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -221,6 +296,8 @@ export default function ManajemenPage() {
           updates[`mastersales/${target._key}`] = null
           if (target.email) updates[`users/whitelist/${emailToKey(target.email)}`] = null
         }
+        // Hapus juga lock kalau ada
+        updates[`toko/${TOKO_ID}/lockPromotor/${cleanKey(nama)}`] = null
         await update(ref(db), updates)
         showModal('success', 'Berhasil', 'Promotor dihapus permanen.')
         setSelectedLockSales('')
@@ -305,12 +382,23 @@ export default function ManajemenPage() {
       } else {
         const durasi = parseInt(lockDuration)
         if (!durasi || durasi < 1) { showModal('error', 'Peringatan', 'Durasi harus lebih dari 0 menit.'); return }
+        // ⬇️ PERUBAHAN: timer TIDAK diset sekarang. Hanya simpan durasi + flag belum mulai.
         await update(lockRef, {
-          nama: selectedLockSales, locked: true, alasan: lockReason.trim() || 'Pelanggaran disiplin toko',
-          waktuMulaiLock: Date.now(), waktuSelesaiLock: Date.now() + durasi * 60000
+          nama: selectedLockSales,
+          locked: true,
+          alasan: lockReason.trim() || 'Pelanggaran disiplin toko',
+          durasiMenit: durasi,
+          lockStarted: false,
+          waktuMulaiLock: null,
+          waktuSelesaiLock: null,
+          createdAt: Date.now(),
         })
         await remove(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
-        showModal('success', 'Akun Dikunci', `${selectedLockSales} dikunci selama ${durasi} menit.`)
+        showModal(
+          'success',
+          'Akun Dikunci',
+          `${selectedLockSales} dikunci. Timer hukuman ${durasi} menit baru akan berjalan saat promotor melakukan konfirmasi kehadiran.`
+        )
       }
       setSelectedLockSales('')
       setLockReason('')
@@ -451,6 +539,9 @@ export default function ManajemenPage() {
                     <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none"><Clock className="w-4 h-4" /></div>
                     <input type="number" min="1" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" />
                   </div>
+                  <p className="text-[10px] text-muted-foreground italic px-1">
+                    ℹ️ Timer hukuman baru mulai saat promotor melakukan konfirmasi kehadiran.
+                  </p>
                 </>
               )}
 

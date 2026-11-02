@@ -211,6 +211,14 @@ export default function PromotorPage() {
         const lockSaya = data[cleanNama(userData.nama)]
         if (lockSaya && lockSaya.locked) {
           const now = Date.now()
+
+          // ⬇️ PERUBAHAN: lock dengan lockStarted=false BELUM dianggap aktif.
+          // Timer baru akan mulai saat promotor klik "Konfirmasi Kehadiran" (lihat handleAksi CheckIn).
+          if (!lockSaya.lockStarted) {
+            setLockData(null)
+            return
+          }
+
           const mulai = Number(lockSaya.waktuMulaiLock) || 0
           const expired = Number(lockSaya.waktuSelesaiLock) || 0
           if ((mulai === 0 || now >= mulai) && (expired === 0 || now < expired)) {
@@ -237,9 +245,9 @@ export default function PromotorPage() {
       if (expired === 0) { setSisaWaktu('∞'); return }
       const sisa = expired - Date.now()
       if (sisa <= 0) {
-  setSisaWaktu('00:00')
-  setLockData(null)
-} else {
+        setSisaWaktu('00:00')
+        setLockData(null)
+      } else {
         const m = Math.floor(sisa / 60000); const s = Math.floor((sisa % 60000) / 1000)
         setSisaWaktu(`${m}:${s.toString().padStart(2, '0')}`)
       }
@@ -343,17 +351,39 @@ export default function PromotorPage() {
           return
         }
 
-        const lockSnap = await get(ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`))
+        // ====================================================================
+        // CEK LOCK: timer hukuman mulai SAAT konfirmasi kehadiran ini
+        // ====================================================================
+        const lockRef = ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`)
+        const lockSnap = await get(lockRef)
         if (lockSnap.exists()) {
           const l = lockSnap.val()
-          const now = Date.now()
-          const mulai = Number(l.waktuMulaiLock) || 0
-          const expired = Number(l.waktuSelesaiLock) || 0
-          if (l.locked && (mulai === 0 || now >= mulai) && (expired === 0 || now < expired)) {
-            toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
-            return
+          if (l.locked) {
+            // a) Belum pernah mulai → MULAI TIMER SEKARANG
+            if (!l.lockStarted) {
+              const mulai = Date.now()
+              const selesai = mulai + (Number(l.durasiMenit) || 60) * 60000
+              await update(lockRef, {
+                lockStarted: true,
+                waktuMulaiLock: mulai,
+                waktuSelesaiLock: selesai,
+              })
+              toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}. Timer ${Number(l.durasiMenit) || 60} menit dimulai sekarang.`)
+              return
+            }
+
+            // b) Sudah pernah mulai → cek sisa
+            const now = Date.now()
+            const expired = Number(l.waktuSelesaiLock) || 0
+            if (expired === 0 || now < expired) {
+              toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
+              return
+            }
+            // Sudah expired → hapus lock, lanjut check-in
+            await remove(lockRef)
           }
         }
+        // ====================================================================
 
         const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`)
         const checkinSnap = await get(checkinRef)
@@ -470,8 +500,9 @@ export default function PromotorPage() {
   }
 
   if (lockData?.locked) {
-    const sisa = Number(lockData.waktuSelesaiLock || 0) - Date.now()
-    const sudahHabis = sisa <= 0
+    const expired = Number(lockData.waktuSelesaiLock) || 0
+    const sisa = expired - Date.now()
+    const sudahHabis = expired !== 0 && sisa <= 0
 
     return (
       <div className="fixed inset-0 z-50 bg-rose-600 text-white flex flex-col items-center justify-center p-6 text-center select-none">
