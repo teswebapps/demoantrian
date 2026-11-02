@@ -237,9 +237,9 @@ export default function PromotorPage() {
       if (expired === 0) { setSisaWaktu('∞'); return }
       const sisa = expired - Date.now()
       if (sisa <= 0) {
-        setSisaWaktu('00:00')
-        remove(ref(db, `toko/${TOKO_ID}/lockPromotor/` + cleanNama(userData.nama)))
-      } else {
+  setSisaWaktu('00:00')
+  setLockData(null)
+} else {
         const m = Math.floor(sisa / 60000); const s = Math.floor((sisa % 60000) / 1000)
         setSisaWaktu(`${m}:${s.toString().padStart(2, '0')}`)
       }
