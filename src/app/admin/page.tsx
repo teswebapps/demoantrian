@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
-import { ref, update, onValue } from 'firebase/database'
+import { ref, update, onValue, remove } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,7 +10,7 @@ import {
   Loader2, LogOut, Users, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
   Sun, Moon,
-  History, BarChart3, ShieldAlert
+  History, ShieldAlert, RefreshCcw, CheckCircle2, AlertCircle
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
@@ -25,14 +25,18 @@ export default function AdminPage() {
   const [hariIniIndo, setHariIniIndo] = useState('')
   const [todayKey, setTodayKey] = useState('')
   
+  // State untuk Reset Hari Ini
+  const [isResetting, setIsResetting] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  const [checkinList, setCheckinList] = useState<any[]>([])
+  const [statistikList, setStatistikList] = useState<any[]>([])
+  
   // State untuk pop-up logout
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-  // State untuk Data Aktivitas Rekap 4 Kategori
-  const [statistikList, setStatistikList] = useState<any[]>([])
-  const [checkinList, setCheckinList] = useState<any[]>([])
-  const [whitelistUsers, setWhitelistUsers] = useState<any[]>([])
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
@@ -68,18 +72,7 @@ export default function AdminPage() {
       setCheckinList(list)
     })
 
-    const unsubUsers = onValue(ref(db, 'users/whitelist'), (snap) => {
-      const data = snap.val()
-      const list: any[] = []
-      if (data) {
-        Object.keys(data).forEach(k => {
-          if (data[k].role === 'PROMOTOR') list.push(data[k])
-        })
-      }
-      setWhitelistUsers(list)
-    })
-
-    return () => { unsubStat(); unsubCheckin(); unsubUsers() }
+    return () => { unsubStat(); unsubCheckin() }
   }, [TOKO_ID])
 
   if (authLoading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
@@ -100,6 +93,42 @@ export default function AdminPage() {
     finally { setIsUpdating(false) }
   }
 
+  // FUNGSI RESET HARI INI
+  const handleResetHariIni = async () => {
+    if (!TOKO_ID || isResetting) return
+    setIsResetting(true)
+    try {
+      // 1. Hapus antrian aktif
+      await remove(ref(db, `toko/${TOKO_ID}/antrian`))
+
+      // 2. Hapus check-in hari ini
+      if (checkinList.length > 0) {
+        for (const ch of checkinList) {
+          if (ch.tanggalKey === todayKey) {
+            await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}/${todayKey}`))
+          }
+        }
+      }
+
+      // 3. Hapus aktivitas harian promotor hari ini (rekap bulanan aman)
+      if (statistikList.length > 0) {
+        for (const stat of statistikList) {
+          if (stat.tanggal === hariIniIndo && stat._key) {
+            await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas/${stat._key}`))
+          }
+        }
+      }
+
+      setSuccessMsg('Reset hari ini berhasil! Antrian, check-in, dan aktivitas hari ini telah dibersihkan. Rekap bulanan tetap aman.')
+      setShowResetConfirm(false)
+    } catch (err) {
+      console.error(err)
+      setErrorMsg('Gagal melakukan reset hari ini.')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   const handleLogoutClick = async () => {
     setIsLoggingOut(true)
     await logout()
@@ -114,36 +143,6 @@ export default function AdminPage() {
 
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
-
-  // Kalkulasi 4 Kategori Rekap Promotor Hari Ini
-  const rekapHariIniMap = whitelistUsers.map(prom => {
-    const namaProm = prom.nama
-    const cleanName = namaProm.trim().toLowerCase().replace(/\s+/g, '_')
-    
-    const cekCheckin = checkinList.find(c => c.namaClean === cleanName && c.tanggalKey === todayKey)
-    const isCheckinHariIni = !!cekCheckin
-
-    const aktProm = statistikList.filter(s => 
-      s.nama && s.nama.toLowerCase() === namaProm.toLowerCase() && 
-      s.tanggal === hariIniIndo && 
-      s.aksi === 'BawaCustomer'
-    )
-
-    const dealCount = aktProm.filter(s => s.hasil === 'Deal').length
-    const lihatCount = aktProm.filter(s => s.hasil === 'Lihat').length
-    const totalBawa = aktProm.length
-
-    const noSaleCount = (isCheckinHariIni && totalBawa === 0) ? 1 : 0
-    const totalCheckinCount = isCheckinHariIni ? 1 : 0
-
-    return {
-      nama: namaProm,
-      checkin: totalCheckinCount,
-      deal: dealCount,
-      lihat: lihatCount,
-      noSale: noSaleCount
-    }
-  })
 
   return (
     <div className="min-h-[100dvh] bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-12 md:pb-6">
@@ -221,45 +220,18 @@ export default function AdminPage() {
           <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
         </div>
 
-        {/* REKAP PROMOTOR HARI INI (4 TABEL / 4 KATEGORI: DEAL, LIHAT, NO SALE, TOTAL CHECKIN) */}
-        <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" /> Rekap Promotor Hari Ini (4 Kategori)
-            </h3>
-            <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-md">{hariIniIndo}</span>
+        {/* KARTU TOMBOL RESET HARI INI */}
+        <div className="bg-card border border-border p-5 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+          <div>
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Reset Data Hari Ini</h3>
+            <p className="text-[11px] text-muted-foreground">Membersihkan antrian aktif, check-in, dan aktivitas promotor hari ini. <span className="font-bold text-foreground">Rekap bulanan tetap aman.</span></p>
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground uppercase text-[10px]">
-                  <th className="py-2.5 px-3">Nama Promotor</th>
-                  <th className="py-2.5 px-3 text-center">1. Deal</th>
-                  <th className="py-2.5 px-3 text-center">2. Lihat</th>
-                  <th className="py-2.5 px-3 text-center">3. No Sale</th>
-                  <th className="py-2.5 px-3 text-center">4. Total Check-in</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {rekapHariIniMap.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4 text-muted-foreground italic">Belum ada promotor terdaftar</td>
-                  </tr>
-                ) : (
-                  rekapHariIniMap.map((row, i) => (
-                    <tr key={i} className="hover:bg-secondary/40 transition">
-                      <td className="py-3 px-3 font-bold uppercase text-foreground">{row.nama}</td>
-                      <td className="py-3 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{row.deal}</td>
-                      <td className="py-3 px-3 text-center font-bold text-amber-600 dark:text-amber-400">{row.lihat}</td>
-                      <td className="py-3 px-3 text-center font-bold text-rose-600 dark:text-rose-400">{row.noSale}</td>
-                      <td className="py-3 px-3 text-center font-bold text-primary">{row.checkin}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm uppercase transition shrink-0"
+          >
+            <RefreshCcw className="w-3.5 h-3.5" /> Reset Hari Ini
+          </button>
         </div>
 
         {/* LIVE URUTAN ANTRIAN HA & AV */}
@@ -322,6 +294,65 @@ export default function AdminPage() {
         </div>
 
       </main>
+
+      {/* MODAL KONFIRMASI RESET HARI INI */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5">
+              <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <RefreshCcw className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">RESET HARI INI</h3>
+                <p className="text-xs text-muted-foreground">Tindakan ini akan menghapus antrian aktif, check-in, dan aktivitas hari ini. <strong className="text-foreground">Total rekap bulanan Anda tetap aman</strong>.</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowResetConfirm(false)} disabled={isResetting} className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition">Batal</button>
+                <button onClick={handleResetHariIni} disabled={isResetting} className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2">
+                  {isResetting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ya, Reset'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL BERHASIL */}
+      <AnimatePresence>
+        {successMsg && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5">
+              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">BERHASIL</h3>
+                <p className="text-xs text-muted-foreground">{successMsg}</p>
+              </div>
+              <button onClick={() => setSuccessMsg('')} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition">OK</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL ERROR */}
+      <AnimatePresence>
+        {errorMsg && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5">
+              <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">GAGAL</h3>
+                <p className="text-xs text-muted-foreground">{errorMsg}</p>
+              </div>
+              <button onClick={() => setErrorMsg('')} className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition">OK</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL KONFIRMASI LOGOUT ADMIN */}
       <AnimatePresence>
