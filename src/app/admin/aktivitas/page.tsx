@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Loader2, Users, Coffee, LogOut, ShieldAlert, Award, Calendar, X, Sun, Moon, ShieldCheck, LayoutDashboard, History, Settings } from 'lucide-react'
+import { Loader2, Users, Coffee, LogOut, ShieldAlert, Award, Calendar, X, Sun, Moon, ShieldCheck, LayoutDashboard, History, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -290,46 +290,66 @@ export default function AktivitasAdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 
         <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <button onClick={() => setPopupType('checkin')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-emerald-500 mt-1" />
-              <span className="text-[11px] font-bold text-foreground uppercase">Check-in Promotor</span>
-              <span className="absolute top-3 right-3 text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">{checkinHariIni.length}</span>
+          {/* Diubah dari grid-cols-2 / grid-cols-3 menjadi grid-cols-1 agar tersusun menurun 1 kolom */}
+          <div className="grid grid-cols-1 gap-3">
+            <button onClick={() => setPopupType('checkin')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                <span className="text-xs font-bold text-foreground uppercase">Check-in Promotor</span>
+              </div>
+              <span className="text-xs font-black bg-emerald-500 text-white px-3 py-1 rounded-full">{checkinHariIni.length}</span>
             </button>
-            <button onClick={() => setPopupType('bawa')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
-              <Users className="w-4 h-4 text-sky-500 mt-1" />
-              <span className="text-[11px] font-bold text-foreground uppercase">Bawa Customer</span>
-              <span className="absolute top-3 right-3 text-[9px] font-black bg-sky-500 text-white px-2 py-0.5 rounded-full">{listBawa.length}</span>
+
+            <button onClick={() => setPopupType('bawa')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-sky-500" />
+                <span className="text-xs font-bold text-foreground uppercase">Bawa Customer</span>
+              </div>
+              <span className="text-xs font-black bg-sky-500 text-white px-3 py-1 rounded-full">{listBawa.length}</span>
             </button>
-            <button onClick={() => setPopupType('ibadah')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
-              <Coffee className="w-4 h-4 text-amber-500 mt-1" />
-              <span className="text-[11px] font-bold text-foreground uppercase">Ibadah</span>
-              <span className="absolute top-3 right-3 text-[9px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">{listIbadah.length}</span>
+
+            <button onClick={() => setPopupType('ibadah')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm">
+              <div className="flex items-center gap-3">
+                <Coffee className="w-5 h-5 text-amber-500" />
+                <span className="text-xs font-bold text-foreground uppercase">Ibadah</span>
+              </div>
+              <span className="text-xs font-black bg-amber-500 text-white px-3 py-1 rounded-full">{listIbadah.length}</span>
             </button>
-            <button onClick={() => setPopupType('keluar')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
-              <LogOut className="w-4 h-4 text-rose-500 mt-1" />
-              <span className="text-[11px] font-bold text-foreground uppercase">Keluar Antrian</span>
-              <span className="absolute top-3 right-3 text-[9px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full">{listKeluar.length}</span>
+
+            <button onClick={() => setPopupType('keluar')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm">
+              <div className="flex items-center gap-3">
+                <LogOut className="w-5 h-5 text-rose-500" />
+                <span className="text-xs font-bold text-foreground uppercase">Keluar Antrian</span>
+              </div>
+              <span className="text-xs font-black bg-rose-500 text-white px-3 py-1 rounded-full">{listKeluar.length}</span>
             </button>
-            <button onClick={() => setPopupType('autokick')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm">
-              <ShieldAlert className="w-4 h-4 text-destructive mt-1" />
-              <span className="text-[11px] font-bold text-foreground uppercase">Autokick</span>
-              <span className="absolute top-3 right-3 text-[9px] font-black bg-destructive text-white px-2 py-0.5 rounded-full">{listAutokick.length}</span>
+
+            <button onClick={() => setPopupType('autokick')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm">
+              <div className="flex items-center gap-3">
+                <ShieldAlert className="w-5 h-5 text-destructive" />
+                <span className="text-xs font-bold text-foreground uppercase">Autokick</span>
+              </div>
+              <span className="text-xs font-black bg-destructive text-white px-3 py-1 rounded-full">{listAutokick.length}</span>
             </button>
-            <button onClick={() => setPopupType('rekapPromotor')} className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm text-foreground">
-              <Award className="w-4 h-4 text-emerald-500 mt-1" />
-              <span className="text-[11px] font-bold uppercase">Rekap Promotor</span>
+
+            <button onClick={() => setPopupType('rekapPromotor')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm text-foreground">
+              <div className="flex items-center gap-3">
+                <Award className="w-5 h-5 text-emerald-500" />
+                <span className="text-xs font-bold uppercase">Rekap Promotor</span>
+              </div>
             </button>
-            <Link href="/admin/total-bulanan" className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 relative hover:bg-secondary transition shadow-sm text-foreground col-span-2 md:col-span-1">
-              <Calendar className="w-4 h-4 text-indigo-500 mt-1" />
-              <span className="text-[11px] font-bold uppercase">Total Bulanan</span>
+
+            <Link href="/admin/total-bulanan" className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm text-foreground">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-indigo-500" />
+                <span className="text-xs font-bold uppercase">Total Bulanan</span>
+              </div>
             </Link>
           </div>
         </div>
