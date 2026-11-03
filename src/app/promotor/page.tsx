@@ -483,6 +483,7 @@ export default function PromotorPage() {
     }
   }
 
+  // Filter Harian (Bersih / 0 setelah tombol "Reset Hari Ini" ditekan admin)
   const aktivitasSaya = aktivitasHariIni.filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
   const listBawaSaya = aktivitasSaya.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
@@ -491,8 +492,9 @@ export default function PromotorPage() {
   const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
   const listAutokickSaya = aktivitasSaya.filter(a => (a.aksi === 'Autokick' || a.aksi === 'AutoKick') && a.tanggal === hariIniIndo)
 
-  const rekapBulananMap = aktivitasHariIni
-    .filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase() && a.aksi === 'BawaCustomer' && a.waktu)
+  // Filter Rekap Bulanan (Aman, tersimpan per bulan seperti November, Desember, dll.)
+  const rekapBulananMap = aktivitasSaya
+    .filter(a => a.aksi === 'BawaCustomer' && a.waktu)
     .reduce((acc: any, curr: any) => {
       const d = new Date(curr.waktu)
       const bulanIdx = d.getMonth()
@@ -779,7 +781,7 @@ export default function PromotorPage() {
           })}
         </div>
 
-        {/* AKTIVITAS & REKAP (DILENGKAPI TOMBOL COLLAPSE DI JUDUL UTAMA) */}
+        {/* AKTIVITAS & REKAP */}
         <div className="bg-card border border-border p-5 rounded-3xl mt-6 space-y-4 text-foreground shadow-sm">
           <div 
             onClick={() => setIsAktivitasOpen(!isAktivitasOpen)}
