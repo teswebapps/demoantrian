@@ -791,7 +791,7 @@ export default function PromotorPage() {
           })}
         </div>
 
-       {/* MENU AKTIVITAS HARI INI & REKAP BULANAN */}
+      {/* MENU AKTIVITAS HARI INI & REKAP BULANAN */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6 shadow-sm">
           <button 
             onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} 
@@ -907,89 +907,26 @@ export default function PromotorPage() {
           )}
         </div>
 
-              {/* 3. Log Ibadah & Lainnya */}
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <MosqueIcon className="w-4 h-4 text-amber-500" /> Log Ibadah & Keluar Antri
-                </p>
-                <div className="space-y-2">
-                  {listIbadahSaya.length === 0 && listKeluarSaya.length === 0 ? (
-                    <div className="text-center py-4 bg-card border border-dashed border-border rounded-2xl">
-                      <p className="text-xs text-muted-foreground italic">Tidak ada catatan istirahat/ibadah</p>
-                    </div>
-                  ) : (
-                    <>
-                      {listIbadahSaya.map((a, i) => (
-                        <div key={a._key || i} className="bg-card border border-border rounded-2xl p-3 flex justify-between items-center text-xs shadow-xs">
-                          <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            {a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}
-                          </span>
-                          <span className="font-semibold text-muted-foreground bg-secondary px-2 py-1 rounded-lg">{formatJam(a.waktu)}</span>
-                        </div>
-                      ))}
-                      {listKeluarSaya.map((a, i) => (
-                        <div key={a._key || i} className="bg-card border border-border rounded-2xl p-3 flex justify-between items-center text-xs shadow-xs">
-                          <span className="font-bold text-rose-500 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                            Keluar Antrian
-                          </span>
-                          <span className="font-semibold text-muted-foreground bg-secondary px-2 py-1 rounded-lg">{formatJam(a.waktu)}</span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
+      </main>
 
-              {/* 4. Rekap Total Bulanan */}
-              <div className="pt-3 border-t border-border/60 space-y-2.5">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <CalendarDays className="w-4 h-4 text-primary" /> Rekap Total Bulanan
-                </p>
-                <div className="space-y-2">
-                  {listRekapBulanan.length === 0 ? (
-                    <div className="text-center py-4 bg-card border border-dashed border-border rounded-2xl">
-                      <p className="text-xs text-muted-foreground italic">Belum ada rekap bulanan</p>
-                    </div>
-                  ) : (
-                    listRekapBulanan.map((rekap: any, idx: number) => (
-                      <div key={idx} className="bg-card border border-border rounded-2xl p-3.5 flex justify-between items-center text-xs shadow-xs">
-                        <span className="font-black text-foreground">{rekap.label}</span>
-                        <div className="flex gap-2">
-                          <span className="font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-lg">
-                            Deal: {rekap.deal}
-                          </span>
-                          <span className="font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2.5 py-1 rounded-lg">
-                            Lihat: {rekap.lihat}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
+      {/* MODAL CLOSING */}
+      {showClosing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm text-center border border-border shadow-2xl">
+            <h3 className="text-lg font-bold mb-5 text-foreground uppercase">Hasil Melayani Customer</h3>
+            <div className="space-y-3">
+              <button onClick={() => handleAksi('SimpanClosing', 'Deal')} disabled={isProcessing} className="w-full py-3.5 bg-accent text-accent-foreground font-bold rounded-xl shadow-lg shadow-accent/20 disabled:opacity-50">✓ DEAL / CLOSING</button>
+              <button onClick={() => handleAksi('SimpanClosing', 'Lihat')} disabled={isProcessing} className="w-full py-3.5 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20 disabled:opacity-50">👀 LIHAT-LIHAT SAJA</button>
+              <button onClick={() => setShowClosing(false)} className="w-full py-2 text-muted-foreground font-medium text-xs mt-2">Batal</button>
             </div>
-          )}
+          </div>
         </div>
+      )}
 
-              <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1"><LogOut className="w-4 h-4" /> Keluar Antrian</p>
-                <div className="space-y-2">
-                  {listKeluarSaya.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic px-1">Belum ada</p>
-                  ) : (
-                    listKeluarSaya.map((a, i) => (
-                      <div key={a._key || i} className="bg-secondary rounded-xl p-3 text-sm flex justify-between items-center">
-                        <span className="text-foreground font-bold">Keluar</span>
-                        <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
+      <LogoutModal show={showLogoutConfirm} onCancel={() => setShowLogoutConfirm(false)} onConfirm={handleLogout} />
+    </div>
+  )
+}
               {/* REKAP TOTAL BULANAN */}
               <div className="pt-2 border-t border-border/60">
                 <p className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-1"><CalendarDays className="w-4 h-4" /> Rekap Total Bulanan</p>
