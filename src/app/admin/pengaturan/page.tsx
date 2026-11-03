@@ -125,24 +125,31 @@ export default function PengaturanAdminPage() {
     }
   }
 
-  // FUNGSI RESET HARI INI SECARA TOTAL DI FIREBASE
+  // FUNGSI RESET HARI INI SECARA TOTAL & PRESISI DI FIREBASE
   const handleResetAntrianHariIni = async () => {
     if (!TOKO_ID || isResetting) return
     setIsResetting(true)
     try {
+      // 1. Hapus antrian aktif saat ini
       await remove(ref(db, `toko/${TOKO_ID}/antrian`))
 
+      // 2. Hapus seluruh data check-in harian promotor khusus untuk hari ini (todayKey)
       if (checkinList.length > 0) {
         for (const ch of checkinList) {
-          if (ch.tanggalKey === todayKey) {
-            await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}/${todayKey}`))
+          if (ch.tanggalKey === todayKey || ch.tanggal === hariIniIndo) {
+            await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}/${ch.tanggalKey || todayKey}`))
+            // Juga bersihkan jika node tanggalKey-nya tersimpan langsung
+            await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}`))
           }
         }
       }
 
+      // 3. Hapus statistik aktivitas harian promotor yang tercatat hari ini
       if (statistikList.length > 0) {
         for (const stat of statistikList) {
-          if (stat.tanggal === hariIniIndo) {
+          // Cocokkan berdasarkan string tanggal hari ini atau timestamp hari ini
+          const isHariIni = stat.tanggal === hariIniIndo || (stat.waktu && new Date(stat.waktu).toDateString() === new Date().toDateString())
+          if (isHariIni && stat._key) {
             await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas/${stat._key}`))
           }
         }
@@ -157,7 +164,6 @@ export default function PengaturanAdminPage() {
       setIsResetting(false)
     }
   }
-
   const handleConfirmLogout = async () => {
     setShowLogoutConfirm(false)
     await logout()
