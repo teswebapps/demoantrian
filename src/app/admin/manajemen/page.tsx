@@ -399,15 +399,16 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  // FUNGSI RESET HARI INI (MENGGANTIKAN RESET TOTAL ANTRIAN)
+ 
+  // FUNGSI RESET HARI INI (DIJAMIN 100% AMAN - REKAP BULANAN TIDAK AKAN TERHAPUS)
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Hapus antrian aktif, check-in, dan aktivitas hari ini? Rekap bulanan tetap aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Hapus antrian aktif dan check-in hari ini? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
       try {
-        // 1. Hapus antrian aktif
+        // 1. Hapus antrian aktif saat ini
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
 
-        // 2. Hapus check-in hari ini
+        // 2. Hapus data check-in harian hari ini saja
         if (checkinList.length > 0) {
           for (const ch of checkinList) {
             if (ch.tanggalKey === todayKey) {
@@ -416,16 +417,10 @@ export default function ManajemenPage() {
           }
         }
 
-        // 3. Hapus aktivitas harian hari ini (rekap bulanan aman)
-        if (statistikList.length > 0) {
-          for (const stat of statistikList) {
-            if (stat.tanggal === hariIniIndo && stat._key) {
-              await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas/${stat._key}`))
-            }
-          }
-        }
+        // PERHATIAN: path `statistikAktivitas` SENGAJA TIDAK DIHAPUS SAMA SEKALI
+        // agar rekap Deal & Lihat bulanan promotor tetap utuh dan aman!
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian, check-in, dan aktivitas hari ini telah dibersihkan. Rekap bulanan tetap aman.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian & check-in dibersihkan. Rekap bulanan promotor aman.')
       } catch (err) {
         console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
