@@ -400,15 +400,15 @@ export default function ManajemenPage() {
   }
 
  
- // FUNGSI RESET HARI INI (DIJAMIN 100% AMAN - REKAP BULANAN TIDAK AKAN TERHAPUS)
+ // FUNGSI RESET HARI INI (Hanya menghapus aktivitas khusus hari ini, rekap bulan lalu aman)
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Hapus antrian aktif dan check-in hari ini? Rekap bulanan promotor dijamin aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan aktivitas harian hari ini? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
       try {
         // 1. Hapus antrian aktif saat ini
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
 
-        // 2. Hapus data check-in harian hari ini saja
+        // 2. Hapus data check-in harian untuk hari ini saja
         if (checkinList.length > 0) {
           for (const ch of checkinList) {
             if (ch.tanggalKey === todayKey) {
@@ -417,10 +417,21 @@ export default function ManajemenPage() {
           }
         }
 
-        // PERHATIAN: path `statistikAktivitas` SENGAJA TIDAK DIHAPUS SAMA SEKALI
-        // agar rekap Deal & Lihat bulanan promotor tetap utuh dan tersimpan sebagai arsip per bulan!
+        // 3. Hapus HANYA data statistik aktivitas yang tanggalnya sama dengan hari ini (hariIniIndo)
+        // Dengan cara ini, data bulan lalu / hari kemarin tetap UTUH, tapi data hari ini bersih jadi 0!
+        if (statistikList.length > 0) {
+          const updates: Record<string, null> = {}
+          for (const stat of statistikList) {
+            if (stat.tanggal === hariIniIndo && stat._key) {
+              updates[`toko/${TOKO_ID}/statistikAktivitas/${stat._key}`] = null
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            await update(ref(db), updates)
+          }
+        }
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian & check-in dibersihkan. Rekap bulanan promotor aman.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian, check-in, dan aktivitas hari ini dibersihkan menjadi 0.')
       } catch (err) {
         console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
