@@ -138,7 +138,8 @@ export default function PromotorPage() {
   const [todayKey, setTodayKey] = useState('')
   const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
 
-  const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
+  const [statistikList, setStatistikList] = useState<any[]>([])
+  const [lastResetTimestamp, setLastResetTimestamp] = useState<number>(0)
   const [hariIniIndo, setHariIniIndo] = useState('')
 
   // State collapse utama kartu Aktivitas & Rekap
@@ -245,9 +246,14 @@ export default function PromotorPage() {
       const data = snap.val()
       const list: any[] = []
       if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
-      setAktivitasHariIni(list)
+      setStatistikList(list)
     })
-    return () => { unsubAntrian(); unsubSetting(); unsubLock(); unsubAktivitas() }
+    const unsubReset = onValue(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), (snap) => {
+      if (snap.exists()) setLastResetTimestamp(snap.val())
+      else setLastResetTimestamp(0)
+    })
+
+    return () => { unsubAntrian(); unsubSetting(); unsubLock(); unsubAktivitas(); unsubReset() }
   }, [TOKO_ID, userData])
 
   useEffect(() => {
@@ -483,18 +489,25 @@ export default function PromotorPage() {
     }
   }
 
-  // Filter Harian (Bersih / 0 setelah tombol "Reset Hari Ini" ditekan admin)
-  const aktivitasSaya = aktivitasHariIni.filter(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
-  const listBawaSaya = aktivitasSaya.filter(a => a.aksi === 'BawaCustomer' && a.tanggal === hariIniIndo)
+  // Filter Harian (Bersih / 0 setelah tombol "Reset Hari Ini" ditekan admin, berdasarkan lastResetTimestamp)
+  const aktivitasHariIni = statistikList.filter(a => {
+    const isHariIni = a.tanggal === hariIniIndo
+    const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
+    const isSetelahReset = waktuAktivitas > lastResetTimestamp
+    const isPromotorSama = String(a.nama).toLowerCase() === String(userData?.nama || '').toLowerCase()
+    return isHariIni && isSetelahReset && isPromotorSama
+  })
+
+  const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
   const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
-  const listIbadahSaya = aktivitasSaya.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah') && a.tanggal === hariIniIndo)
-  const listKeluarSaya = aktivitasSaya.filter(a => a.aksi === 'KeluarAntrian' && a.tanggal === hariIniIndo)
-  const listAutokickSaya = aktivitasSaya.filter(a => (a.aksi === 'Autokick' || a.aksi === 'AutoKick') && a.tanggal === hariIniIndo)
+  const listIbadahSaya = aktivitasHariIni.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah'))
+  const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
+  const listAutokickSaya = aktivitasHariIni.filter(a => (a.aksi === 'Autokick' || a.aksi === 'AutoKick'))
 
-  // Filter Rekap Bulanan (Aman, tersimpan per bulan seperti November, Desember, dll.)
-  const rekapBulananMap = aktivitasSaya
-    .filter(a => a.aksi === 'BawaCustomer' && a.waktu)
+  // Filter Rekap Bulanan (Aman, tersimpan per bulan secara utuh dan tidak terpengaruh reset harian)
+  const rekapBulananMap = statistikList
+    .filter(a => a.aksi === 'BawaCustomer' && a.waktu && String(a.nama).toLowerCase() === String(userData?.nama || '').toLowerCase())
     .reduce((acc: any, curr: any) => {
       const d = new Date(curr.waktu)
       const bulanIdx = d.getMonth()
@@ -911,7 +924,7 @@ export default function PromotorPage() {
                       <div className="space-y-1 pt-1">
                         {listIbadahSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-amber-600 dark:text-amber-400">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
+                            <span className="font-medium text-amber-600 dark:text-amber-400">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : a.aksi === 'SelesaiIbadah' ? 'Selesai Ibadah' : 'Ibadah'}</span>
                             <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
                           </div>
                         ))}
