@@ -140,7 +140,21 @@ export default function PromotorPage() {
 
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
-  const [activeMenuDetail, setActiveMenuDetail] = useState<string | null>(null)
+
+  // State collapse independen untuk masing-masing menu aktivitas agar bisa dibuka-tutup sendiri
+  const [openCollapse, setOpenCollapse] = useState<{ [key: string]: boolean }>({
+    checkin: false,
+    bawa: false,
+    ibadah: false,
+    keluar: false,
+    autokick: false,
+    rekap: false,
+    bulanan: false,
+  })
+
+  const toggleCollapse = (menu: string) => {
+    setOpenCollapse((prev) => ({ ...prev, [menu]: !prev[menu] }))
+  }
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
 
@@ -770,7 +784,7 @@ export default function PromotorPage() {
           })}
         </div>
 
-        {/* AKTIVITAS & REKAP (ADAPTIF MENYESUAIKAN TEMA TERANG & GELAP) */}
+        {/* AKTIVITAS & REKAP (SEMUA MENU UTAMA DAPAT DI-COLLAPSE SECARA INDEPENDEN) */}
         <div className="bg-card border border-border p-5 rounded-3xl mt-6 space-y-4 text-foreground shadow-sm">
           <div>
             <h3 className="text-sm font-black uppercase tracking-wider text-foreground">AKTIVITAS & REKAP</h3>
@@ -779,288 +793,302 @@ export default function PromotorPage() {
 
           <div className="space-y-3">
             {/* 1. Check-in Promotor */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'checkin' ? null : 'checkin')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5" />
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('checkin')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">CHECK-IN PROMOTOR</h4>
+                    <p className="text-[11px] text-muted-foreground">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">CHECK-IN PROMOTOR</h4>
-                  <p className="text-[11px] text-muted-foreground">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">
+                    {jamCheckin ? '1' : '0'}
+                  </span>
+                  {openCollapse.checkin ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">
-                  {jamCheckin ? '1' : '0'}
-                </span>
-                {activeMenuDetail === 'checkin' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
 
-            {activeMenuDetail === 'checkin' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-1">
-                <p className="font-bold text-foreground">Status Kehadiran:</p>
-                <p className="text-muted-foreground">{jamCheckin ? `Anda sudah melakukan konfirmasi kehadiran pada pukul ${formatJam(jamCheckin)}` : 'Anda belum melakukan check-in hari ini.'}</p>
-              </div>
-            )}
+              {openCollapse.checkin && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-1 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Status Kehadiran:</p>
+                  <p className="text-muted-foreground">{jamCheckin ? `Anda sudah melakukan konfirmasi kehadiran pada pukul ${formatJam(jamCheckin)}` : 'Anda belum melakukan check-in hari ini.'}</p>
+                </div>
+              )}
+            </div>
 
             {/* 2. Bawa Customer */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'bawa' ? null : 'bawa')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">BAWA CUSTOMER</h4>
-                  <p className="text-[11px] text-muted-foreground">Deal: {totalDeal} | Lihat: {totalLihat}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500 text-slate-950">
-                  {listBawaSaya.length}
-                </span>
-                {activeMenuDetail === 'bawa' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
-
-            {activeMenuDetail === 'bawa' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-2">
-                <p className="font-bold text-foreground">Rincian Waktu Mulai & Selesai Melayani:</p>
-                {listBawaSaya.length === 0 ? (
-                  <p className="text-muted-foreground italic">Belum ada riwayat membawa customer hari ini.</p>
-                ) : (
-                  <div className="space-y-2 pt-1">
-                    {listBawaSaya.map((a, i) => {
-                      const durasiMenit = a.durasiDetik ? Math.floor(a.durasiDetik / 60) : null
-                      return (
-                        <div key={i} className="bg-background border border-border rounded-xl p-3 space-y-1.5 shadow-sm">
-                          <div className="flex justify-between items-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'}`}>
-                              {a.hasil || 'Proses / Berlangsung'}
-                            </span>
-                            <span className="text-muted-foreground text-[11px]">{durasiMenit !== null ? `${durasiMenit} menit` : 'Sedang Berlangsung'}</span>
-                          </div>
-                          <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
-                            <span>Mulai: <strong className="text-foreground">{formatJam(a.waktuMulai || a.waktu)}</strong></span>
-                            <span>Selesai: <strong className="text-foreground">{a.waktuSelesai ? formatJam(a.waktuSelesai) : '-'}</strong></span>
-                          </div>
-                        </div>
-                      )
-                    })}
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('bawa')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                    <Users className="w-5 h-5" />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">BAWA CUSTOMER</h4>
+                    <p className="text-[11px] text-muted-foreground">Deal: {totalDeal} | Lihat: {totalLihat}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500 text-slate-950">
+                    {listBawaSaya.length}
+                  </span>
+                  {openCollapse.bawa ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
               </div>
-            )}
+
+              {openCollapse.bawa && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Rincian Waktu Mulai & Selesai Melayani:</p>
+                  {listBawaSaya.length === 0 ? (
+                    <p className="text-muted-foreground italic">Belum ada riwayat membawa customer hari ini.</p>
+                  ) : (
+                    <div className="space-y-2 pt-1">
+                      {listBawaSaya.map((a, i) => {
+                        const durasiMenit = a.durasiDetik ? Math.floor(a.durasiDetik / 60) : null
+                        return (
+                          <div key={i} className="bg-background border border-border rounded-xl p-3 space-y-1.5 shadow-sm">
+                            <div className="flex justify-between items-center">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'}`}>
+                                {a.hasil || 'Proses / Berlangsung'}
+                              </span>
+                              <span className="text-muted-foreground text-[11px]">{durasiMenit !== null ? `${durasiMenit} menit` : 'Sedang Berlangsung'}</span>
+                            </div>
+                            <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
+                              <span>Mulai: <strong className="text-foreground">{formatJam(a.waktuMulai || a.waktu)}</strong></span>
+                              <span>Selesai: <strong className="text-foreground">{a.waktuSelesai ? formatJam(a.waktuSelesai) : '-'}</strong></span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* 3. Ibadah */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'ibadah' ? null : 'ibadah')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                  <MosqueIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">IBADAH</h4>
-                  <p className="text-[11px] text-muted-foreground">Catatan istirahat / ibadah</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">
-                  {listIbadahSaya.length}
-                </span>
-                {activeMenuDetail === 'ibadah' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
-
-            {activeMenuDetail === 'ibadah' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-2">
-                <p className="font-bold text-foreground">Rincian Catatan Ibadah:</p>
-                {listIbadahSaya.length === 0 ? (
-                  <p className="text-muted-foreground italic">Belum ada catatan ibadah hari ini.</p>
-                ) : (
-                  <div className="space-y-1 pt-1">
-                    {listIbadahSaya.map((a, i) => (
-                      <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                        <span className="font-medium text-amber-600 dark:text-amber-400">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
-                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))}
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('ibadah')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <MosqueIcon className="w-5 h-5" />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">IBADAH</h4>
+                    <p className="text-[11px] text-muted-foreground">Catatan istirahat / ibadah</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">
+                    {listIbadahSaya.length}
+                  </span>
+                  {openCollapse.ibadah ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
               </div>
-            )}
+
+              {openCollapse.ibadah && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Rincian Catatan Ibadah:</p>
+                  {listIbadahSaya.length === 0 ? (
+                    <p className="text-muted-foreground italic">Belum ada catatan ibadah hari ini.</p>
+                  ) : (
+                    <div className="space-y-1 pt-1">
+                      {listIbadahSaya.map((a, i) => (
+                        <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
+                          <span className="font-medium text-amber-600 dark:text-amber-400">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
+                          <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* 4. Keluar Antrian */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'keluar' ? null : 'keluar')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                  <LogOut className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">KELUAR ANTRIAN</h4>
-                  <p className="text-[11px] text-muted-foreground">Riwayat keluar manual</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-rose-500 text-white">
-                  {listKeluarSaya.length}
-                </span>
-                {activeMenuDetail === 'keluar' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
-
-            {activeMenuDetail === 'keluar' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-2">
-                <p className="font-bold text-foreground">Riwayat Keluar Antrian:</p>
-                {listKeluarSaya.length === 0 ? (
-                  <p className="text-muted-foreground italic">Tidak ada riwayat keluar antrian hari ini.</p>
-                ) : (
-                  <div className="space-y-1 pt-1">
-                    {listKeluarSaya.map((a, i) => (
-                      <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                        <span className="font-medium text-rose-600 dark:text-rose-400">Keluar Antrian</span>
-                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))}
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('keluar')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                    <LogOut className="w-5 h-5" />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">KELUAR ANTRIAN</h4>
+                    <p className="text-[11px] text-muted-foreground">Riwayat keluar manual</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-rose-500 text-white">
+                    {listKeluarSaya.length}
+                  </span>
+                  {openCollapse.keluar ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
               </div>
-            )}
+
+              {openCollapse.keluar && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Riwayat Keluar Antrian:</p>
+                  {listKeluarSaya.length === 0 ? (
+                    <p className="text-muted-foreground italic">Tidak ada riwayat keluar antrian hari ini.</p>
+                  ) : (
+                    <div className="space-y-1 pt-1">
+                      {listKeluarSaya.map((a, i) => (
+                        <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
+                          <span className="font-medium text-rose-600 dark:text-rose-400">Keluar Antrian</span>
+                          <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* 5. Autokick */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'autokick' ? null : 'autokick')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">AUTOKICK</h4>
-                  <p className="text-[11px] text-muted-foreground">Riwayat sistem mengeluarkan otomatis</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-red-500 text-white">
-                  {listAutokickSaya.length}
-                </span>
-                {activeMenuDetail === 'autokick' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
-
-            {activeMenuDetail === 'autokick' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-2">
-                <p className="font-bold text-foreground">Riwayat Autokick Sistem:</p>
-                {listAutokickSaya.length === 0 ? (
-                  <p className="text-muted-foreground italic">Tidak ada catatan autokick hari ini.</p>
-                ) : (
-                  <div className="space-y-1 pt-1">
-                    {listAutokickSaya.map((a, i) => (
-                      <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                        <span className="font-medium text-red-600 dark:text-red-400">Autokick Sistem</span>
-                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))}
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('autokick')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5" />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">AUTOKICK</h4>
+                    <p className="text-[11px] text-muted-foreground">Riwayat sistem mengeluarkan otomatis</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-red-500 text-white">
+                    {listAutokickSaya.length}
+                  </span>
+                  {openCollapse.autokick ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
               </div>
-            )}
+
+              {openCollapse.autokick && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Riwayat Autokick Sistem:</p>
+                  {listAutokickSaya.length === 0 ? (
+                    <p className="text-muted-foreground italic">Tidak ada catatan autokick hari ini.</p>
+                  ) : (
+                    <div className="space-y-1 pt-1">
+                      {listAutokickSaya.map((a, i) => (
+                        <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
+                          <span className="font-medium text-red-600 dark:text-red-400">Autokick Sistem</span>
+                          <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* 6. Rekap Promotor */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'rekap' ? null : 'rekap')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                  <Users className="w-5 h-5" />
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('rekap')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">REKAP PROMOTOR</h4>
+                    <p className="text-[11px] text-muted-foreground">Akumulasi deal & lihat harian</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">REKAP PROMOTOR</h4>
-                  <p className="text-[11px] text-muted-foreground">Akumulasi deal & lihat harian</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-purple-500 text-white">
+                    {listBawaSaya.length}
+                  </span>
+                  {openCollapse.rekap ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-purple-500 text-white">
-                  {listBawaSaya.length}
-                </span>
-                {activeMenuDetail === 'rekap' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
 
-            {activeMenuDetail === 'rekap' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-2">
-                <p className="font-bold text-foreground">Ringkasan Performa Hari Ini:</p>
-                <div className="bg-background border border-border rounded-xl p-3 flex justify-around text-center shadow-sm">
-                  <div>
-                    <p className="text-muted-foreground text-[10px] uppercase font-bold">Deal</p>
-                    <p className="text-emerald-600 dark:text-emerald-400 text-base font-black">{totalDeal}</p>
-                  </div>
-                  <div className="border-r border-border"></div>
-                  <div>
-                    <p className="text-muted-foreground text-[10px] uppercase font-bold">Lihat</p>
-                    <p className="text-amber-600 dark:text-amber-400 text-base font-black">{totalLihat}</p>
+              {openCollapse.rekap && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Ringkasan Performa Hari Ini:</p>
+                  <div className="bg-background border border-border rounded-xl p-3 flex justify-around text-center shadow-sm">
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase font-bold">Deal</p>
+                      <p className="text-emerald-600 dark:text-emerald-400 text-base font-black">{totalDeal}</p>
+                    </div>
+                    <div className="border-r border-border"></div>
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase font-bold">Lihat</p>
+                      <p className="text-amber-600 dark:text-amber-400 text-base font-black">{totalLihat}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* 7. Total Bulanan */}
-            <div 
-              onClick={() => setActiveMenuDetail(activeMenuDetail === 'bulanan' ? null : 'bulanan')}
-              className="bg-secondary/50 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <CalendarDays className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wide text-foreground">TOTAL BULANAN</h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    {listRekapBulanan.length > 0 ? `${listRekapBulanan.length} Bulan tercatat` : 'Belum ada rekap'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-3 py-1 rounded-xl bg-primary text-primary-foreground">
-                  {listRekapBulanan.length}
-                </span>
-                {activeMenuDetail === 'bulanan' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </div>
-            </div>
-
-            {activeMenuDetail === 'bulanan' && (
-              <div className="p-3 bg-secondary/80 rounded-xl border border-border text-xs space-y-2">
-                <p className="font-bold text-foreground">Akumulasi Deal & Lihat Bulanan:</p>
-                {listRekapBulanan.length === 0 ? (
-                  <p className="text-muted-foreground italic">Belum ada data rekap bulanan.</p>
-                ) : (
-                  <div className="space-y-2 pt-1">
-                    {listRekapBulanan.map((rekap: any, idx: number) => (
-                      <div key={idx} className="bg-background border border-border rounded-xl p-3 flex justify-between items-center shadow-sm">
-                        <span className="font-bold text-foreground">{rekap.label}</span>
-                        <div className="flex gap-2">
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">Deal: {rekap.deal}</span>
-                          <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-1 rounded">Lihat: {rekap.lihat}</span>
-                        </div>
-                      </div>
-                    ))}
+            <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+              <div 
+                onClick={() => toggleCollapse('bulanan')}
+                className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <CalendarDays className="w-5 h-5" />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wide text-foreground">TOTAL BULANAN</h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      {listRekapBulanan.length > 0 ? `${listRekapBulanan.length} Bulan tercatat` : 'Belum ada rekap'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-primary text-primary-foreground">
+                    {listRekapBulanan.length}
+                  </span>
+                  {openCollapse.bulanan ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
               </div>
-            )}
+
+              {openCollapse.bulanan && (
+                <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                  <p className="font-bold text-foreground">Akumulasi Deal & Lihat Bulanan:</p>
+                  {listRekapBulanan.length === 0 ? (
+                    <p className="text-muted-foreground italic">Belum ada data rekap bulanan.</p>
+                  ) : (
+                    <div className="space-y-2 pt-1">
+                      {listRekapBulanan.map((rekap: any, idx: number) => (
+                        <div key={idx} className="bg-background border border-border rounded-xl p-3 flex justify-between items-center shadow-sm">
+                          <span className="font-bold text-foreground">{rekap.label}</span>
+                          <div className="flex gap-2">
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">Deal: {rekap.deal}</span>
+                            <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-1 rounded">Lihat: {rekap.lihat}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
           </div>
         </div>
