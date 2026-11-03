@@ -142,10 +142,8 @@ export default function PromotorPage() {
   const [lastResetTimestamp, setLastResetTimestamp] = useState<number>(0)
   const [hariIniIndo, setHariIniIndo] = useState('')
 
-  // State collapse utama kartu Aktivitas & Rekap
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(true)
 
-  // State collapse independen untuk masing-masing sub-menu di dalamnya
   const [openCollapse, setOpenCollapse] = useState<{ [key: string]: boolean }>({
     checkin: false,
     bawa: false,
@@ -310,7 +308,6 @@ export default function PromotorPage() {
         setStatusGPS('GPS aktif')
       },
       (err) => {
-        console.error('GPS Error:', err.code, err.message)
         setStatusGPS(pesanErrorGPS(err))
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 }
@@ -338,7 +335,6 @@ export default function PromotorPage() {
         setStatusGPS('GPS aktif')
       },
       (err) => {
-        console.error('GPS Error:', err.code, err.message)
         setStatusGPS(pesanErrorGPS(err))
       },
       { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
@@ -369,7 +365,7 @@ export default function PromotorPage() {
     try {
       if (aksi === 'CheckIn') {
         if (setting?.statusAntrian === 'TUTUP') {
-          toast.error('❌ Maaf, antrian saat ini sedang DITUTUP oleh Admin. Anda tidak dapat masuk antrian.')
+          toast.error('❌ Maaf, antrian saat ini sedang DITUTUP oleh Admin.')
           return
         }
 
@@ -395,7 +391,7 @@ export default function PromotorPage() {
               setLockData(lockBaru)
               const mAwal = Math.floor((selesai - mulai) / 60000)
               setSisaWaktu(`${mAwal}:00`)
-              toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}. Timer ${Number(l.durasiMenit) || 60} menit dimulai sekarang.`)
+              toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
               return
             }
 
@@ -410,7 +406,7 @@ export default function PromotorPage() {
           }
         }
 
-        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`)
+        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`)
         const checkinSnap = await get(checkinRef)
 
         let waktuStandbyFinal: number
@@ -418,7 +414,7 @@ export default function PromotorPage() {
           waktuStandbyFinal = checkinSnap.val().waktu
         } else {
           waktuStandbyFinal = Date.now()
-          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: getTanggalKey(), waktu: waktuStandbyFinal })
+          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: todayKey, waktu: waktuStandbyFinal })
         }
 
         await set(ref(db, pathAntrian), {
@@ -432,7 +428,7 @@ export default function PromotorPage() {
         toast.success('Berhasil Masuk Antrian!')
       } else if (aksi === 'BawaCustomer') {
         await update(ref(db, pathAntrian), { status: 'Melayani', posisiTerkunci: 0, waktuMulaiMelayani: Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: Date.now(), tanggal: tglIndo, waktuMulai: Date.now() })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, waktuMulai: Date.now() })
         toast.success('Status: Melayani Customer')
       } else if (aksi === 'Selesai') {
         setShowClosing(true)
@@ -451,50 +447,49 @@ export default function PromotorPage() {
         if (target && target._key) {
           await update(ref(db, `${pathStatistik}/${target._key}`), { waktuSelesai: now, hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
         } else {
-          await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: waktuMulai, waktuMulai, waktuSelesai: now, tanggal: tglIndo, hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
+          await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: waktuMulai, tanggal: tglIndo, tanggalKey: todayKey, waktuMulai, waktuSelesai: now, hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
         }
         toast.success(`Berhasil disimpan: ${hasil}`)
         setShowClosing(false)
       } else if (aksi === 'Ibadah') {
         const posisi = posisiStandby()
         await update(ref(db, pathAntrian), { status: 'Ibadah', posisiTerkunci: posisi, waktuStandbySebelumIbadah: dataSaya?.waktuStandby || Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'MulaiIbadah', waktu: Date.now(), tanggal: tglIndo, kategori: 'Ibadah', posisi })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'MulaiIbadah', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, kategori: 'Ibadah', posisi })
         toast.info('Waktu Ibadah dimulai.')
       } else if (aksi === 'KembaliIbadah') {
         const posisiLama = dataSaya?.posisiTerkunci || 0
         const waktuStandbyKembali = dataSaya?.waktuStandbySebelumIbadah || dataSaya?.waktuStandby || Date.now()
         await update(ref(db, pathAntrian), { status: 'Standby', posisiTerkunci: 0, waktuStandby: waktuStandbyKembali })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'SelesaiIbadah', waktu: Date.now(), tanggal: tglIndo, kategori: 'Ibadah', posisi: posisiLama })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'SelesaiIbadah', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, kategori: 'Ibadah', posisi: posisiLama })
         toast.success('Kembali ke antrian.')
       } else if (aksi === 'PanggilCS') {
         const posisi = posisiStandby()
         await update(ref(db, pathAntrian), { status: 'Dipanggil CS', posisiTerkunci: posisi, waktuStandbySebelumCS: dataSaya?.waktuStandby || Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'PanggilCS', waktu: Date.now(), tanggal: tglIndo })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'PanggilCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey })
         toast.info('Dipanggil ke CS/Gudang.')
       } else if (aksi === 'KembaliCS') {
         const waktuStandbyKembali = dataSaya?.waktuStandbySebelumCS || dataSaya?.waktuStandby || Date.now()
         await update(ref(db, pathAntrian), { status: 'Standby', waktuStandby: waktuStandbyKembali, posisiTerkunci: 0 })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KembaliAntriDariCS', waktu: Date.now(), tanggal: tglIndo })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KembaliAntriDariCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey })
         toast.success('Kembali ke antrian.')
       } else if (aksi === 'Keluar') {
         await remove(ref(db, pathAntrian))
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: tglIndo, hasil: 'Manual' })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, hasil: 'Manual' })
         toast.success('Anda keluar dari antrian.')
       }
     } catch (err) {
-      console.error(err)
       toast.error('Terjadi kesalahan.')
     } finally {
       setIsProcessing(false)
     }
   }
 
-  // Filter Harian (Bersih / 0 setelah tombol "Reset Hari Ini" ditekan admin, berdasarkan lastResetTimestamp)
+  // Filter Harian (Dipastikan bersih total menjadi 0 berdasarkan todayKey & lastResetTimestamp)
   const aktivitasHariIni = statistikList.filter(a => {
-    const isHariIni = a.tanggal === hariIniIndo
+    const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
-    const isSetelahReset = waktuAktivitas > lastResetTimestamp
-    const isPromotorSama = String(a.nama).toLowerCase() === String(userData?.nama || '').toLowerCase()
+    const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas >= lastResetTimestamp
+    const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
     return isHariIni && isSetelahReset && isPromotorSama
   })
 
@@ -505,9 +500,9 @@ export default function PromotorPage() {
   const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokickSaya = aktivitasHariIni.filter(a => (a.aksi === 'Autokick' || a.aksi === 'AutoKick'))
 
-  // Filter Rekap Bulanan (Aman, tersimpan per bulan secara utuh dan tidak terpengaruh reset harian)
+  // Filter Rekap Bulanan (Aman, tersimpan utuh dan tidak terpengaruh reset harian)
   const rekapBulananMap = statistikList
-    .filter(a => a.aksi === 'BawaCustomer' && a.waktu && String(a.nama).toLowerCase() === String(userData?.nama || '').toLowerCase())
+    .filter(a => a.aksi === 'BawaCustomer' && a.waktu && String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase())
     .reduce((acc: any, curr: any) => {
       const d = new Date(curr.waktu)
       const bulanIdx = d.getMonth()
@@ -564,10 +559,7 @@ export default function PromotorPage() {
           )}
         </div>
 
-        <button
-          onClick={() => setShowLogoutConfirm(true)}
-          className="bg-white text-rose-600 font-bold py-3.5 px-8 rounded-xl shadow-lg hover:bg-rose-50 transition active:scale-95 text-sm uppercase tracking-wide"
-        >
+        <button onClick={() => setShowLogoutConfirm(true)} className="bg-white text-rose-600 font-bold py-3.5 px-8 rounded-xl shadow-lg hover:bg-rose-50 transition active:scale-95 text-sm uppercase tracking-wide">
           Keluar Aplikasi
         </button>
 
@@ -582,13 +574,7 @@ export default function PromotorPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background relative">
-      <AppHeader
-        storeName="UFO Malang Kebonsari"
-        isOpen={!antrianTutup}
-        onLogout={() => setShowLogoutConfirm(true)}
-        onToggleTheme={toggleTheme}
-        isDark={isDark}
-      />
+      <AppHeader storeName="UFO Malang Kebonsari" isOpen={!antrianTutup} onLogout={() => setShowLogoutConfirm(true)} onToggleTheme={toggleTheme} isDark={isDark} />
 
       <main className="flex-1 px-4 pt-4 pb-28 space-y-6">
         <PromoterCard name={userData.nama} />
@@ -610,14 +596,8 @@ export default function PromotorPage() {
                 </div>
                 <h2 className="text-lg font-bold text-foreground mb-2 uppercase">Sudah Check-in Hari Ini</h2>
                 <p className="text-xs text-muted-foreground mb-4">Ambil antrian jika ingin mulai bekerja.</p>
-
                 <KategoriPicker value={kategoriPilih} onChange={setKategoriPilih} />
-
-                <button
-                  onClick={() => handleAksi('CheckIn')}
-                  disabled={isProcessing || antrianTutup || !dalamRadius}
-                  className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
-                >
+                <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || antrianTutup || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
                   {isProcessing ? 'Memproses...' : antrianTutup ? 'ANTRIAN DITUTUP' : !dalamRadius ? 'DI LUAR RADIUS' : 'MASUK ANTRIAN'}
                 </button>
@@ -625,46 +605,23 @@ export default function PromotorPage() {
             ) : (
               <div className="relative z-10">
                 <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2 uppercase"><MapPin className="w-4 h-4 text-primary" /> Konfirmasi Kehadiran</h2>
-
                 {gpsAktif ? (
                   <div className="mb-4">
                     <div className="w-full h-40 rounded-2xl overflow-hidden border border-border relative bg-secondary">
                       <MapComponent tokoLat={latTokoFinal} tokoLng={lngTokoFinal} radius={radiusFinal} userLat={userLoc?.lat} userLng={userLoc?.lng} />
                     </div>
-                    <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${
-                      jarak === null
-                        ? 'bg-amber-500/10 text-amber-600'
-                        : dalamRadius
-                          ? 'bg-accent/15 text-accent'
-                          : 'bg-destructive/15 text-destructive'
-                    }`}>
-                      {jarak !== null
-                        ? dalamRadius
-                          ? `✓ Di dalam radius (${jarak.toFixed(0)}m)`
-                          : `⚠️ Di luar radius (${jarak.toFixed(0)}m)`
-                        : statusGPS}
+                    <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${jarak === null ? 'bg-amber-500/10 text-amber-600' : dalamRadius ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'}`}>
+                      {jarak !== null ? (dalamRadius ? `✓ Di dalam radius (${jarak.toFixed(0)}m)` : `⚠️ Di luar radius (${jarak.toFixed(0)}m)`) : statusGPS}
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={mintaIzinGPS}
-                      className="w-full mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
-                    >
-                      <MapPin className="w-4 h-4 inline mr-2" />
-                      AKTIFKAN / COBA GPS LAGI
+                    <button type="button" onClick={mintaIzinGPS} className="w-full mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold">
+                      <MapPin className="w-4 h-4 inline mr-2" /> AKTIFKAN / COBA GPS LAGI
                     </button>
                   </div>
                 ) : (
                   <div className="mb-4 p-3 bg-secondary rounded-xl text-center text-xs text-muted-foreground">GPS toko belum diatur di admin.</div>
                 )}
-
                 <KategoriPicker value={kategoriPilih} onChange={setKategoriPilih} />
-
-                <button
-                  onClick={() => handleAksi('CheckIn')}
-                  disabled={isProcessing || antrianTutup || !dalamRadius}
-                  className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
-                >
+                <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || antrianTutup || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
                   {isProcessing ? 'Memproses...' : antrianTutup ? 'ANTRIAN DITUTUP' : !dalamRadius ? 'DI LUAR RADIUS' : 'KONFIRMASI KEHADIRAN'}
                 </button>
@@ -679,27 +636,21 @@ export default function PromotorPage() {
             <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">
               {(() => {
                 const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA
-                const posisi = listKategoriSaya
-                  .filter(a => a.status === 'Standby' || a.status === 'Melayani')
-                  .findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
+                const posisi = listKategoriSaya.filter(a => a.status === 'Standby' || a.status === 'Melayani').findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
                 return posisi.toString().padStart(2, '0')
               })()}
             </div>
             <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {dataSaya?.kategori}</div>
-
             <div className="space-y-3 relative z-10">
               <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-cyan-500 text-slate-950 font-black rounded-xl shadow-lg shadow-cyan-500/30 hover:bg-cyan-400 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <Play className="w-5 h-5 fill-slate-950" /> SUDAH MEMBAWA CUSTOMER
               </button>
-
               <button onClick={() => handleAksi('Ibadah')} className="w-full py-4 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <MosqueIcon className="w-5 h-5" /> SEDANG IBADAH
               </button>
-
               <button onClick={() => handleAksi('PanggilCS')} className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 hover:bg-purple-500 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <Package className="w-5 h-5" /> DIPANGGIL CS / GUDANG
               </button>
-
               <button onClick={() => handleAksi('Keluar')} className="w-full py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:bg-rose-500 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <LogOut className="w-5 h-5" /> KELUAR ANTRIAN
               </button>
@@ -745,11 +696,8 @@ export default function PromotorPage() {
                     <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-cyan-500' : 'bg-purple-500'}`}></span>
                     Live Urutan {kat}
                   </h3>
-                  <span className="text-[10px] font-bold bg-secondary text-muted-foreground px-2.5 py-1 rounded-md">
-                    {listStandby.length} Antri
-                  </span>
+                  <span className="text-[10px] font-bold bg-secondary text-muted-foreground px-2.5 py-1 rounded-md">{listStandby.length} Antri</span>
                 </div>
-
                 <div className="space-y-2">
                   {list.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic text-center py-2">Belum ada antrian</p>
@@ -757,32 +705,22 @@ export default function PromotorPage() {
                     list.map((item, idx) => {
                       const isSaya = item.nama.toLowerCase() === userData?.nama.toLowerCase()
                       const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0
-
                       return (
-                        <div key={item._key || idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${
-                          isSaya
-                            ? 'bg-white dark:bg-primary/20 text-slate-900 dark:text-primary border border-slate-200 dark:border-primary/30 shadow-sm'
-                            : 'bg-white dark:bg-secondary/50 text-slate-900 dark:text-foreground border border-slate-200 dark:border-border/60 shadow-sm'
-                        }`}>
+                        <div key={item._key || idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${isSaya ? 'bg-white dark:bg-primary/20 text-slate-900 dark:text-primary border border-slate-200 dark:border-primary/30 shadow-sm' : 'bg-white dark:bg-secondary/50 text-slate-900 dark:text-foreground border border-slate-200 dark:border-border/60 shadow-sm'}`}>
                           <div className="flex items-center gap-3">
-                            <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
-                              {item.status === 'Melayani' ? '-' : (idx + 1)}
-                            </span>
-                            <span className={`text-xs font-bold uppercase ${isSaya ? 'text-slate-900 dark:text-primary' : 'text-slate-900 dark:text-foreground'}`}>
-                              {item.nama} {isSaya && '(Anda)'}
-                            </span>
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>{item.status === 'Melayani' ? '-' : (idx + 1)}</span>
+                            <span className={`text-xs font-bold uppercase ${isSaya ? 'text-slate-900 dark:text-primary' : 'text-slate-900 dark:text-foreground'}`}>{item.nama} {isSaya && '(Anda)'}</span>
                           </div>
-
                           {item.status === 'Melayani' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 dark:bg-blue-500/20 text-white dark:text-blue-400">Melayani</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 text-white">Melayani</span>
                           ) : item.status === 'Dipanggil CS' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">Dipanggil CS/GUDANG</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Dipanggil CS</span>
                           ) : item.status === 'Ibadah' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-400">Ibadah</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 text-white">Ibadah</span>
                           ) : isGiliranUtama ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
                           ) : (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-secondary text-muted-foreground">Standby</span>
                           )}
                         </div>
                       )
@@ -796,15 +734,12 @@ export default function PromotorPage() {
 
         {/* AKTIVITAS & REKAP */}
         <div className="bg-card border border-border p-5 rounded-3xl mt-6 space-y-4 text-foreground shadow-sm">
-          <div 
-            onClick={() => setIsAktivitasOpen(!isAktivitasOpen)}
-            className="flex justify-between items-center cursor-pointer select-none"
-          >
+          <div onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} className="flex justify-between items-center cursor-pointer select-none">
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider text-foreground">AKTIVITAS & REKAP</h3>
               <p className="text-xs text-muted-foreground">Monitoring operasional & kinerja</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition">
+            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
               {isAktivitasOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
           </div>
@@ -812,27 +747,19 @@ export default function PromotorPage() {
           {isAktivitasOpen && (
             <div className="space-y-3 pt-2">
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('checkin')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('checkin')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><ShieldCheck className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">CHECK-IN PROMOTOR</h4>
                       <p className="text-[11px] text-muted-foreground">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">
-                      {jamCheckin ? '1' : '0'}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">{jamCheckin ? '1' : '0'}</span>
                     {openCollapse.checkin ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.checkin && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-1 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Status Kehadiran:</p>
@@ -842,27 +769,19 @@ export default function PromotorPage() {
               </div>
 
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('bawa')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('bawa')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
-                      <Users className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center"><Users className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">BAWA CUSTOMER</h4>
                       <p className="text-[11px] text-muted-foreground">Deal: {totalDeal} | Lihat: {totalLihat}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500 text-slate-950">
-                      {listBawaSaya.length}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500 text-slate-950">{listBawaSaya.length}</span>
                     {openCollapse.bawa ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.bawa && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Rincian Waktu Mulai & Selesai Melayani:</p>
@@ -875,10 +794,8 @@ export default function PromotorPage() {
                           return (
                             <div key={i} className="bg-background border border-border rounded-xl p-3 space-y-1.5 shadow-sm">
                               <div className="flex justify-between items-center">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'}`}>
-                                  {a.hasil || 'Proses / Berlangsung'}
-                                </span>
-                                <span className="text-muted-foreground text-[11px]">{durasiMenit !== null ? `${durasiMenit} menit` : 'Sedang Berlangsung'}</span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'}`}>{a.hasil || 'Proses'}</span>
+                                <span className="text-muted-foreground text-[11px]">{durasiMenit !== null ? `${durasiMenit} menit` : 'Berlangsung'}</span>
                               </div>
                               <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
                                 <span>Mulai: <strong className="text-foreground">{formatJam(a.waktuMulai || a.waktu)}</strong></span>
@@ -894,27 +811,19 @@ export default function PromotorPage() {
               </div>
 
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('ibadah')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('ibadah')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                      <MosqueIcon className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center"><MosqueIcon className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">IBADAH</h4>
                       <p className="text-[11px] text-muted-foreground">Catatan istirahat / ibadah</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">
-                      {listIbadahSaya.length}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">{listIbadahSaya.length}</span>
                     {openCollapse.ibadah ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.ibadah && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Rincian Catatan Ibadah:</p>
@@ -924,7 +833,7 @@ export default function PromotorPage() {
                       <div className="space-y-1 pt-1">
                         {listIbadahSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-amber-600 dark:text-amber-400">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : a.aksi === 'SelesaiIbadah' ? 'Selesai Ibadah' : 'Ibadah'}</span>
+                            <span className="font-medium text-amber-600">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : a.aksi === 'SelesaiIbadah' ? 'Selesai Ibadah' : 'Ibadah'}</span>
                             <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
                           </div>
                         ))}
@@ -935,27 +844,19 @@ export default function PromotorPage() {
               </div>
 
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('keluar')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('keluar')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                      <LogOut className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center"><LogOut className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">KELUAR ANTRIAN</h4>
                       <p className="text-[11px] text-muted-foreground">Riwayat keluar manual</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-rose-500 text-white">
-                      {listKeluarSaya.length}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-rose-500 text-white">{listKeluarSaya.length}</span>
                     {openCollapse.keluar ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.keluar && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Riwayat Keluar Antrian:</p>
@@ -965,7 +866,7 @@ export default function PromotorPage() {
                       <div className="space-y-1 pt-1">
                         {listKeluarSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-rose-600 dark:text-rose-400">Keluar Antrian</span>
+                            <span className="font-medium text-rose-600">Keluar Antrian</span>
                             <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
                           </div>
                         ))}
@@ -976,27 +877,19 @@ export default function PromotorPage() {
               </div>
 
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('autokick')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('autokick')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center"><AlertTriangle className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">AUTOKICK</h4>
                       <p className="text-[11px] text-muted-foreground">Riwayat sistem mengeluarkan otomatis</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-red-500 text-white">
-                      {listAutokickSaya.length}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-red-500 text-white">{listAutokickSaya.length}</span>
                     {openCollapse.autokick ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.autokick && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Riwayat Autokick Sistem:</p>
@@ -1006,7 +899,7 @@ export default function PromotorPage() {
                       <div className="space-y-1 pt-1">
                         {listAutokickSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-red-600 dark:text-red-400">Autokick Sistem</span>
+                            <span className="font-medium text-red-600">Autokick Sistem</span>
                             <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
                           </div>
                         ))}
@@ -1017,39 +910,31 @@ export default function PromotorPage() {
               </div>
 
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('rekap')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('rekap')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                      <Users className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"><Users className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">REKAP PROMOTOR</h4>
                       <p className="text-[11px] text-muted-foreground">Akumulasi deal & lihat harian</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-purple-500 text-white">
-                      {listBawaSaya.length}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-purple-500 text-white">{listBawaSaya.length}</span>
                     {openCollapse.rekap ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.rekap && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Ringkasan Performa Hari Ini:</p>
                     <div className="bg-background border border-border rounded-xl p-3 flex justify-around text-center shadow-sm">
                       <div>
                         <p className="text-muted-foreground text-[10px] uppercase font-bold">Deal</p>
-                        <p className="text-emerald-600 dark:text-emerald-400 text-base font-black">{totalDeal}</p>
+                        <p className="text-emerald-600 text-base font-black">{totalDeal}</p>
                       </div>
                       <div className="border-r border-border"></div>
                       <div>
                         <p className="text-muted-foreground text-[10px] uppercase font-bold">Lihat</p>
-                        <p className="text-amber-600 dark:text-amber-400 text-base font-black">{totalLihat}</p>
+                        <p className="text-amber-600 text-base font-black">{totalLihat}</p>
                       </div>
                     </div>
                   </div>
@@ -1057,29 +942,19 @@ export default function PromotorPage() {
               </div>
 
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
-                <div 
-                  onClick={() => toggleCollapse('bulanan')}
-                  className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary"
-                >
+                <div onClick={() => toggleCollapse('bulanan')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                      <CalendarDays className="w-5 h-5" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><CalendarDays className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">TOTAL BULANAN</h4>
-                      <p className="text-[11px] text-muted-foreground">
-                        {listRekapBulanan.length > 0 ? `${listRekapBulanan.length} Bulan tercatat` : 'Belum ada rekap'}
-                      </p>
+                      <p className="text-[11px] text-muted-foreground">{listRekapBulanan.length > 0 ? `${listRekapBulanan.length} Bulan tercatat` : 'Belum ada rekap'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-primary text-primary-foreground">
-                      {listRekapBulanan.length}
-                    </span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-primary text-primary-foreground">{listRekapBulanan.length}</span>
                     {openCollapse.bulanan ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
-
                 {openCollapse.bulanan && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Akumulasi Deal & Lihat Bulanan:</p>
@@ -1091,8 +966,8 @@ export default function PromotorPage() {
                           <div key={idx} className="bg-background border border-border rounded-xl p-3 flex justify-between items-center shadow-sm">
                             <span className="font-bold text-foreground">{rekap.label}</span>
                             <div className="flex gap-2">
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">Deal: {rekap.deal}</span>
-                              <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-1 rounded">Lihat: {rekap.lihat}</span>
+                              <span className="font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded">Deal: {rekap.deal}</span>
+                              <span className="font-bold text-amber-600 bg-amber-500/10 px-2 py-1 rounded">Lihat: {rekap.lihat}</span>
                             </div>
                           </div>
                         ))}
