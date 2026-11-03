@@ -400,15 +400,15 @@ export default function ManajemenPage() {
   }
 
  
-// FUNGSI RESET HARI INI (DIJAMIN AMAN UNTUK REKAP BULANAN)
+// FUNGSI RESET HARI INI (DIJAMIN 100% AMAN - REKAP BULANAN & ARSIP BULAN LALU TIDAK TERHAPUS)
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan data harian? Rekap bulanan promotor dijamin aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian dan check-in hari ini? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
       try {
         // 1. Hapus antrian aktif saat ini
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
 
-        // 2. Hapus data check-in harian untuk hari ini saja
+        // 2. Hapus data check-in harian hari ini saja
         if (checkinList.length > 0) {
           for (const ch of checkinList) {
             if (ch.tanggalKey === todayKey) {
@@ -417,17 +417,16 @@ export default function ManajemenPage() {
           }
         }
 
-        // 3. PERHATIAN: Jangan pernah menghapus `statistikAktivitas` agar rekap bulanan tetap abadi.
-        // Cukup bersihkan antrian dan check-in operasional harian.
+        // PERHATIAN: path `statistikAktivitas` SENGAJA TIDAK DIHAPUS SAMA SEKALI
+        // agar rekap bulanan promotor & admin (November, Desember, dst.) tetap utuh dan tersimpan sebagai arsip!
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian & check-in dibersihkan. Rekap bulanan promotor aman.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Tampilan harian dibersihkan. Rekap bulanan aman.')
       } catch (err) {
         console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Reset')
   }
-
   if (authLoading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   }
