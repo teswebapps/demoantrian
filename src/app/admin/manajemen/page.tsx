@@ -6,9 +6,9 @@ import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Loader2, UserPlus, UserMinus, Play, Lock, Unlock, RotateCcw,
+  Loader2, UserPlus, UserMinus, Play, Lock, Unlock,
   ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon,
-  Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee
+  Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee, RefreshCcw
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
@@ -121,6 +121,7 @@ export default function ManajemenPage() {
   const [masterSales, setMasterSales] = useState<any[]>([])
   const [daftarAntrian, setDaftarAntrian] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
+  const [todayKey, setTodayKey] = useState('')
 
   const [formNama, setFormNama] = useState('')
   const [formEmail, setFormEmail] = useState('')
@@ -133,6 +134,9 @@ export default function ManajemenPage() {
   const [lockAction, setLockAction] = useState('LOCK')
   const [lockReason, setLockReason] = useState('')
   const [lockDuration, setLockDuration] = useState('60')
+
+  const [checkinList, setCheckinList] = useState<any[]>([])
+  const [statistikList, setStatistikList] = useState<any[]>([])
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean
@@ -150,7 +154,9 @@ export default function ManajemenPage() {
 
   useEffect(() => {
     const d = new Date()
-    setHariIniIndo(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
+    setTodayKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
   }, [])
 
   useEffect(() => {
@@ -173,13 +179,38 @@ export default function ManajemenPage() {
       console.error('Gagal baca mastersales:', err)
       showModal('error', 'Gagal memuat', 'Daftar promotor tidak bisa dibaca. Cek rules Firebase untuk path mastersales.')
     })
+
     const unsubAntrian = onValue(ref(db, `toko/${TOKO_ID}/antrian`), (snap) => {
       const data = snap.val()
       const list: any[] = []
       if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
       setDaftarAntrian(list)
     })
-    return () => { unsubMaster(); unsubAntrian() }
+
+    const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
+      setStatistikList(list)
+    })
+
+    const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach(namaClean => {
+          const tglObj = data[namaClean]
+          if (tglObj) {
+            Object.keys(tglObj).forEach(tKey => {
+              list.push({ namaClean, tanggalKey: tKey, ...tglObj[tKey] })
+            })
+          }
+        })
+      }
+      setCheckinList(list)
+    })
+
+    return () => { unsubMaster(); unsubAntrian(); unsubStat(); unsubCheckin() }
   }, [TOKO_ID])
 
   const handleTambahPromotor = async (e: React.FormEvent) => {
@@ -368,14 +399,36 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  const handleResetTotal = () => {
-    showModal('confirm', 'Peringatan Reset', '⚠️ Hapus semua antrian aktif hari ini?', async () => {
+  // FUNGSI RESET HARI INI (MENGGANTIKAN RESET TOTAL ANTRIAN)
+  const handleResetHariIni = () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Hapus antrian aktif, check-in, dan aktivitas hari ini? Rekap bulanan tetap aman.', async () => {
       setIsProcessing(true)
       try {
+        // 1. Hapus antrian aktif
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
-        showModal('success', 'Berhasil', 'Semua antrian berhasil direset.')
+
+        // 2. Hapus check-in hari ini
+        if (checkinList.length > 0) {
+          for (const ch of checkinList) {
+            if (ch.tanggalKey === todayKey) {
+              await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}/${todayKey}`))
+            }
+          }
+        }
+
+        // 3. Hapus aktivitas harian hari ini (rekap bulanan aman)
+        if (statistikList.length > 0) {
+          for (const stat of statistikList) {
+            if (stat.tanggal === hariIniIndo && stat._key) {
+              await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas/${stat._key}`))
+            }
+          }
+        }
+
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian, check-in, dan aktivitas hari ini telah dibersihkan. Rekap bulanan tetap aman.')
       } catch (err) {
-        showModal('error', 'Gagal', 'Gagal reset antrian.')
+        console.error(err)
+        showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Reset')
   }
@@ -422,7 +475,6 @@ export default function ManajemenPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 
@@ -518,8 +570,8 @@ export default function ManajemenPage() {
                 <Coffee className="w-4 h-4" /> RESET ISTIRAHAT (STANDBY)
               </button>
 
-              <button type="button" onClick={handleResetTotal} disabled={isProcessing} className="w-full py-3.5 bg-rose-900 hover:bg-rose-950 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 active:scale-95 transition disabled:opacity-50">
-                <RotateCcw className="w-4 h-4" /> RESET TOTAL ANTRIAN HARI INI
+              <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className="w-full py-3.5 bg-rose-900 hover:bg-rose-950 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 active:scale-95 transition disabled:opacity-50">
+                <RefreshCcw className="w-4 h-4" /> RESET HARI INI
               </button>
             </div>
           </div>
