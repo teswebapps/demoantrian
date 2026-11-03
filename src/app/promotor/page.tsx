@@ -139,7 +139,6 @@ export default function PromotorPage() {
   const [kategoriPilih, setKategoriPilih] = useState<'HA' | 'AV'>('HA')
 
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
-  const [isAktivitasOpen, setIsAktivitasOpen] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
@@ -769,118 +768,118 @@ export default function PromotorPage() {
           })}
         </div>
 
-        {/* MENU AKTIVITAS HARI INI & REKAP BULANAN */}
-        <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6 shadow-sm">
-          <button 
-            onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} 
-            className="w-full flex justify-between items-center p-5 hover:bg-secondary/50 transition"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <History className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-xs font-black text-foreground uppercase tracking-wider">Aktivitas & Riwayat</h3>
-                <p className="text-[11px] text-muted-foreground">Log kehadiran, pelayanan, & rekap</p>
-              </div>
-            </div>
-            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${isAktivitasOpen ? 'rotate-180' : ''}`} />
-          </button>
+        {/* MENU AKTIVITAS & REKAP (MENGIKUTI GAYA HALAMAN ADMIN) */}
+        <div className="bg-card border border-border p-5 rounded-3xl mt-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Aktivitas & Rekap</h3>
+            <p className="text-xs text-muted-foreground">Monitoring operasional & kinerja</p>
+          </div>
 
-          {isAktivitasOpen && (
-            <div className="p-4 border-t border-border space-y-4 bg-secondary/10 text-left">
-              
-              {/* TABEL / RINGKASAN CHECK-IN & STATUS */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-card border border-border rounded-2xl p-3 shadow-2xs">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Check-in Hari Ini</p>
-                  <p className={`text-xs font-bold ${jamCheckin ? 'text-emerald-500' : 'text-muted-foreground italic'}`}>
-                    {jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum Check-in'}
+          <div className="space-y-2.5">
+            {/* 1. Check-in Promotor */}
+            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground uppercase">Check-in Promotor</h4>
+                  <p className="text-[11px] text-muted-foreground">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
+                </div>
+              </div>
+              <span className={`text-xs font-black px-3 py-1 rounded-xl ${jamCheckin ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                {jamCheckin ? '1' : '0'}
+              </span>
+            </div>
+
+            {/* 2. Bawa Customer */}
+            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground uppercase">Bawa Customer</h4>
+                  <p className="text-[11px] text-muted-foreground">Deal: {totalDeal} | Lihat: {totalLihat}</p>
+                </div>
+              </div>
+              <span className="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500 text-slate-950">
+                {listBawaSaya.length}
+              </span>
+            </div>
+
+            {/* 3. Ibadah */}
+            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <MosqueIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground uppercase">Ibadah</h4>
+                  <p className="text-[11px] text-muted-foreground">Catatan istirahat / ibadah</p>
+                </div>
+              </div>
+              <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">
+                {listIbadahSaya.length}
+              </span>
+            </div>
+
+            {/* 4. Keluar Antrian */}
+            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground uppercase">Keluar Antrian</h4>
+                  <p className="text-[11px] text-muted-foreground">Riwayat keluar manual</p>
+                </div>
+              </div>
+              <span className="text-xs font-black px-3 py-1 rounded-xl bg-rose-500 text-white">
+                {listKeluarSaya.length}
+              </span>
+            </div>
+
+            {/* 5. Total Bulanan */}
+            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <CalendarDays className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground uppercase">Total Bulanan</h4>
+                  <p className="text-[11px] text-muted-foreground">
+                    {listRekapBulanan.length > 0 ? `${listRekapBulanan.length} Bulan tercatat` : 'Belum ada rekap'}
                   </p>
                 </div>
-                <div className="bg-card border border-border rounded-2xl p-3 shadow-2xs">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Total Customer</p>
-                  <div className="flex gap-1.5 mt-0.5">
-                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">D: {totalDeal}</span>
-                    <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">L: {totalLihat}</span>
-                  </div>
-                </div>
               </div>
+              <span className="text-xs font-black px-3 py-1 rounded-xl bg-primary text-primary-foreground">
+                {listRekapBulanan.length}
+              </span>
+            </div>
+          </div>
 
-              {/* TABEL DAFTAR PELAYANAN CUSTOMER */}
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">Log Pelayanan Hari Ini</p>
-                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xs">
-                  {listBawaSaya.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground italic">Belum ada riwayat melayani customer</div>
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {listBawaSaya.map((a, i) => {
-                        const durasiMenit = a.durasiDetik ? Math.floor(a.durasiDetik / 60) : null
-                        return (
-                          <div key={a._key || i} className="p-3 flex justify-between items-center text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
-                              }`}>
-                                {a.hasil || 'Proses'}
-                              </span>
-                              <span className="font-semibold text-foreground">{formatJam(a.waktuMulai || a.waktu)}</span>
-                            </div>
-                            <span className="text-[11px] text-muted-foreground font-medium">
-                              {durasiMenit !== null ? `${durasiMenit} menit` : 'Berlangsung'}
-                            </span>
-                          </div>
-                        )
-                      })}
+          {/* Rincian Detail Log Layanan */}
+          {listBawaSaya.length > 0 && (
+            <div className="pt-2 border-t border-border/60 space-y-2">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Rincian Layanan Hari Ini</p>
+              <div className="space-y-1.5">
+                {listBawaSaya.map((a, i) => (
+                  <div key={a._key || i} className="bg-background/60 border border-border/40 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
+                      }`}>
+                        {a.hasil || 'Proses'}
+                      </span>
+                      <span className="font-semibold text-foreground">{formatJam(a.waktuMulai || a.waktu)}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* TABEL IBADAH & KELUAR */}
-              {(listIbadahSaya.length > 0 || listKeluarSaya.length > 0) && (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">Log Istirahat & Keluar</p>
-                  <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xs divide-y divide-border">
-                    {listIbadahSaya.map((a, i) => (
-                      <div key={i} className="p-3 flex justify-between items-center text-xs">
-                        <span className="font-bold text-amber-500">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
-                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))}
-                    {listKeluarSaya.map((a, i) => (
-                      <div key={i} className="p-3 flex justify-between items-center text-xs">
-                        <span className="font-bold text-rose-500">Keluar Antrian</span>
-                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))}
+                    <span className="text-[11px] text-muted-foreground">
+                      {a.durasiDetik ? `${Math.floor(a.durasiDetik / 60)} menit` : 'Berlangsung'}
+                    </span>
                   </div>
-                </div>
-              )}
-
-              {/* REKAP BULANAN ALA ADMIN */}
-              <div className="space-y-2 pt-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">Rekap Total Bulanan</p>
-                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xs">
-                  {listRekapBulanan.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground italic">Belum ada rekap bulanan</div>
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {listRekapBulanan.map((rekap: any, idx: number) => (
-                        <div key={idx} className="p-3 flex justify-between items-center text-xs">
-                          <span className="font-bold text-foreground">{rekap.label}</span>
-                          <div className="flex gap-2">
-                            <span className="font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Deal: {rekap.deal}</span>
-                            <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">Lihat: {rekap.lihat}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                ))}
               </div>
-
             </div>
           )}
         </div>
