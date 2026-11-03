@@ -175,9 +175,6 @@ export default function ManajemenPage() {
       }
       list.sort((a, b) => a.nama.localeCompare(b.nama))
       setMasterSales(list)
-    }, (err) => {
-      console.error('Gagal baca mastersales:', err)
-      showModal('error', 'Gagal memuat', 'Daftar promotor tidak bisa dibaca. Cek rules Firebase untuk path mastersales.')
     })
 
     const unsubAntrian = onValue(ref(db, `toko/${TOKO_ID}/antrian`), (snap) => {
@@ -229,7 +226,6 @@ export default function ManajemenPage() {
       setFormNama('')
       setFormEmail('')
     } catch (err) {
-      console.error(err)
       showModal('error', 'Gagal', 'Gagal menambah promotor. Cek rules Firebase.')
     } finally { setIsProcessing(false) }
   }
@@ -296,7 +292,6 @@ export default function ManajemenPage() {
         showModal('success', 'Berhasil', 'Promotor dihapus permanen.')
         setSelectedLockSales('')
       } catch (err) {
-        console.error(err)
         showModal('error', 'Gagal', 'Gagal menghapus.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Hapus')
@@ -313,7 +308,7 @@ export default function ManajemenPage() {
       await update(ref(db, `toko/${TOKO_ID}/antrian/${clean}`), { status: 'Melayani', waktuMulaiMelayani: now, posisiTerkunci: 0 })
       await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
         nama: selectedSales, aksi: 'BawaCustomer', waktu: now,
-        tanggal: hariIniIndo, waktuMulai: now, keterangan: 'Dipaksa Admin'
+        tanggal: hariIniIndo, tanggalKey: todayKey, waktuMulai: now, keterangan: 'Dipaksa Admin'
       })
       showModal('success', 'Berhasil', 'Promotor dipaksa melayani customer.')
       setSelectedSales('')
@@ -342,7 +337,7 @@ export default function ManajemenPage() {
             updates[`toko/${TOKO_ID}/antrian/${cleanKey(item.nama)}`] = null
             const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
             updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
-              nama: item.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: hariIniIndo, hasil: 'Reset Istirahat'
+              nama: item.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: hariIniIndo, tanggalKey: todayKey, hasil: 'Reset Istirahat'
             }
           }
         }
@@ -350,7 +345,6 @@ export default function ManajemenPage() {
         if (Object.keys(updates).length > 0) await update(ref(db), updates)
         showModal('success', 'Berhasil', 'Reset istirahat gelombang ini berhasil dijalankan.')
       } catch (err) {
-        console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Reset')
@@ -394,36 +388,25 @@ export default function ManajemenPage() {
       setSelectedLockSales('')
       setLockReason('')
     } catch (err) {
-      console.error(err)
       showModal('error', 'Gagal', 'Gagal memproses lock.')
     } finally { setIsProcessing(false) }
   }
 
-  // FUNGSI RESET HARI INI (Membersihkan antrian, check-in, dan mereset tampilan harian jadi 0, rekap bulanan aman)
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan rincian harian? Rekap bulanan promotor dijamin aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan seluruh rincian harian? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
       try {
-        // 1. Hapus antrian aktif saat ini
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
-
-        // 2. Hapus data check-in harian untuk hari ini saja
-        if (checkinList.length > 0) {
-          for (const ch of checkinList) {
-            if (ch.tanggalKey === todayKey) {
-              await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}/${todayKey}`))
-            }
-          }
-        }
-
-        // 3. Simpan stempel waktu reset agar tampilan harian promotor & admin langsung bersih jadi 0
+        await remove(ref(db, `toko/${TOKO_ID}/checkinHarian`))
+        await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas`))
         await set(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), Date.now())
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Tampilan rincian harian bersih menjadi 0. Rekap bulanan aman.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Tampilan rincian harian promotor bersih total menjadi 0.')
       } catch (err) {
-        console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
-      } finally { setIsProcessing(false) }
+      } finally {
+        setIsProcessing(false)
+      }
     }, 'Ya, Reset')
   }
 
@@ -435,8 +418,6 @@ export default function ManajemenPage() {
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-20 md:pb-6">
-
-      {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
         <div className="p-5 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
@@ -457,24 +438,18 @@ export default function ManajemenPage() {
         </div>
       </aside>
 
-      {/* KONTEN UTAMA */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-4 md:p-6 overflow-y-auto max-w-3xl mx-auto space-y-6">
-
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">AKSI CEPAT</h1>
             <p className="text-xs text-muted-foreground uppercase">Kontrol Penuh Admin</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
-              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
         <div className="space-y-4">
-
-          {/* TAMBAH PROMOTOR */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Tambah Promotor Baru</h3>
             <form onSubmit={handleTambahPromotor} className="space-y-3">
@@ -486,23 +461,14 @@ export default function ManajemenPage() {
             </form>
           </div>
 
-          {/* ATUR ANTRIAN */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Atur Antrian</h3>
             <div className="space-y-3">
-
               <CustomSelect options={opsiPromotor} value={selectedSales} onChange={setSelectedSales} placeholder="-- Pilih Promotor --" icon={<Users className="w-4 h-4" />} />
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <CustomSelect
-                  options={[{ label: 'Kategori HA', value: 'HA' }, { label: 'Kategori AV', value: 'AV' }]}
-                  value={selectedKategori}
-                  onChange={setSelectedKategori}
-                  placeholder="Pilih Kategori"
-                />
+                <CustomSelect options={[{ label: 'Kategori HA', value: 'HA' }, { label: 'Kategori AV', value: 'AV' }]} value={selectedKategori} onChange={setSelectedKategori} placeholder="Pilih Kategori" />
                 <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Nomor antrian (kosong = paling akhir)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className="py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-50">
                   <UserPlus className="w-4 h-4" /> Masukkan ke Antrian
@@ -511,27 +477,17 @@ export default function ManajemenPage() {
                   <UserMinus className="w-4 h-4" /> Keluarkan dari Antrian
                 </button>
               </div>
-
               <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/20 active:scale-95 disabled:opacity-50">
                 <Play className="w-4 h-4" /> Paksa Bawa Customer
               </button>
             </div>
           </div>
 
-          {/* TINDAKAN DARURAT */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
             <div className="space-y-3">
-
               <CustomSelect options={opsiPromotor} value={selectedLockSales} onChange={setSelectedLockSales} placeholder="-- Pilih Promotor untuk Lock / Hapus --" icon={<Users className="w-4 h-4" />} />
-
-              <CustomSelect
-                options={[{ label: 'Lock Akun Promotor', value: 'LOCK' }, { label: 'Unlock Akun Promotor', value: 'UNLOCK' }]}
-                value={lockAction}
-                onChange={setLockAction}
-                placeholder="Pilih Aksi"
-                icon={<KeyRound className="w-4 h-4" />}
-              />
+              <CustomSelect options={[{ label: 'Lock Akun Promotor', value: 'LOCK' }, { label: 'Unlock Akun Promotor', value: 'UNLOCK' }]} value={lockAction} onChange={setLockAction} placeholder="Pilih Aksi" icon={<KeyRound className="w-4 h-4" />} />
 
               {lockAction === 'LOCK' && (
                 <>
@@ -543,9 +499,7 @@ export default function ManajemenPage() {
                     <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none"><Clock className="w-4 h-4" /></div>
                     <input type="number" min="1" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground italic px-1">
-                    ℹ️ Timer hukuman baru mulai saat promotor melakukan konfirmasi kehadiran.
-                  </p>
+                  <p className="text-[10px] text-muted-foreground italic px-1">ℹ️ Timer hukuman baru mulai saat promotor melakukan konfirmasi kehadiran.</p>
                 </>
               )}
 
@@ -569,7 +523,6 @@ export default function ManajemenPage() {
               </button>
             </div>
           </div>
-
         </div>
       </motion.div>
 

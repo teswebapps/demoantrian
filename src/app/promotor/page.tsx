@@ -484,13 +484,14 @@ export default function PromotorPage() {
     }
   }
 
-  // Filter Harian (Dipastikan bersih total menjadi 0 berdasarkan todayKey & lastResetTimestamp)
+  // Filter Harian (Dipastikan bersih total menjadi 0 berdasarkan waktu setelah reset admin)
   const aktivitasHariIni = statistikList.filter(a => {
-    const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
-    const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas >= lastResetTimestamp
+    const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
-    return isHariIni && isSetelahReset && isPromotorSama
+    const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
+
+    return isSetelahReset && isPromotorSama && (isHariIni || (lastResetTimestamp > 0 && waktuAktivitas >= lastResetTimestamp))
   })
 
   const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
@@ -994,7 +995,7 @@ export default function PromotorPage() {
         </div>
       )}
 
-      <LogoutModal show={showLogoutConfirm} onCancel={() => setShowLogoutConfirm(false)} onConfirm={handleLogout} />
+      <LogoutModal show={showLogoutConfirm} onCancel={() => setShowLogoutConfirm5(false)} onConfirm={handleLogout} />
     </div>
   )
 }
