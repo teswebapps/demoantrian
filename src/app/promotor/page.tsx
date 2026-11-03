@@ -810,89 +810,102 @@ export default function PromotorPage() {
           </button>
 
           {isAktivitasOpen && (
-            <div className="p-5 border-t border-border space-y-6 bg-secondary/20">
+            <div className="p-4 border-t border-border space-y-4 bg-secondary/10 text-left">
               
-              {/* 1. Status Check-in Hari Ini */}
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" /> Status Check-in Hari Ini
-                </p>
-                <div className="bg-card border border-border rounded-2xl p-3.5 flex justify-between items-center shadow-xs">
-                  {jamCheckin ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Sudah Check-in</span>
-                      </div>
-                      <span className="text-xs font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-lg">
-                        Jam {formatJam(jamCheckin)}
-                      </span>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs text-muted-foreground italic">Belum melakukan check-in hari ini</span>
-                      <span className="text-[10px] font-bold bg-rose-500/10 text-rose-500 px-2.5 py-1 rounded-lg">Offline</span>
-                    </div>
-                  )}
+              {/* TABEL / RINGKASAN CHECK-IN & STATUS */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-card border border-border rounded-2xl p-3 shadow-2xs">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Check-in Hari Ini</p>
+                  <p className={`text-xs font-bold ${jamCheckin ? 'text-emerald-500' : 'text-muted-foreground italic'}`}>
+                    {jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum Check-in'}
+                  </p>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3 shadow-2xs">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Total Customer</p>
+                  <div className="flex gap-1.5 mt-0.5">
+                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">D: {totalDeal}</span>
+                    <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">L: {totalLihat}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* 2. Log Bawa Customer Hari Ini */}
-              <div className="space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Users className="w-4 h-4 text-cyan-500" /> Log Pelayanan Customer
-                  </p>
-                  <div className="flex gap-1.5">
-                    <span className="text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md">
-                      Deal: {totalDeal}
-                    </span>
-                    <span className="text-[10px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md">
-                      Lihat: {totalLihat}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {/* TABEL DAFTAR PELAYANAN CUSTOMER */}
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">Log Pelayanan Hari Ini</p>
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xs">
                   {listBawaSaya.length === 0 ? (
-                    <div className="text-center py-6 bg-card border border-dashed border-border rounded-2xl">
-                      <p className="text-xs text-muted-foreground italic">Belum ada riwayat melayani customer hari ini</p>
-                    </div>
+                    <div className="p-4 text-center text-xs text-muted-foreground italic">Belum ada riwayat melayani customer</div>
                   ) : (
-                    listBawaSaya.map((a, i) => {
-                      const durasiMenit = a.durasiDetik ? Math.floor(a.durasiDetik / 60) : null
-                      return (
-                        <div key={a._key || i} className="bg-card border border-border rounded-2xl p-3 flex justify-between items-center shadow-xs">
-                          <div className="space-y-0.5">
+                    <div className="divide-y divide-border">
+                      {listBawaSaya.map((a, i) => {
+                        const durasiMenit = a.durasiDetik ? Math.floor(a.durasiDetik / 60) : null
+                        return (
+                          <div key={a._key || i} className="p-3 flex justify-between items-center text-xs">
                             <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase ${
-                                a.hasil === 'Deal' 
-                                  ? 'bg-emerald-500 text-white' 
-                                  : a.hasil === 'Lihat' 
-                                    ? 'bg-amber-500 text-white' 
-                                    : 'bg-blue-500 text-white'
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
                               }`}>
                                 {a.hasil || 'Proses'}
                               </span>
-                              <span className="text-xs font-bold text-foreground">
-                                {formatJam(a.waktuMulai || a.waktu)} - {a.waktuSelesai ? formatJam(a.waktuSelesai) : 'Berlangsung'}
-                              </span>
+                              <span className="font-semibold text-foreground">{formatJam(a.waktuMulai || a.waktu)}</span>
                             </div>
-                            {durasiMenit !== null && (
-                              <p className="text-[10px] text-muted-foreground pl-0.5">
-                                Durasi: <span className="font-semibold text-foreground">{durasiMenit} menit</span> ({a.durasiDetik} detik)
-                              </p>
-                            )}
+                            <span className="text-[11px] text-muted-foreground font-medium">
+                              {durasiMenit !== null ? `${durasiMenit} menit` : 'Berlangsung'}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-2 py-1 rounded-lg">
-                            {a.tanggal}
-                          </span>
-                        </div>
-                      )
-                    })
+                        )
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
+
+              {/* TABEL IBADAH & KELUAR */}
+              {(listIbadahSaya.length > 0 || listKeluarSaya.length > 0) && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">Log Istirahat & Keluar</p>
+                  <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xs divide-y divide-border">
+                    {listIbadahSaya.map((a, i) => (
+                      <div key={i} className="p-3 flex justify-between items-center text-xs">
+                        <span className="font-bold text-amber-500">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
+                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
+                      </div>
+                    ))}
+                    {listKeluarSaya.map((a, i) => (
+                      <div key={i} className="p-3 flex justify-between items-center text-xs">
+                        <span className="font-bold text-rose-500">Keluar Antrian</span>
+                        <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* REKAP BULANAN ALA ADMIN */}
+              <div className="space-y-2 pt-2">
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">Rekap Total Bulanan</p>
+                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xs">
+                  {listRekapBulanan.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-muted-foreground italic">Belum ada rekap bulanan</div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {listRekapBulanan.map((rekap: any, idx: number) => (
+                        <div key={idx} className="p-3 flex justify-between items-center text-xs">
+                          <span className="font-bold text-foreground">{rekap.label}</span>
+                          <div className="flex gap-2">
+                            <span className="font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Deal: {rekap.deal}</span>
+                            <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">Lihat: {rekap.lihat}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
 
               {/* 3. Log Ibadah & Lainnya */}
               <div className="space-y-2">
