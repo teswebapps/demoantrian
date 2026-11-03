@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,4 +16,10 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const db = getDatabase(app);
 export const auth = getAuth(app);
+
+// ⬇️ TAMBAHKAN BARIS INI: Mengatur agar sesi login tetap tersimpan permanen di perangkat
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Gagal mengatur persistence auth:", error);
+});
+
 export const googleProvider = new GoogleAuthProvider();
