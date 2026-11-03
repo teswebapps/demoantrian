@@ -400,9 +400,9 @@ export default function ManajemenPage() {
   }
 
  
- // FUNGSI RESET HARI INI (Hanya menghapus aktivitas khusus hari ini, rekap bulan lalu aman)
+// FUNGSI RESET HARI INI (DIJAMIN AMAN UNTUK REKAP BULANAN)
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan aktivitas harian hari ini? Rekap bulanan promotor dijamin aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan data harian? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
       try {
         // 1. Hapus antrian aktif saat ini
@@ -417,21 +417,10 @@ export default function ManajemenPage() {
           }
         }
 
-        // 3. Hapus HANYA data statistik aktivitas yang tanggalnya sama dengan hari ini (hariIniIndo)
-        // Dengan cara ini, data bulan lalu / hari kemarin tetap UTUH, tapi data hari ini bersih jadi 0!
-        if (statistikList.length > 0) {
-          const updates: Record<string, null> = {}
-          for (const stat of statistikList) {
-            if (stat.tanggal === hariIniIndo && stat._key) {
-              updates[`toko/${TOKO_ID}/statistikAktivitas/${stat._key}`] = null
-            }
-          }
-          if (Object.keys(updates).length > 0) {
-            await update(ref(db), updates)
-          }
-        }
+        // 3. PERHATIAN: Jangan pernah menghapus `statistikAktivitas` agar rekap bulanan tetap abadi.
+        // Cukup bersihkan antrian dan check-in operasional harian.
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian, check-in, dan aktivitas hari ini dibersihkan menjadi 0.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian & check-in dibersihkan. Rekap bulanan promotor aman.')
       } catch (err) {
         console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
