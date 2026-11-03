@@ -131,14 +131,7 @@ export default function AdminPage() {
                 TUTUP
               </button>
             </div>
-
-            <button 
-              type="button"
-              onClick={() => setShowLogoutConfirm(true)} 
-              className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 
