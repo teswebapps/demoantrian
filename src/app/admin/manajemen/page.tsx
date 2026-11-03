@@ -215,7 +215,6 @@ export default function ManajemenPage() {
     return () => { unsubMaster(); unsubAntrian() }
   }, [TOKO_ID])
 
-  // Tambah promotor: whitelist + mastersales ditulis sekaligus (atomik, gagal semua atau berhasil semua)
   const handleTambahPromotor = async (e: React.FormEvent) => {
     e.preventDefault()
     const nama = formNama.trim().toUpperCase()
@@ -233,11 +232,10 @@ export default function ManajemenPage() {
       setFormEmail('')
     } catch (err) {
       console.error(err)
-      showModal('error', 'Gagal', 'Gagal menambah promotor. Cek rules Firebase (path users/whitelist dan mastersales).')
+      showModal('error', 'Gagal', 'Gagal menambah promotor. Cek rules Firebase.')
     } finally { setIsProcessing(false) }
   }
 
-  // Hitung waktuStandby supaya promotor menempati nomor antrian yang dipilih
   const hitungWaktuStandby = (kategori: string, posisi: number) => {
     const standby = daftarAntrian
       .filter(a => a.status === 'Standby' && String(a.kategori).toUpperCase() === kategori)
@@ -282,26 +280,23 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  // Nama dikirim sebagai argumen, bukan lewat state, supaya tidak kosong saat dipanggil
-  const handleHapusPermanen = (nama: string) => {
-    if (!nama) { showModal('error', 'Peringatan', 'Pilih promotor terlebih dahulu!'); return }
-    showModal('confirm', 'Konfirmasi Hapus', `Hapus permanen ${nama}? Tindakan ini tidak dapat dibatalkan.`, async () => {
+  const handleHapusPermanen = (namaTarget: string) => {
+    if (!namaTarget) { showModal('error', 'Peringatan', 'Pilih promotor di bagian Tindakan Darurat terlebih dahulu!'); return }
+    showModal('confirm', 'Konfirmasi Hapus', `Hapus permanen ${namaTarget}? Tindakan ini tidak dapat dibatalkan.`, async () => {
       setIsProcessing(true)
       try {
-        const target = masterSales.find(s => s.nama === nama)
+        const target = masterSales.find(s => s.nama === namaTarget)
         const updates: Record<string, null> = {
-          [`toko/${TOKO_ID}/antrian/${cleanKey(nama)}`]: null,
+          [`toko/${TOKO_ID}/antrian/${cleanKey(namaTarget)}`]: null,
+          [`toko/${TOKO_ID}/lockPromotor/${cleanKey(namaTarget)}`]: null,
         }
         if (target) {
           updates[`mastersales/${target._key}`] = null
           if (target.email) updates[`users/whitelist/${emailToKey(target.email)}`] = null
         }
-        // Hapus juga lock kalau ada
-        updates[`toko/${TOKO_ID}/lockPromotor/${cleanKey(nama)}`] = null
         await update(ref(db), updates)
         showModal('success', 'Berhasil', 'Promotor dihapus permanen.')
         setSelectedLockSales('')
-        setSelectedSales('')
       } catch (err) {
         console.error(err)
         showModal('error', 'Gagal', 'Gagal menghapus.')
@@ -330,7 +325,7 @@ export default function ManajemenPage() {
   }
 
   const handleResetIstirahat = () => {
-    showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini? (Melayani/Ibadah/CS dan shift lain yang belum waktunya akan aman)', async () => {
+    showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
       setIsProcessing(true)
       try {
         const currentHour = new Date().getHours()
@@ -341,9 +336,9 @@ export default function ManajemenPage() {
           const waktuMasuk = item.waktuStandby ? new Date(item.waktuStandby).getHours() : 0
           let shouldReset = false
 
-          if (currentHour >= 12 && currentHour < 15) shouldReset = waktuMasuk < 12      // istirahat siang: shift pagi
-          else if (currentHour >= 15) shouldReset = waktuMasuk >= 12                   // istirahat sore: shift siang
-          else shouldReset = true                                                       // pagi hari
+          if (currentHour >= 12 && currentHour < 15) shouldReset = waktuMasuk < 12
+          else if (currentHour >= 15) shouldReset = waktuMasuk >= 12
+          else shouldReset = true
 
           if (shouldReset) {
             updates[`toko/${TOKO_ID}/antrian/${cleanKey(item.nama)}`] = null
@@ -376,13 +371,11 @@ export default function ManajemenPage() {
           showModal('error', 'Informasi', `${selectedLockSales} tidak dalam status terkunci.`)
           return
         }
-        // Hapus data lock supaya layar kunci promotor langsung tertutup
         await remove(lockRef)
         showModal('success', 'Kunci Dibuka', `${selectedLockSales} dibuka kuncinya.`)
       } else {
         const durasi = parseInt(lockDuration)
         if (!durasi || durasi < 1) { showModal('error', 'Peringatan', 'Durasi harus lebih dari 0 menit.'); return }
-        // ⬇️ PERUBAHAN: timer TIDAK diset sekarang. Hanya simpan durasi + flag belum mulai.
         await update(lockRef, {
           nama: selectedLockSales,
           locked: true,
