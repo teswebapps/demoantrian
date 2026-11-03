@@ -141,7 +141,7 @@ export default function PromotorPage() {
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
 
-  // State untuk collapse utama card Aktivitas & Rekap
+  // State collapse utama kartu Aktivitas & Rekap
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(true)
 
   // State collapse independen untuk masing-masing sub-menu di dalamnya
@@ -567,7 +567,6 @@ export default function PromotorPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background relative">
-
       <AppHeader
         storeName="UFO Malang Kebonsari"
         isOpen={!antrianTutup}
@@ -577,7 +576,6 @@ export default function PromotorPage() {
       />
 
       <main className="flex-1 px-4 pt-4 pb-28 space-y-6">
-
         <PromoterCard name={userData.nama} />
 
         <section className="flex flex-col gap-3">
@@ -588,7 +586,6 @@ export default function PromotorPage() {
           </div>
         </section>
 
-        {/* STATUS: OFFLINE / KONFIRMASI KEHADIRAN */}
         {statusSaya === 'Offline' && (
           <div className="bg-card rounded-3xl p-6 shadow-sm border border-border relative overflow-hidden">
             {sudahCheckinHariIni ? (
@@ -661,7 +658,6 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: STANDBY */}
         {statusSaya === 'Standby' && (
           <div className="bg-card rounded-3xl p-6 text-center shadow-xl border border-border relative overflow-hidden">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
@@ -696,7 +692,6 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: MELAYANI */}
         {statusSaya === 'Melayani' && (
           <div className="bg-blue-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-blue-500/20">
             <h2 className="text-2xl font-black mb-2 uppercase">Sedang Melayani</h2>
@@ -705,7 +700,6 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: DIPANGGIL CS */}
         {statusSaya === 'Dipanggil CS' && (
           <div className="bg-purple-600 rounded-3xl p-8 text-center text-white shadow-xl shadow-purple-500/20">
             <Package className="w-12 h-12 mx-auto mb-4" />
@@ -715,7 +709,6 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* STATUS: IBADAH */}
         {statusSaya === 'Ibadah' && (
           <div className="bg-amber-500 rounded-3xl p-8 text-center text-white shadow-xl shadow-amber-500/20 relative overflow-hidden">
             <MosqueIcon className="w-12 h-12 mx-auto mb-4 relative z-10" />
@@ -725,7 +718,6 @@ export default function PromotorPage() {
           </div>
         )}
 
-        {/* LIVE URUTAN ANTRIAN */}
         <div className="space-y-4">
           {['HA', 'AV'].map((kat) => {
             const list = kat === 'HA' ? listHA : listAV
@@ -794,8 +786,8 @@ export default function PromotorPage() {
             className="flex justify-between items-center cursor-pointer select-none"
           >
             <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-foreground">AKTIVITAS PROMOTOR</h3>
-              <p className="text-xs text-muted-foreground"></p>
+              <h3 className="text-sm font-black uppercase tracking-wider text-foreground">AKTIVITAS & REKAP</h3>
+              <p className="text-xs text-muted-foreground">Monitoring operasional & kinerja</p>
             </div>
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition">
               {isAktivitasOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -804,7 +796,6 @@ export default function PromotorPage() {
 
           {isAktivitasOpen && (
             <div className="space-y-3 pt-2">
-              {/* 1. Check-in Promotor */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('checkin')}
@@ -835,7 +826,6 @@ export default function PromotorPage() {
                 )}
               </div>
 
-              {/* 2. Bawa Customer */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('bawa')}
@@ -888,7 +878,6 @@ export default function PromotorPage() {
                 )}
               </div>
 
-              {/* 3. Ibadah */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('ibadah')}
@@ -930,7 +919,6 @@ export default function PromotorPage() {
                 )}
               </div>
 
-              {/* 4. Keluar Antrian */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('keluar')}
@@ -972,7 +960,6 @@ export default function PromotorPage() {
                 )}
               </div>
 
-              {/* 5. Autokick */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('autokick')}
@@ -1014,7 +1001,6 @@ export default function PromotorPage() {
                 )}
               </div>
 
-              {/* 6. Rekap Promotor */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('rekap')}
@@ -1055,7 +1041,6 @@ export default function PromotorPage() {
                 )}
               </div>
 
-              {/* 7. Total Bulanan */}
               <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
                 <div 
                   onClick={() => toggleCollapse('bulanan')}
@@ -1104,10 +1089,8 @@ export default function PromotorPage() {
             </div>
           )}
         </div>
-
       </main>
 
-      {/* MODAL CLOSING */}
       {showClosing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-card rounded-3xl p-6 w-full max-w-sm text-center border border-border shadow-2xl">

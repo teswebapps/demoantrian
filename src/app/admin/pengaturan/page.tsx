@@ -125,15 +125,13 @@ export default function PengaturanAdminPage() {
     }
   }
 
-  // FUNGSI RESET ANTRIAN HARI INI (DI MENU PENGATURAN)
+  // FUNGSI RESET HARI INI SECARA TOTAL DI FIREBASE
   const handleResetAntrianHariIni = async () => {
     if (!TOKO_ID || isResetting) return
     setIsResetting(true)
     try {
-      // 1. Hapus antrian aktif saat ini
       await remove(ref(db, `toko/${TOKO_ID}/antrian`))
 
-      // 2. Hapus data checkin hari ini berdasarkan todayKey
       if (checkinList.length > 0) {
         for (const ch of checkinList) {
           if (ch.tanggalKey === todayKey) {
@@ -142,7 +140,6 @@ export default function PengaturanAdminPage() {
         }
       }
 
-      // 3. Hapus statistik aktivitas hari ini (total bulanan tetap aman)
       if (statistikList.length > 0) {
         for (const stat of statistikList) {
           if (stat.tanggal === hariIniIndo) {
@@ -151,7 +148,7 @@ export default function PengaturanAdminPage() {
         }
       }
 
-      setSuccessMsg('Reset antrian & aktivitas hari ini berhasil! Total bulanan tetap aman.')
+      setSuccessMsg('Reset berhasil! Antrian, check-in, dan aktivitas hari ini telah dibersihkan total. Rekap bulanan tetap aman.')
       setShowResetConfirm(false)
     } catch (err) {
       console.error(err)
@@ -172,8 +169,6 @@ export default function PengaturanAdminPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-16">
-
-      {/* SIDEBAR (Desktop) */}
       <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
         <div className="p-5 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
@@ -194,24 +189,18 @@ export default function PengaturanAdminPage() {
         </div>
       </aside>
 
-      {/* KONTEN UTAMA */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-4 md:p-6 overflow-y-auto max-w-3xl mx-auto space-y-6">
-
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Pengaturan Toko</h1>
             <p className="text-xs text-muted-foreground uppercase">Identitas, lokasi GPS, & kontrol sistem harian</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
-              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
-
-          {/* KARTU PENGATURAN RESET HARIAN */}
           <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-3">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Kontrol Sistem Harian</h3>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-secondary/40 p-4 rounded-2xl border border-border/60">
@@ -231,7 +220,6 @@ export default function PengaturanAdminPage() {
 
           <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Identitas & Informasi Toko</h3>
-
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-muted-foreground uppercase">Nama Toko</label>
               <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl">
@@ -239,7 +227,6 @@ export default function PengaturanAdminPage() {
                 <input type="text" value={form.namaToko} onChange={e => setForm({ ...form, namaToko: e.target.value })} className="w-full bg-transparent text-xs font-bold text-foreground outline-none uppercase" />
               </div>
             </div>
-
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-muted-foreground uppercase">Nama Sistem (Tampil di Login)</label>
               <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl">
@@ -251,7 +238,6 @@ export default function PengaturanAdminPage() {
 
           <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Koordinat Toko (Manual)</h3>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-muted-foreground uppercase">Latitude</label>
@@ -262,7 +248,6 @@ export default function PengaturanAdminPage() {
                 <input type="text" inputMode="decimal" placeholder="112.xxxxx" value={form.lng} onChange={e => setForm({ ...form, lng: e.target.value })} className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none" />
               </div>
             </div>
-
             <div className="space-y-1.5 pt-2">
               <label className="text-[11px] font-bold text-muted-foreground uppercase">Radius Maksimal Absen (Meter)</label>
               <input type="number" min="1" value={form.radiusMaks} onChange={e => setForm({ ...form, radiusMaks: e.target.value })} className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-2xl text-xs font-medium text-foreground outline-none" />
@@ -276,7 +261,6 @@ export default function PengaturanAdminPage() {
         </form>
       </motion.div>
 
-      {/* MODAL KONFIRMASI RESET HARI INI */}
       <AnimatePresence>
         {showResetConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -299,7 +283,6 @@ export default function PengaturanAdminPage() {
         )}
       </AnimatePresence>
 
-      {/* MODAL BERHASIL */}
       <AnimatePresence>
         {successMsg && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -317,7 +300,6 @@ export default function PengaturanAdminPage() {
         )}
       </AnimatePresence>
 
-      {/* MODAL ERROR */}
       <AnimatePresence>
         {errorMsg && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -335,7 +317,6 @@ export default function PengaturanAdminPage() {
         )}
       </AnimatePresence>
 
-      {/* MODAL LOGOUT */}
       <AnimatePresence>
         {showLogoutConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
