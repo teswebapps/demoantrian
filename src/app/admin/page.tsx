@@ -2,18 +2,19 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
-import { ref, update, onValue, push } from 'firebase/database'
+import { ref, update, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Loader2, LogOut, Users, LayoutDashboard, 
   ListOrdered, Settings, UserCheck, Unlock, Lock, 
-  X, Sun, Moon,
-  History, BarChart3, Calendar, Coffee, ShieldAlert
+  Sun, Moon,
+  History, BarChart3, ShieldAlert
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
+import { toast } from 'sonner'
 
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
@@ -22,17 +23,64 @@ export default function AdminPage() {
   
   const [isUpdating, setIsUpdating] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
+  const [todayKey, setTodayKey] = useState('')
   
   // State untuk pop-up logout
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
+  // State untuk Data Aktivitas Rekap 4 Kategori
+  const [statistikList, setStatistikList] = useState<any[]>([])
+  const [checkinList, setCheckinList] = useState<any[]>([])
+  const [whitelistUsers, setWhitelistUsers] = useState<any[]>([])
+
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
   useEffect(() => {
     const d = new Date()
-    setHariIniIndo(`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`)
+    setTodayKey(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`)
   }, [])
+
+  useEffect(() => {
+    if (!TOKO_ID) return
+    const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
+      setStatistikList(list)
+    })
+
+    const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach(namaClean => {
+          const tglObj = data[namaClean]
+          if (tglObj) {
+            Object.keys(tglObj).forEach(tKey => {
+              list.push({ namaClean, tanggalKey: tKey, ...tglObj[tKey] })
+            })
+          }
+        })
+      }
+      setCheckinList(list)
+    })
+
+    const unsubUsers = onValue(ref(db, 'users/whitelist'), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach(k => {
+          if (data[k].role === 'PROMOTOR') list.push(data[k])
+        })
+      }
+      setWhitelistUsers(list)
+    })
+
+    return () => { unsubStat(); unsubCheckin(); unsubUsers() }
+  }, [TOKO_ID])
 
   if (authLoading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   if (error) return <div className="min-h-screen flex items-center justify-center bg-background text-destructive">{error}</div>
@@ -46,8 +94,9 @@ export default function AdminPage() {
     setIsUpdating(true)
     try { 
       await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: statusBaru }) 
+      toast.success(`Antrian berhasil diubah menjadi ${statusBaru}`)
     } 
-    catch (err) { console.error(err) } 
+    catch (err) { console.error(err); toast.error('Gagal mengubah status antrian') } 
     finally { setIsUpdating(false) }
   }
 
@@ -57,7 +106,7 @@ export default function AdminPage() {
     setIsLoggingOut(false)
   }
 
-  // Hitung Statistik
+  // Hitung Statistik Dashboard
   const totalStandby = antrian.filter(a => a.status === 'Standby').length
   const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
   const totalHA = antrian.filter(a => a.kategori === 'HA').length
@@ -65,6 +114,36 @@ export default function AdminPage() {
 
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
+
+  // Kalkulasi 4 Kategori Rekap Promotor Hari Ini
+  const rekapHariIniMap = whitelistUsers.map(prom => {
+    const namaProm = prom.nama
+    const cleanName = namaProm.trim().toLowerCase().replace(/\s+/g, '_')
+    
+    const cekCheckin = checkinList.find(c => c.namaClean === cleanName && c.tanggalKey === todayKey)
+    const isCheckinHariIni = !!cekCheckin
+
+    const aktProm = statistikList.filter(s => 
+      s.nama && s.nama.toLowerCase() === namaProm.toLowerCase() && 
+      s.tanggal === hariIniIndo && 
+      s.aksi === 'BawaCustomer'
+    )
+
+    const dealCount = aktProm.filter(s => s.hasil === 'Deal').length
+    const lihatCount = aktProm.filter(s => s.hasil === 'Lihat').length
+    const totalBawa = aktProm.length
+
+    const noSaleCount = (isCheckinHariIni && totalBawa === 0) ? 1 : 0
+    const totalCheckinCount = isCheckinHariIni ? 1 : 0
+
+    return {
+      nama: namaProm,
+      checkin: totalCheckinCount,
+      deal: dealCount,
+      lihat: lihatCount,
+      noSale: noSaleCount
+    }
+  })
 
   return (
     <div className="min-h-[100dvh] bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-12 md:pb-6">
@@ -96,14 +175,14 @@ export default function AdminPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <h2 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Dashboard Admin</h2>
-            <p className="text-xs text-muted-foreground">Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span></p>
+            <p className="text-xs text-muted-foreground">Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span> • Hari ini: <span className="font-semibold text-foreground">{hariIniIndo}</span></p>
           </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
             
-           {/* TOMBOL BUKA & TUTUP ANTRIAN */}
+            {/* TOMBOL BUKA & TUTUP ANTRIAN */}
             <div className="flex items-center gap-1.5 flex-1 md:flex-none">
               <button 
                 onClick={() => ubahStatusAntrian('BUKA')} 
@@ -131,7 +210,6 @@ export default function AdminPage() {
                 TUTUP
               </button>
             </div>
-            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 
@@ -141,6 +219,47 @@ export default function AdminPage() {
           <StatCard title="Sedang Dilayani" value={totalMelayani} icon={<UserCheck />} color="text-cyan-500" bg="bg-cyan-500/10" />
           <StatCard title="Kategori HA" value={totalHA} icon={<ListOrdered />} color="text-amber-500" bg="bg-amber-500/10" />
           <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
+        </div>
+
+        {/* REKAP PROMOTOR HARI INI (4 TABEL / 4 KATEGORI: DEAL, LIHAT, NO SALE, TOTAL CHECKIN) */}
+        <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" /> Rekap Promotor Hari Ini (4 Kategori)
+            </h3>
+            <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-md">{hariIniIndo}</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Nama Promotor</th>
+                  <th className="py-2.5 px-3 text-center">1. Deal</th>
+                  <th className="py-2.5 px-3 text-center">2. Lihat</th>
+                  <th className="py-2.5 px-3 text-center">3. No Sale</th>
+                  <th className="py-2.5 px-3 text-center">4. Total Check-in</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {rekapHariIniMap.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-4 text-muted-foreground italic">Belum ada promotor terdaftar</td>
+                  </tr>
+                ) : (
+                  rekapHariIniMap.map((row, i) => (
+                    <tr key={i} className="hover:bg-secondary/40 transition">
+                      <td className="py-3 px-3 font-bold uppercase text-foreground">{row.nama}</td>
+                      <td className="py-3 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{row.deal}</td>
+                      <td className="py-3 px-3 text-center font-bold text-amber-600 dark:text-amber-400">{row.lihat}</td>
+                      <td className="py-3 px-3 text-center font-bold text-rose-600 dark:text-rose-400">{row.noSale}</td>
+                      <td className="py-3 px-3 text-center font-bold text-primary">{row.checkin}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* LIVE URUTAN ANTRIAN HA & AV */}
