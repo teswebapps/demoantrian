@@ -144,7 +144,6 @@ export default function PromotorPage() {
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
 
-  // Koordinat & radius dari admin (mendukung lat/lng maupun latToko/lngToko, radiusMaks/radiusToko)
   const latTokoFinal = Number(setting?.latToko || setting?.lat || 0)
   const lngTokoFinal = Number(setting?.lngToko || setting?.lng || 0)
   const radiusFinal = Number(setting?.radiusToko || setting?.radiusMaks || 50) || 50
@@ -211,15 +210,10 @@ export default function PromotorPage() {
         const lockSaya = data[cleanNama(userData.nama)]
         if (lockSaya && lockSaya.locked) {
           const now = Date.now()
-
-          // Lock belum mulai (menunggu konfirmasi kehadiran promotor).
-          // Jangan aktifkan layar lock, TAPI jangan juga reset kalau state lokal
-          // sudah di-set oleh handleAksi (lockStarted true) — cegah flicker.
           if (!lockSaya.lockStarted) {
             setLockData((prev: any) => (prev && prev.lockStarted) ? prev : null)
             return
           }
-
           const mulai = Number(lockSaya.waktuMulaiLock) || 0
           const expired = Number(lockSaya.waktuSelesaiLock) || 0
           if ((mulai === 0 || now >= mulai) && (expired === 0 || now < expired)) {
@@ -227,7 +221,7 @@ export default function PromotorPage() {
           } else setLockData(null)
         } else setLockData(null)
       } else {
-        setLockData(null) // lock dihapus admin -> buka kunci
+        setLockData(null)
       }
     })
     const unsubAktivitas = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
@@ -241,7 +235,6 @@ export default function PromotorPage() {
 
   useEffect(() => {
     if (!lockData || !userData) return
-    // Set nilai awal segera supaya countdown tidak kosong sesaat
     const expiredAwal = Number(lockData.waktuSelesaiLock) || 0
     if (expiredAwal === 0) {
       setSisaWaktu('∞')
@@ -267,8 +260,6 @@ export default function PromotorPage() {
     return () => clearInterval(interval)
   }, [lockData, userData, TOKO_ID])
 
-  // ---------- GPS ----------
-  // Diagnosa awal: HTTPS & status izin
   useEffect(() => {
     if (!userData) return
     if (typeof window !== 'undefined' && !window.isSecureContext) {
@@ -287,7 +278,6 @@ export default function PromotorPage() {
     return () => { if (permStatus) permStatus.onchange = null }
   }, [userData])
 
-  // Pantau posisi terus-menerus
   useEffect(() => {
     if (!userData || typeof window === 'undefined' || !window.isSecureContext || !navigator.geolocation) return
     setStatusGPS('Meminta lokasi dari perangkat...')
@@ -305,7 +295,6 @@ export default function PromotorPage() {
     return () => navigator.geolocation.clearWatch(watchId)
   }, [userData])
 
-  // Hitung jarak setiap posisi atau koordinat toko berubah
   useEffect(() => {
     if (!userLoc) { setJarak(null); return }
     if (!latTokoFinal || !lngTokoFinal) {
@@ -316,7 +305,6 @@ export default function PromotorPage() {
     setJarak(hitungJarak(userLoc.lat, userLoc.lng, latTokoFinal, lngTokoFinal))
   }, [userLoc, latTokoFinal, lngTokoFinal])
 
-  // Tombol manual (aksi pengguna -> Chrome lebih mau menampilkan prompt)
   const mintaIzinGPS = () => {
     if (!window.isSecureContext) { setStatusGPS('Situs harus dibuka lewat HTTPS agar GPS bisa jalan.'); return }
     if (!navigator.geolocation) { setStatusGPS('Browser tidak mendukung GPS.'); return }
@@ -334,7 +322,6 @@ export default function PromotorPage() {
     )
   }
 
-  // ---------- Data turunan ----------
   const dataSaya = antrian.find(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
   const statusSaya = dataSaya ? dataSaya.status : 'Offline'
   const listHA = antrian.filter(a => a.kategori === 'HA')
@@ -363,15 +350,11 @@ export default function PromotorPage() {
           return
         }
 
-        // ====================================================================
-        // CEK LOCK: timer hukuman mulai SAAT konfirmasi kehadiran ini
-        // ====================================================================
         const lockRef = ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`)
         const lockSnap = await get(lockRef)
         if (lockSnap.exists()) {
           const l = lockSnap.val()
           if (l.locked) {
-            // a) Belum pernah mulai → MULAI TIMER SEKARANG
             if (!l.lockStarted) {
               const mulai = Date.now()
               const selesai = mulai + (Number(l.durasiMenit) || 60) * 60000
@@ -380,8 +363,6 @@ export default function PromotorPage() {
                 waktuMulaiLock: mulai,
                 waktuSelesaiLock: selesai,
               })
-              // ⬇️ KUNCI PERBAIKAN: set state lokal SEKARANG supaya layar merah
-              // langsung muncul tanpa menunggu listener onValue Firebase.
               const lockBaru = {
                 ...l,
                 lockStarted: true,
@@ -395,19 +376,16 @@ export default function PromotorPage() {
               return
             }
 
-            // b) Sudah pernah mulai → cek sisa
             const now = Date.now()
             const expired = Number(l.waktuSelesaiLock) || 0
             if (expired === 0 || now < expired) {
-              setLockData(l) // pastikan state sinkron
+              setLockData(l)
               toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
               return
             }
-            // Sudah expired → hapus lock, lanjut check-in
             await remove(lockRef)
           }
         }
-        // ====================================================================
 
         const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${getTanggalKey()}`)
         const checkinSnap = await get(checkinRef)
@@ -791,7 +769,7 @@ export default function PromotorPage() {
           })}
         </div>
 
-      {/* MENU AKTIVITAS HARI INI & REKAP BULANAN */}
+        {/* MENU AKTIVITAS HARI INI & REKAP BULANAN */}
         <div className="bg-card border border-border rounded-3xl overflow-hidden mt-6 shadow-sm">
           <button 
             onClick={() => setIsAktivitasOpen(!isAktivitasOpen)} 
@@ -903,49 +881,6 @@ export default function PromotorPage() {
                 </div>
               </div>
 
-            </div>
-          )}
-        </div>
-
-      </main>
-
-      {/* MODAL CLOSING */}
-      {showClosing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-card rounded-3xl p-6 w-full max-w-sm text-center border border-border shadow-2xl">
-            <h3 className="text-lg font-bold mb-5 text-foreground uppercase">Hasil Melayani Customer</h3>
-            <div className="space-y-3">
-              <button onClick={() => handleAksi('SimpanClosing', 'Deal')} disabled={isProcessing} className="w-full py-3.5 bg-accent text-accent-foreground font-bold rounded-xl shadow-lg shadow-accent/20 disabled:opacity-50">✓ DEAL / CLOSING</button>
-              <button onClick={() => handleAksi('SimpanClosing', 'Lihat')} disabled={isProcessing} className="w-full py-3.5 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20 disabled:opacity-50">👀 LIHAT-LIHAT SAJA</button>
-              <button onClick={() => setShowClosing(false)} className="w-full py-2 text-muted-foreground font-medium text-xs mt-2">Batal</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <LogoutModal show={showLogoutConfirm} onCancel={() => setShowLogoutConfirm(false)} onConfirm={handleLogout} />
-    </div>
-  )
-}
-              {/* REKAP TOTAL BULANAN */}
-              <div className="pt-2 border-t border-border/60">
-                <p className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-1"><CalendarDays className="w-4 h-4" /> Rekap Total Bulanan</p>
-                <div className="space-y-2">
-                  {listRekapBulanan.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic px-1">Belum ada riwayat rekap bulanan</p>
-                  ) : (
-                    listRekapBulanan.map((rekap: any, idx: number) => (
-                      <div key={idx} className="bg-secondary rounded-xl p-3 flex justify-between items-center text-sm">
-                        <span className="font-bold text-foreground block">{rekap.label}</span>
-                        <div className="flex gap-2">
-                          <span className="text-xs font-bold bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">Deal: {rekap.deal}</span>
-                          <span className="text-xs font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">Lihat: {rekap.lihat}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
             </div>
           )}
         </div>
