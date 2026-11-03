@@ -2,10 +2,10 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
-import { ref, update, onValue } from 'firebase/database'
+import { ref, update, onValue, remove } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, Globe, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Loader2, Save, LayoutDashboard, History, Settings, LogOut, Sun, Moon, Store, Globe, ShieldAlert, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -14,9 +14,16 @@ export default function PengaturanAdminPage() {
   const { isDark, toggleTheme, mounted } = useTheme()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
+  const [todayKey, setTodayKey] = useState('')
+  const [hariIniIndo, setHariIniIndo] = useState('')
+  const [checkinList, setCheckinList] = useState<any[]>([])
+  const [statistikList, setStatistikList] = useState<any[]>([])
 
   const [form, setForm] = useState({
     namaToko: '',
@@ -29,8 +36,15 @@ export default function PengaturanAdminPage() {
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
   useEffect(() => {
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`)
+    setTodayKey(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`)
+  }, [])
+
+  useEffect(() => {
     if (!TOKO_ID) return
-    const unsub = onValue(ref(db, `toko/${TOKO_ID}/setting`), (snap) => {
+    const unsubSetting = onValue(ref(db, `toko/${TOKO_ID}/setting`), (snap) => {
       const data = snap.val()
       if (data) {
         setForm({
@@ -47,7 +61,31 @@ export default function PengaturanAdminPage() {
       setErrorMsg('Pengaturan tidak bisa dibaca. Cek rules Firebase.')
       setLoading(false)
     })
-    return () => unsub()
+
+    const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
+      setStatistikList(list)
+    })
+
+    const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach(namaClean => {
+          const tglObj = data[namaClean]
+          if (tglObj) {
+            Object.keys(tglObj).forEach(tKey => {
+              list.push({ namaClean, tanggalKey: tKey, ...tglObj[tKey] })
+            })
+          }
+        })
+      }
+      setCheckinList(list)
+    })
+
+    return () => { unsubSetting(); unsubStat(); unsubCheckin() }
   }, [TOKO_ID])
 
   const handleSave = async (e: React.FormEvent) => {
@@ -84,6 +122,42 @@ export default function PengaturanAdminPage() {
       setErrorMsg('Gagal menyimpan pengaturan. Cek koneksi dan rules Firebase.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // FUNGSI RESET ANTRIAN HARI INI (DI MENU PENGATURAN)
+  const handleResetAntrianHariIni = async () => {
+    if (!TOKO_ID || isResetting) return
+    setIsResetting(true)
+    try {
+      // 1. Hapus antrian aktif saat ini
+      await remove(ref(db, `toko/${TOKO_ID}/antrian`))
+
+      // 2. Hapus data checkin hari ini berdasarkan todayKey
+      if (checkinList.length > 0) {
+        for (const ch of checkinList) {
+          if (ch.tanggalKey === todayKey) {
+            await remove(ref(db, `toko/${TOKO_ID}/checkinHarian/${ch.namaClean}/${todayKey}`))
+          }
+        }
+      }
+
+      // 3. Hapus statistik aktivitas hari ini (total bulanan tetap aman)
+      if (statistikList.length > 0) {
+        for (const stat of statistikList) {
+          if (stat.tanggal === hariIniIndo) {
+            await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas/${stat._key}`))
+          }
+        }
+      }
+
+      setSuccessMsg('Reset antrian & aktivitas hari ini berhasil! Total bulanan tetap aman.')
+      setShowResetConfirm(false)
+    } catch (err) {
+      console.error(err)
+      setErrorMsg('Gagal melakukan reset hari ini.')
+    } finally {
+      setIsResetting(false)
     }
   }
 
@@ -126,17 +200,34 @@ export default function PengaturanAdminPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Pengaturan Toko</h1>
-            <p className="text-xs text-muted-foreground uppercase">Identitas, lokasi GPS, & zona wilayah</p>
+            <p className="text-xs text-muted-foreground uppercase">Identitas, lokasi GPS, & kontrol sistem harian</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
+
+          {/* KARTU PENGATURAN RESET HARIAN */}
+          <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-3">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Kontrol Sistem Harian</h3>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-secondary/40 p-4 rounded-2xl border border-border/60">
+              <div>
+                <h4 className="text-xs font-bold text-foreground uppercase">Reset Data Hari Ini</h4>
+                <p className="text-[11px] text-muted-foreground">Menghapus antrian aktif, check-in harian, & aktivitas hari ini. <span className="font-bold text-foreground">Rekap bulanan tetap aman.</span></p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowResetConfirm(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm uppercase transition shrink-0"
+              >
+                <RefreshCcw className="w-3.5 h-3.5" /> Reset Hari Ini
+              </button>
+            </div>
+          </div>
 
           <div className="bg-card border border-border p-5 rounded-3xl shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Identitas & Informasi Toko</h3>
@@ -184,6 +275,29 @@ export default function PengaturanAdminPage() {
           </button>
         </form>
       </motion.div>
+
+      {/* MODAL KONFIRMASI RESET HARI INI */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5">
+              <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <RefreshCcw className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">RESET HARI INI</h3>
+                <p className="text-xs text-muted-foreground">Tindakan ini akan menghapus antrian aktif, check-in hari ini, dan aktivitas harian promotor. <strong className="text-foreground">Total rekap bulanan Anda tetap aman</strong>.</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowResetConfirm(false)} disabled={isResetting} className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition">Batal</button>
+                <button onClick={handleResetAntrianHariIni} disabled={isResetting} className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2">
+                  {isResetting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ya, Reset'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL BERHASIL */}
       <AnimatePresence>
