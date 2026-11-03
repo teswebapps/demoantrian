@@ -23,6 +23,7 @@ export default function AktivitasAdminPage() {
   const [statistikList, setStatistikList] = useState<any[]>([])
   const [checkinList, setCheckinList] = useState<any[]>([])
   const [whitelistUsers, setWhitelistUsers] = useState<any[]>([])
+  const [lastResetTimestamp, setLastResetTimestamp] = useState<number>(0)
   
   const [hariIniIndo, setHariIniIndo] = useState('')
   const [todayKey, setTodayKey] = useState('')
@@ -41,11 +42,18 @@ export default function AktivitasAdminPage() {
     
     if (!TOKO_ID) return
 
+    // 1. Mendengarkan data statistik aktivitas (untuk rekap bulanan & harian)
     const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
       const data = snap.val()
       const list: any[] = []
       if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
       setStatistikList(list)
+    })
+
+    // 2. Mendengarkan stempel waktu reset harian terakhir
+    const unsubReset = onValue(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), (snap) => {
+      if (snap.exists()) setLastResetTimestamp(snap.val())
+      else setLastResetTimestamp(0)
     })
 
     const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
@@ -78,6 +86,7 @@ export default function AktivitasAdminPage() {
 
     return () => {
       unsubStat()
+      unsubReset()
       unsubCheckin()
       unsubUser()
     }
@@ -95,13 +104,21 @@ export default function AktivitasAdminPage() {
 
   const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2,'0')}.${String(new Date(ts).getMinutes()).padStart(2,'0')}` : '-'
 
-  const aktivitasHariIni = statistikList.filter(a => a.tanggal === hariIniIndo)
+  // Filter Aktivitas Hari Ini: Hanya ambil data hari ini yang dibuat SETELAH tombol reset ditekan
+  const aktivitasHariIni = statistikList.filter(a => {
+    const isHariIni = a.tanggal === hariIniIndo
+    const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
+    const isSetelahReset = waktuAktivitas > lastResetTimestamp
+    return isHariIni && isSetelahReset
+  })
+
   const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
   const listIbadah = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
   const listKeluar = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick')
   const checkinHariIni = checkinList.filter(c => c.tanggalKey === todayKey)
 
+  // Rekap Promotor Bulanan (Menggunakan seluruh data tanpa terpengaruh reset harian)
   const rekapPromotorMap = statistikList
     .filter(a => a.aksi === 'BawaCustomer' && a.nama && a.tanggal)
     .reduce((acc: any, curr: any) => {
@@ -296,7 +313,6 @@ export default function AktivitasAdminPage() {
         <div className="bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aktivitas & Live Antrian Hari Ini</h3>
           
-          {/* Diubah dari grid-cols-2 / grid-cols-3 menjadi grid-cols-1 agar tersusun menurun 1 kolom */}
           <div className="grid grid-cols-1 gap-3">
             <button onClick={() => setPopupType('checkin')} className="w-full bg-secondary/60 border border-border/60 rounded-2xl p-4 flex items-center justify-between relative hover:bg-secondary transition shadow-sm">
               <div className="flex items-center gap-3">
