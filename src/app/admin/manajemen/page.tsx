@@ -400,7 +400,7 @@ export default function ManajemenPage() {
   }
 
  
-  // FUNGSI RESET HARI INI (DIJAMIN 100% AMAN - REKAP BULANAN TIDAK AKAN TERHAPUS)
+ // FUNGSI RESET HARI INI (DIJAMIN 100% AMAN - REKAP BULANAN TIDAK AKAN TERHAPUS)
   const handleResetHariIni = () => {
     showModal('confirm', 'Reset Hari Ini', '⚠️ Hapus antrian aktif dan check-in hari ini? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
@@ -418,7 +418,7 @@ export default function ManajemenPage() {
         }
 
         // PERHATIAN: path `statistikAktivitas` SENGAJA TIDAK DIHAPUS SAMA SEKALI
-        // agar rekap Deal & Lihat bulanan promotor tetap utuh dan aman!
+        // agar rekap Deal & Lihat bulanan promotor tetap utuh dan tersimpan sebagai arsip per bulan!
 
         showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian & check-in dibersihkan. Rekap bulanan promotor aman.')
       } catch (err) {
