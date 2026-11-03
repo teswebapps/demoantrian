@@ -140,6 +140,7 @@ export default function PromotorPage() {
 
   const [aktivitasHariIni, setAktivitasHariIni] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
+  const [activeMenuDetail, setActiveMenuDetail] = useState<string | null>(null)
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
 
@@ -768,39 +769,52 @@ export default function PromotorPage() {
           })}
         </div>
 
-        {/* MENU AKTIVITAS & REKAP (MENGIKUTI GAYA HALAMAN ADMIN) */}
-        <div className="bg-card border border-border p-5 rounded-3xl mt-6 space-y-4">
+        {/* AKTIVITAS & REKAP (SAMA PERSIS DENGAN ADMIN) */}
+        <div className="bg-[#121826] border border-slate-800 p-5 rounded-3xl mt-6 space-y-4 text-white shadow-xl">
           <div>
-            <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Aktivitas & Rekap</h3>
-            <p className="text-xs text-muted-foreground">Monitoring operasional & kinerja</p>
+            <h3 className="text-sm font-black uppercase tracking-wider text-white">AKTIVITAS & REKAP</h3>
+            <p className="text-xs text-slate-400">Monitoring operasional & kinerja</p>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {/* 1. Check-in Promotor */}
-            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+            <div 
+              onClick={() => setActiveMenuDetail(activeMenuDetail === 'checkin' ? null : 'checkin')}
+              className="bg-[#1b2234] border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:border-slate-500"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-foreground uppercase">Check-in Promotor</h4>
-                  <p className="text-[11px] text-muted-foreground">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
+                  <h4 className="text-xs font-black uppercase tracking-wide text-white">CHECK-IN PROMOTOR</h4>
+                  <p className="text-[11px] text-slate-400">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
                 </div>
               </div>
-              <span className={`text-xs font-black px-3 py-1 rounded-xl ${jamCheckin ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">
                 {jamCheckin ? '1' : '0'}
               </span>
             </div>
 
+            {activeMenuDetail === 'checkin' && (
+              <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs space-y-1">
+                <p className="font-bold text-white">Status Kehadiran:</p>
+                <p className="text-slate-300">{jamCheckin ? `Anda sudah melakukan konfirmasi kehadiran pada pukul ${formatJam(jamCheckin)}` : 'Anda belum melakukan check-in hari ini.'}</p>
+              </div>
+            )}
+
             {/* 2. Bawa Customer */}
-            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+            <div 
+              onClick={() => setActiveMenuDetail(activeMenuDetail === 'bawa' ? null : 'bawa')}
+              className="bg-[#1b2234] border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:border-slate-500"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-foreground uppercase">Bawa Customer</h4>
-                  <p className="text-[11px] text-muted-foreground">Deal: {totalDeal} | Lihat: {totalLihat}</p>
+                  <h4 className="text-xs font-black uppercase tracking-wide text-white">BAWA CUSTOMER</h4>
+                  <p className="text-[11px] text-slate-400">Deal: {totalDeal} | Lihat: {totalLihat}</p>
                 </div>
               </div>
               <span className="text-xs font-black px-3 py-1 rounded-xl bg-cyan-500 text-slate-950">
@@ -808,15 +822,38 @@ export default function PromotorPage() {
               </span>
             </div>
 
+            {activeMenuDetail === 'bawa' && (
+              <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs space-y-2">
+                <p className="font-bold text-white">Rincian Layanan Customer Hari Ini:</p>
+                {listBawaSaya.length === 0 ? (
+                  <p className="text-slate-400 italic">Belum ada riwayat membawa customer hari ini.</p>
+                ) : (
+                  <div className="space-y-1.5 pt-1">
+                    {listBawaSaya.map((a, i) => (
+                      <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-2.5 flex justify-between items-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {a.hasil || 'Proses'}
+                        </span>
+                        <span className="text-slate-300">{formatJam(a.waktuMulai || a.waktu)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 3. Ibadah */}
-            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+            <div 
+              onClick={() => setActiveMenuDetail(activeMenuDetail === 'ibadah' ? null : 'ibadah')}
+              className="bg-[#1b2234] border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:border-slate-500"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
                   <MosqueIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-foreground uppercase">Ibadah</h4>
-                  <p className="text-[11px] text-muted-foreground">Catatan istirahat / ibadah</p>
+                  <h4 className="text-xs font-black uppercase tracking-wide text-white">IBADAH</h4>
+                  <p className="text-[11px] text-slate-400">Catatan istirahat / ibadah</p>
                 </div>
               </div>
               <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">
@@ -824,15 +861,36 @@ export default function PromotorPage() {
               </span>
             </div>
 
+            {activeMenuDetail === 'ibadah' && (
+              <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs space-y-2">
+                <p className="font-bold text-white">Rincian Catatan Ibadah:</p>
+                {listIbadahSaya.length === 0 ? (
+                  <p className="text-slate-400 italic">Belum ada catatan ibadah hari ini.</p>
+                ) : (
+                  <div className="space-y-1 pt-1">
+                    {listIbadahSaya.map((a, i) => (
+                      <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-2 flex justify-between items-center">
+                        <span className="font-medium text-amber-400">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : 'Selesai Ibadah'}</span>
+                        <span className="text-slate-300">{formatJam(a.waktu)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 4. Keluar Antrian */}
-            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
+            <div 
+              onClick={() => setActiveMenuDetail(activeMenuDetail === 'keluar' ? null : 'keluar')}
+              className="bg-[#1b2234] border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center transition cursor-pointer hover:border-slate-500"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
                   <LogOut className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-foreground uppercase">Keluar Antrian</h4>
-                  <p className="text-[11px] text-muted-foreground">Riwayat keluar manual</p>
+                  <h4 className="text-xs font-black uppercase tracking-wide text-white">KELUAR ANTRIAN</h4>
+                  <p className="text-[11px] text-slate-400">Riwayat keluar manual</p>
                 </div>
               </div>
               <span className="text-xs font-black px-3 py-1 rounded-xl bg-rose-500 text-white">
@@ -840,48 +898,24 @@ export default function PromotorPage() {
               </span>
             </div>
 
-            {/* 5. Total Bulanan */}
-            <div className="bg-secondary/60 border border-border/60 rounded-2xl p-4 flex justify-between items-center transition hover:bg-secondary">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <CalendarDays className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground uppercase">Total Bulanan</h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    {listRekapBulanan.length > 0 ? `${listRekapBulanan.length} Bulan tercatat` : 'Belum ada rekap'}
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-black px-3 py-1 rounded-xl bg-primary text-primary-foreground">
-                {listRekapBulanan.length}
-              </span>
-            </div>
-          </div>
-
-          {/* Rincian Detail Log Layanan */}
-          {listBawaSaya.length > 0 && (
-            <div className="pt-2 border-t border-border/60 space-y-2">
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Rincian Layanan Hari Ini</p>
-              <div className="space-y-1.5">
-                {listBawaSaya.map((a, i) => (
-                  <div key={a._key || i} className="bg-background/60 border border-border/40 rounded-xl p-3 flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        a.hasil === 'Deal' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
-                      }`}>
-                        {a.hasil || 'Proses'}
-                      </span>
-                      <span className="font-semibold text-foreground">{formatJam(a.waktuMulai || a.waktu)}</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      {a.durasiDetik ? `${Math.floor(a.durasiDetik / 60)} menit` : 'Berlangsung'}
-                    </span>
+            {activeMenuDetail === 'keluar' && (
+              <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs space-y-2">
+                <p className="font-bold text-white">Riwayat Keluar Antrian:</p>
+                {listKeluarSaya.length === 0 ? (
+                  <p className="text-slate-400 italic">Tidak ada riwayat keluar antrian hari ini.</p>
+                ) : (
+                  <div className="space-y-1 pt-1">
+                    {listKeluarSaya.map((a, i) => (
+                      <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-2 flex justify-between items-center">
+                        <span className="font-medium text-rose-400">Keluar Antrian</span>
+                        <span className="text-slate-300">{formatJam(a.waktu)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
       </main>
