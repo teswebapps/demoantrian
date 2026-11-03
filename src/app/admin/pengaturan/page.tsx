@@ -54,7 +54,6 @@ export default function PengaturanAdminPage() {
     e.preventDefault()
     setSaving(true)
     try {
-      // Terima koma desimal (-7,98) dan simpan sebagai angka
       const lat = Number(String(form.lat).trim().replace(',', '.'))
       const lng = Number(String(form.lng).trim().replace(',', '.'))
       const radius = Number(form.radiusMaks)
@@ -133,9 +132,7 @@ export default function PengaturanAdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={() => setShowLogoutConfirm(true)} className="md:hidden p-2.5 rounded-full bg-rose-600 text-white shadow-sm">
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 

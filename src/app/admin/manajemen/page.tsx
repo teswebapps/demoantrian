@@ -19,35 +19,6 @@ interface Option { label: string; value: string }
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
 
-/**
- * ============================================================
- * HELPER LOCK PROMOTOR (DIPAKAI DI HALAMAN PROMOTOR)
- * ============================================================
- * Timer hukuman TIDAK jalan saat admin menekan tombol Lock.
- * Timer baru mulai saat promotor melakukan KONFIRMASI KEHADIRAN.
- *
- * Cara pakai di halaman promotor (di handler konfirmasi kehadiran):
- *
- *   import { mulaiTimerLockJikaBelum, cekLockPromotor } from '@/lib/lockPromotor'
- *
- *   // 1. Sebelum menyimpan check-in, cek apakah promotor terkunci
- *   const status = await cekLockPromotor(db, TOKO_ID, namaPromotor)
- *   if (status.terkunci) {
- *      // tampilkan layar lock dengan status.sisaMs
- *      return
- *   }
- *
- *   // 2. Kalau belum pernah mulai (admin lock, promotor baru check-in),
- *   //    mulai timer sekarang dan tampilkan layar lock.
- *   const hasil = await mulaiTimerLockJikaBelum(db, TOKO_ID, namaPromotor)
- *   if (hasil.baruMulai) {
- *      setLockInfo({ aktif: true, sisaMs: hasil.sisaMs })
- *      return  // batalkan check-in
- *   }
- *
- *   // 3. Lanjutkan check-in normal
- * ============================================================
- */
 export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
   const key = cleanKey(nama)
   const lockRef = ref(db, `toko/${tokoId}/lockPromotor/${key}`)
@@ -56,13 +27,11 @@ export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
   const lock = snap.val()
   if (!lock?.locked) return { terkunci: false, sisaMs: 0, data: lock }
 
-  // Belum pernah mulai → belum dianggap terkunci (biar promotor check-in dulu)
   if (!lock.lockStarted) return { terkunci: false, sisaMs: 0, data: lock, belumMulai: true }
 
   const sisa = (lock.waktuSelesaiLock || 0) - Date.now()
   if (sisa > 0) return { terkunci: true, sisaMs: sisa, data: lock }
 
-  // Sudah habis → auto unlock
   await remove(lockRef)
   return { terkunci: false, sisaMs: 0, data: null }
 }
@@ -75,7 +44,6 @@ export async function mulaiTimerLockJikaBelum(db: any, tokoId: string, nama: str
   const lock = snap.val()
   if (!lock?.locked) return { baruMulai: false, sisaMs: 0 }
 
-  // Kalau sudah pernah mulai, hitung sisa
   if (lock.lockStarted) {
     const sisa = (lock.waktuSelesaiLock || 0) - Date.now()
     if (sisa > 0) return { baruMulai: false, sisaMs: sisa, terkunci: true }
@@ -83,7 +51,6 @@ export async function mulaiTimerLockJikaBelum(db: any, tokoId: string, nama: str
     return { baruMulai: false, sisaMs: 0 }
   }
 
-  // BELUM PERNAH MULAI → mulai sekarang (dipicu konfirmasi kehadiran)
   const mulai = Date.now()
   const selesai = mulai + (lock.durasiMenit || 60) * 60000
   await update(lockRef, {
@@ -455,9 +422,7 @@ export default function ManajemenPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 

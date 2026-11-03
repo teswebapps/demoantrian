@@ -290,9 +290,7 @@ export default function AktivitasAdminPage() {
             <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={logout} className="md:hidden p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition">
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            {/* Tombol logout bulat di atas sudah dihapus dari sini */}
           </div>
         </div>
 
