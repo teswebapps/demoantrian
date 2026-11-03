@@ -400,15 +400,15 @@ export default function ManajemenPage() {
   }
 
  
-// FUNGSI RESET HARI INI (DIJAMIN 100% AMAN - REKAP BULANAN & ARSIP BULAN LALU TIDAK TERHAPUS)
+// FUNGSI RESET HARI INI (Membersihkan tampilan harian jadi 0, rekap bulanan aman)
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian dan check-in hari ini? Rekap bulanan promotor dijamin aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan rincian harian? Rekap bulanan promotor dijamin aman.', async () => {
       setIsProcessing(true)
       try {
         // 1. Hapus antrian aktif saat ini
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
 
-        // 2. Hapus data check-in harian hari ini saja
+        // 2. Hapus data check-in harian untuk hari ini saja
         if (checkinList.length > 0) {
           for (const ch of checkinList) {
             if (ch.tanggalKey === todayKey) {
@@ -417,15 +417,16 @@ export default function ManajemenPage() {
           }
         }
 
-        // PERHATIAN: path `statistikAktivitas` SENGAJA TIDAK DIHAPUS SAMA SEKALI
-        // agar rekap bulanan promotor & admin (November, Desember, dst.) tetap utuh dan tersimpan sebagai arsip!
+        // 3. Simpan penanda waktu reset hari ini di database agar tampilan harian promotor & admin langsung ter-reset jadi 0
+        await set(ref(db, `toko/${TOKO_ID}/lastResetDate`), todayKey)
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Tampilan harian dibersihkan. Rekap bulanan aman.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Tampilan harian bersih menjadi 0. Rekap bulanan aman.')
       } catch (err) {
         console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Reset')
+  }
   }
   if (authLoading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
