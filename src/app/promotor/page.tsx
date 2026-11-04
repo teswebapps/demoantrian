@@ -484,14 +484,14 @@ export default function PromotorPage() {
     }
   }
 
-  // Filter Harian (Dipastikan bersih total menjadi 0 berdasarkan waktu setelah reset admin)
+// Filter Harian (Hanya menampilkan aktivitas yang terjadi SETELAH tombol Reset Hari Ini ditekan)
   const aktivitasHariIni = statistikList.filter(a => {
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
     const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
     const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
 
-    return isSetelahReset && isPromotorSama && (isHariIni || (lastResetTimestamp > 0 && waktuAktivitas >= lastResetTimestamp))
+    return isSetelahReset && isPromotorSama && isHariIni
   })
 
   const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
