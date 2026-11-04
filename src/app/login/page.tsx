@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { LoginBrand } from '@/components/login/login-brand'
 import { LoginPanel } from '@/components/login/login-panel'
+import { AuthGate } from '@/components/login/auth-gate'
 
 export const metadata: Metadata = {
   title: 'Login - Sistem Antrian UFO Elektronika',
@@ -21,24 +22,26 @@ export default function LoginPage() {
         {/* Pola Grid Halus Transparan */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
-      
-      <main className="relative flex-1 flex flex-col items-center justify-center px-5 py-6 w-full max-w-md mx-auto z-10">
-        {/* Logo & Judul */}
-        <LoginBrand />
 
-        {/* Card Login */}
-        <div className="w-full mt-8">
-          <LoginPanel />
-        </div>
+      <AuthGate>
+        <main className="relative flex-1 flex flex-col items-center justify-center px-5 py-6 w-full max-w-md mx-auto z-10">
+          {/* Logo & Judul */}
+          <LoginBrand />
 
-        {/* Footer */}
-        <p className="mt-6 text-center text-[11px] text-slate-400 mb-4">
-          {'Butuh bantuan? '}
-          <a href="#" className="font-semibold text-cyan-400 underline-offset-4 hover:underline">
-            Hubungi admin
-          </a>
-        </p>
-      </main>
+          {/* Card Login */}
+          <div className="w-full mt-8">
+            <LoginPanel />
+          </div>
+
+          {/* Footer */}
+          <p className="mt-6 text-center text-[11px] text-slate-400 mb-4">
+            {'Butuh bantuan? '}
+            <a href="#" className="font-semibold text-cyan-400 underline-offset-4 hover:underline">
+              Hubungi admin
+            </a>
+          </p>
+        </main>
+      </AuthGate>
     </div>
   )
 }

@@ -645,9 +645,7 @@ useEffect(() => {
                     <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${jarak === null ? 'bg-amber-500/10 text-amber-600' : dalamRadius ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'}`}>
                       {jarak !== null ? (dalamRadius ? `✓ Di dalam radius (${jarak.toFixed(0)}m)` : `⚠️ Di luar radius (${jarak.toFixed(0)}m)`) : statusGPS}
                     </div>
-                    <button type="button" onClick={mintaIzinGPS} className="w-full mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold">
-                      <MapPin className="w-4 h-4 inline mr-2" /> AKTIFKAN / COBA GPS LAGI
-                    </button>
+                    
                   </div>
                 ) : (
                   <div className="mb-4 p-3 bg-secondary rounded-xl text-center text-xs text-muted-foreground">GPS toko belum diatur di admin.</div>
