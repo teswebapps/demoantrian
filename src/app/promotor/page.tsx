@@ -428,8 +428,10 @@ useEffect(() => {
         const checkinSnap = await get(checkinRef)
 
         let waktuStandbyFinal: number
-        if (checkinSnap.exists()) {
-          waktuStandbyFinal = checkinSnap.val().waktu
+       if (checkinSnap.exists()) {
+  const v = checkinSnap.val()
+  waktuStandbyFinal = Math.max(Number(v.waktu) || 0, Number(v.waktuReset) || 0)
+}
         } else {
           waktuStandbyFinal = Date.now()
           await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: todayKey, waktu: waktuStandbyFinal })

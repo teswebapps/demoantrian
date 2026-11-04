@@ -318,38 +318,50 @@ export default function ManajemenPage() {
   }
 
   const handleResetIstirahat = () => {
-    showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
-      setIsProcessing(true)
-      try {
-        const currentHour = new Date().getHours()
-        const updates: Record<string, any> = {}
+  showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
+    setIsProcessing(true)
+    try {
+      const now = Date.now()
+      const currentHour = new Date().getHours()
 
-        for (const item of daftarAntrian) {
-          if (item.status !== 'Standby') continue
-          const waktuMasuk = item.waktuStandby ? new Date(item.waktuStandby).getHours() : 0
-          let shouldReset = false
+      if (currentHour < 12) {
+        showModal('error', 'Belum Waktunya', 'Reset istirahat hanya bisa dijalankan mulai jam 12.00.')
+        return
+      }
 
-          if (currentHour >= 12 && currentHour < 15) shouldReset = waktuMasuk < 12
-          else if (currentHour >= 15) shouldReset = waktuMasuk >= 12
-          else shouldReset = true
+      const updates: Record<string, any> = {}
 
-          if (shouldReset) {
-            updates[`toko/${TOKO_ID}/antrian/${cleanKey(item.nama)}`] = null
-            const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
-            updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
-              nama: item.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: hariIniIndo, tanggalKey: todayKey, hasil: 'Reset Istirahat'
-            }
+      for (const item of daftarAntrian) {
+        if (item.status !== 'Standby') continue
+        const clean = cleanKey(item.nama)
+
+        // Jam shift = jam check-in pertama hari ini
+        const checkin = checkinList.find(c => c.namaClean === clean && c.tanggalKey === todayKey)
+        const acuan = checkin?.waktu || item.waktuStandby
+        const jamShift = acuan ? new Date(acuan).getHours() : 0
+
+        let shouldReset = false
+        if (currentHour < 15) shouldReset = jamShift < 12      // reset jam 13: shift pagi keluar
+        else shouldReset = jamShift >= 12                      // reset jam 16: shift siang keluar
+
+        if (shouldReset) {
+          updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
+          if (checkin) updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}/waktuReset`] = now
+          const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
+          updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
+            nama: item.nama, aksi: 'KeluarAntrian', waktu: now,
+            tanggal: hariIniIndo, tanggalKey: todayKey, hasil: 'Reset Istirahat'
           }
         }
+      }
 
-        if (Object.keys(updates).length > 0) await update(ref(db), updates)
-        showModal('success', 'Berhasil', 'Reset istirahat gelombang ini berhasil dijalankan.')
-      } catch (err) {
-        showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
-      } finally { setIsProcessing(false) }
-    }, 'Ya, Reset')
-  }
-
+      if (Object.keys(updates).length > 0) await update(ref(db), updates)
+      showModal('success', 'Berhasil', 'Reset istirahat gelombang ini berhasil dijalankan.')
+    } catch (err) {
+      showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
+    } finally { setIsProcessing(false) }
+  }, 'Ya, Reset')
+}
   const handleLockUnlock = async () => {
     if (!selectedLockSales) { showModal('error', 'Peringatan', 'Pilih promotor terlebih dahulu!'); return }
     setIsProcessing(true)
