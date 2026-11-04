@@ -392,24 +392,25 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  const handleResetHariIni = () => {
+ const handleResetHariIni = () => {
     showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian dan check-in harian? Rekap bulanan promotor tetap aman.', async () => {
       setIsProcessing(true)
       try {
-        // Hanya hapus antrian aktif dan check-in hari ini
+        // HANYA bersihkan antrian aktif & check-in harian
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
         await remove(ref(db, `toko/${TOKO_ID}/checkinHarian`))
         
-        // Catat timestamp reset agar aktivitas sebelum jam ini otomatis tersembunyi dari tampilan harian
+        // Catat waktu reset untuk menyembunyikan rincian harian promotor
         await set(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), Date.now())
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian dan rincian harian dibersihkan tanpa menghapus database bulanan.')
+        showModal('success', 'Berhasil', 'Reset harian berhasil! Antrian dibersihkan, rekap bulanan tetap utuh.')
       } catch (err) {
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
       } finally {
         setIsProcessing(false)
       }
     }, 'Ya, Reset')
+  }
   }
   if (authLoading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
