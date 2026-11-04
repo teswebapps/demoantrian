@@ -12,12 +12,24 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
-import { CustomModal } from '@/components/ui/CustomModal'
 import { useAutoReset } from '@/hooks/useAutoReset'
+import { CustomModal } from '@/components/ui/CustomModal'
+
 interface Option { label: string; value: string }
 
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
+
+/* ===== STYLE TOMBOL (gradasi cerah, sama kesan dengan halaman promotor) ===== */
+const btnBase =
+  'w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider flex justify-center items-center gap-2 shadow-lg border-t border-white/40 transition-all active:scale-95 disabled:opacity-50'
+
+const btnEmerald = `${btnBase} bg-gradient-to-b from-emerald-400 to-emerald-500 text-white shadow-emerald-500/50 hover:from-emerald-300 hover:to-emerald-400`
+const btnAmber = `${btnBase} bg-gradient-to-b from-amber-400 to-amber-500 text-white shadow-amber-500/50 hover:from-amber-300 hover:to-amber-400`
+const btnCyan = `${btnBase} bg-gradient-to-b from-cyan-300 to-cyan-500 text-slate-950 shadow-cyan-500/50 hover:from-cyan-200 hover:to-cyan-400`
+const btnRose = `${btnBase} bg-gradient-to-b from-rose-500 to-rose-600 text-white shadow-rose-500/50 hover:from-rose-400 hover:to-rose-500`
+const btnRed = `${btnBase} bg-gradient-to-b from-red-500 to-red-600 text-white shadow-red-500/50 hover:from-red-400 hover:to-red-500`
+const btnPurple = `${btnBase} bg-gradient-to-b from-purple-500 to-purple-600 text-white shadow-purple-500/50 hover:from-purple-400 hover:to-purple-500`
 
 export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
   const key = cleanKey(nama)
@@ -151,13 +163,26 @@ export default function ManajemenPage() {
     setModalConfig({ isOpen: true, type, title, message, confirmText, onConfirm })
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
+  useAutoReset(user ? TOKO_ID : undefined)
 
+  // Tanggal diperbarui tiap menit supaya ikut ganti hari
   useEffect(() => {
-    const d = new Date()
-    const pad = (n: number) => String(n).padStart(2, '0')
-    setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
-    setTodayKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+    const updateTanggal = () => {
+      const d = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
+      setTodayKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+    }
+    updateTanggal()
+    const t = setInterval(updateTanggal, 60_000)
+    return () => clearInterval(t)
   }, [])
+
+  // Sinkronkan class "dark" di <html> dengan tema
+  useEffect(() => {
+    if (!mounted) return
+    document.documentElement.classList.toggle('dark', isDark)
+  }, [isDark, mounted])
 
   useEffect(() => {
     if (!TOKO_ID) return
@@ -317,51 +342,56 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
+  /* ===== RESET ISTIRAHAT =====
+     Jam 13.00 -> yang check-in SEBELUM jam 12 (shift pagi) keluar antrian.
+     Jam 16.00 -> yang check-in jam 12 KE ATAS (shift siang) keluar antrian.
+     Jam shift diambil dari check-in pertama hari ini (tidak diubah oleh reset).
+     Check-in diberi 'waktuReset' supaya saat masuk lagi posisinya di belakang. */
   const handleResetIstirahat = () => {
-  showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
-    setIsProcessing(true)
-    try {
-      const now = Date.now()
-      const currentHour = new Date().getHours()
+    showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
+      setIsProcessing(true)
+      try {
+        const now = Date.now()
+        const currentHour = new Date().getHours()
 
-      if (currentHour < 12) {
-        showModal('error', 'Belum Waktunya', 'Reset istirahat hanya bisa dijalankan mulai jam 12.00.')
-        return
-      }
+        if (currentHour < 12) {
+          showModal('error', 'Belum Waktunya', 'Reset istirahat hanya bisa dijalankan mulai jam 12.00.')
+          return
+        }
 
-      const updates: Record<string, any> = {}
+        const updates: Record<string, any> = {}
 
-      for (const item of daftarAntrian) {
-        if (item.status !== 'Standby') continue
-        const clean = cleanKey(item.nama)
+        for (const item of daftarAntrian) {
+          if (item.status !== 'Standby') continue
+          const clean = cleanKey(item.nama)
 
-        // Jam shift = jam check-in pertama hari ini
-        const checkin = checkinList.find(c => c.namaClean === clean && c.tanggalKey === todayKey)
-        const acuan = checkin?.waktu || item.waktuStandby
-        const jamShift = acuan ? new Date(acuan).getHours() : 0
+          const checkin = checkinList.find(c => c.namaClean === clean && c.tanggalKey === todayKey)
+          const acuan = checkin?.waktu || item.waktuStandby
+          const jamShift = acuan ? new Date(acuan).getHours() : 0
 
-        let shouldReset = false
-        if (currentHour < 15) shouldReset = jamShift < 12      // reset jam 13: shift pagi keluar
-        else shouldReset = jamShift >= 12                      // reset jam 16: shift siang keluar
+          let shouldReset = false
+          if (currentHour < 15) shouldReset = jamShift < 12   // reset jam 13: shift pagi keluar
+          else shouldReset = jamShift >= 12                   // reset jam 16: shift siang keluar
 
-        if (shouldReset) {
-          updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
-          if (checkin) updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}/waktuReset`] = now
-          const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
-          updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
-            nama: item.nama, aksi: 'KeluarAntrian', waktu: now,
-            tanggal: hariIniIndo, tanggalKey: todayKey, hasil: 'Reset Istirahat'
+          if (shouldReset) {
+            updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
+            if (checkin) updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}/waktuReset`] = now
+            const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
+            updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
+              nama: item.nama, aksi: 'KeluarAntrian', waktu: now,
+              tanggal: hariIniIndo, tanggalKey: todayKey, hasil: 'Reset Istirahat'
+            }
           }
         }
-      }
 
-      if (Object.keys(updates).length > 0) await update(ref(db), updates)
-      showModal('success', 'Berhasil', 'Reset istirahat gelombang ini berhasil dijalankan.')
-    } catch (err) {
-      showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
-    } finally { setIsProcessing(false) }
-  }, 'Ya, Reset')
-}
+        if (Object.keys(updates).length > 0) await update(ref(db), updates)
+        showModal('success', 'Berhasil', 'Reset istirahat gelombang ini berhasil dijalankan.')
+      } catch (err) {
+        showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
+      } finally { setIsProcessing(false) }
+    }, 'Ya, Reset')
+  }
+
   const handleLockUnlock = async () => {
     if (!selectedLockSales) { showModal('error', 'Peringatan', 'Pilih promotor terlebih dahulu!'); return }
     setIsProcessing(true)
@@ -461,17 +491,19 @@ export default function ManajemenPage() {
         </div>
 
         <div className="space-y-4">
+          {/* TAMBAH PROMOTOR */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Tambah Promotor Baru</h3>
             <form onSubmit={handleTambahPromotor} className="space-y-3">
               <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-bold text-foreground focus:outline-none uppercase" required />
               <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" required />
-              <button type="submit" disabled={isProcessing} className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-2xl uppercase tracking-wider text-xs hover:opacity-95 transition shadow-sm disabled:opacity-50">
+              <button type="submit" disabled={isProcessing} className={btnCyan}>
                 {isProcessing ? 'Memproses...' : 'Simpan Promotor'}
               </button>
             </form>
           </div>
 
+          {/* ATUR ANTRIAN */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Atur Antrian</h3>
             <div className="space-y-3">
@@ -481,19 +513,20 @@ export default function ManajemenPage() {
                 <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Nomor antrian (kosong = paling akhir)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className="py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-50">
-                  <UserPlus className="w-4 h-4" /> Masukkan ke Antrian
+                <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className={btnEmerald}>
+                  <UserPlus className="w-5 h-5" /> Masukkan ke Antrian
                 </button>
-                <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className="py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50">
-                  <UserMinus className="w-4 h-4" /> Keluarkan dari Antrian
+                <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className={btnAmber}>
+                  <UserMinus className="w-5 h-5" /> Keluarkan dari Antrian
                 </button>
               </div>
-              <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className="w-full py-3.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-cyan-500/20 active:scale-95 disabled:opacity-50">
-                <Play className="w-4 h-4" /> Paksa Bawa Customer
+              <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className={btnCyan}>
+                <Play className="w-5 h-5" /> Paksa Bawa Customer
               </button>
             </div>
           </div>
 
+          {/* TINDAKAN DARURAT */}
           <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
             <div className="space-y-3">
@@ -514,23 +547,23 @@ export default function ManajemenPage() {
                 </>
               )}
 
-              <button type="button" onClick={handleLockUnlock} disabled={isProcessing} className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-rose-600/20 active:scale-95 disabled:opacity-50">
-                {lockAction === 'LOCK' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              <button type="button" onClick={handleLockUnlock} disabled={isProcessing} className={btnRose}>
+                {lockAction === 'LOCK' ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
                 {lockAction === 'LOCK' ? 'Kunci Akun' : 'Buka Kunci'}
               </button>
 
-              <button type="button" onClick={() => handleHapusPermanen(selectedLockSales)} disabled={isProcessing || !selectedLockSales} className="w-full py-3.5 bg-rose-700 hover:bg-rose-800 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-rose-700/20 active:scale-95 disabled:opacity-50">
-                <Trash2 className="w-4 h-4" /> Hapus Promotor Permanen
+              <button type="button" onClick={() => handleHapusPermanen(selectedLockSales)} disabled={isProcessing || !selectedLockSales} className={btnRed}>
+                <Trash2 className="w-5 h-5" /> Hapus Promotor Permanen
               </button>
 
               <hr className="border-border my-2" />
 
-              <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 transition disabled:opacity-50">
-                <Coffee className="w-4 h-4" /> RESET ISTIRAHAT (STANDBY)
+              <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className={btnAmber}>
+                <Coffee className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
               </button>
 
-              <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className="w-full py-3.5 bg-rose-900 hover:bg-rose-950 text-white font-black rounded-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 active:scale-95 transition disabled:opacity-50">
-                <RefreshCcw className="w-4 h-4" /> RESET HARI INI
+              <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className={btnPurple}>
+                <RefreshCcw className="w-5 h-5" /> RESET HARI INI
               </button>
             </div>
           </div>
