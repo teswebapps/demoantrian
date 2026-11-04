@@ -9,7 +9,7 @@ import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
 import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, ChevronDown, ChevronUp, Users, CalendarDays, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-
+import { useAutoReset } from '@/hooks/useAutoReset'
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
 import { TurnCard } from '@/components/queue/turn-card'
@@ -141,7 +141,7 @@ export default function PromotorPage() {
   const [statistikList, setStatistikList] = useState<any[]>([])
   const [lastResetTimestamp, setLastResetTimestamp] = useState<number>(0)
   const [hariIniIndo, setHariIniIndo] = useState('')
-
+const [tahunIni, setTahunIni] = useState<number>(0)
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(true)
 
   const [openCollapse, setOpenCollapse] = useState<{ [key: string]: boolean }>({
@@ -159,15 +159,21 @@ export default function PromotorPage() {
   }
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
-
+useAutoReset(userData ? TOKO_ID : undefined) 
   const latTokoFinal = Number(setting?.latToko || setting?.lat || 0)
   const lngTokoFinal = Number(setting?.lngToko || setting?.lng || 0)
   const radiusFinal = Number(setting?.radiusToko || setting?.radiusMaks || 50) || 50
 
-  useEffect(() => {
+useEffect(() => {
+  const update = () => {
     setHariIniIndo(getTanggalIndo())
     setTodayKey(getTanggalKey())
-  }, [])
+    setTahunIni(new Date().getFullYear())
+  }
+  update()
+  const t = setInterval(update, 60_000)
+  return () => clearInterval(t)
+}, [])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -496,20 +502,20 @@ export default function PromotorPage() {
     }
   }
 
-  // Filter Aktivitas Harian (Bawa Customer, Ibadah, Keluar otomatis jadi 0 setelah Reset Hari Ini)
+  // Filter Aktivitas Harian (Akan bersih menjadi 0 setelah Admin menekan Reset Hari Ini)
   const aktivitasHariIni = statistikList.filter(a => {
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || a.waktuSelesai || 0)
     
-    // Syarat 1: Harus terjadi SETELAH tombol reset ditekan oleh admin
-    const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
-    
-    // Syarat 2: Harus milik promotor yang sedang login
+    // Syarat 1: Harus milik promotor yang sedang login
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
     
-    // Syarat 3: Wajib di hari yang sama (hari ini)
+    // Syarat 2: Wajib di hari yang sama (hari ini) berdasarkan tanggalKey
     const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
+    
+    // Syarat 3: Wajib dibuat SETELAH tombol reset harian terakhir ditekan oleh admin
+    const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
 
-    return isSetelahReset && isPromotorSama && isHariIni
+    return isPromotorSama && isHariIni && isSetelahReset
   })
 
   const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
@@ -519,16 +525,16 @@ export default function PromotorPage() {
   const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokickSaya = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
 
-  // Total Bulanan (Memisahkan Oktober, November, dll., dan otomatis mereset saat berganti tahun)
-  const tahunIni = new Date().getFullYear()
+  // Total Bulanan (Memisahkan bulan, dan otomatis mereset saat berganti tahun)
+ 
   const rekapBulananMap = statistikList
-    .filter(a => {
-      if (a.aksi !== 'BawaCustomer' || !a.waktu) return false
-      const d = new Date(a.waktu)
-      // Reset otomatis ganti tahun (hanya ambil tahun berjalan)
-      if (d.getFullYear() !== tahunIni) return false
-      return String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
-    })
+  .filter(a => {
+    if (!tahunIni) return false              // <-- tambah ini
+    if (a.aksi !== 'BawaCustomer' || !a.waktu) return false
+    const d = new Date(a.waktu)
+    if (d.getFullYear() !== tahunIni) return false
+    return String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
+  })
     .reduce((acc: any, curr: any) => {
       const d = new Date(curr.waktu)
       const bulanIdx = d.getMonth()

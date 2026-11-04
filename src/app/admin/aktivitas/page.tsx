@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Users, Coffee, LogOut, ShieldAlert, Award, Calendar, X, Sun, Moon, ShieldCheck, LayoutDashboard, History, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
-
+import { useAutoReset } from '@/hooks/useAutoReset'
 const NAMA_BULAN = [
   'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 
   'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
@@ -28,69 +28,78 @@ export default function AktivitasAdminPage() {
   const [hariIniIndo, setHariIniIndo] = useState('')
   const [todayKey, setTodayKey] = useState('')
   const [periodeBulanIni, setPeriodeBulanIni] = useState('')
+  const [targetBulanIdx, setTargetBulanIdx] = useState(0)
+  const [targetTahun, setTargetTahun] = useState(2026)
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
-
-  useEffect(() => {
+useAutoReset(user ? TOKO_ID : undefined)
+// 1. Tanggal: diperbarui tiap menit supaya ikut ganti hari/bulan/tahun
+useEffect(() => {
+  const updateTanggal = () => {
     const d = new Date()
-    const tglIndo = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`
-    const tglKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    
-    setHariIniIndo(tglIndo)
-    setTodayKey(tglKey)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
+    setTodayKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
     setPeriodeBulanIni(`${NAMA_BULAN[d.getMonth()]} ${d.getFullYear()}`)
-    
-    if (!TOKO_ID) return
+    setTargetBulanIdx(d.getMonth())
+    setTargetTahun(d.getFullYear())
+  }
+  updateTanggal()
+  const t = setInterval(updateTanggal, 60_000)
+  return () => clearInterval(t)
+}, [])
 
-    // 1. Mendengarkan data statistik aktivitas (untuk rekap bulanan & harian)
-    const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
-      const data = snap.val()
-      const list: any[] = []
-      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
-      setStatistikList(list)
-    })
+// 2. Listener Firebase (isi tetap sama seperti sebelumnya)
+useEffect(() => {
+  if (!TOKO_ID) return
 
-    // 2. Mendengarkan stempel waktu reset harian terakhir
-    const unsubReset = onValue(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), (snap) => {
-      if (snap.exists()) setLastResetTimestamp(snap.val())
-      else setLastResetTimestamp(0)
-    })
+  const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
+    const data = snap.val()
+    const list: any[] = []
+    if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
+    setStatistikList(list)
+  })
 
-    const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
-      const data = snap.val()
-      const list: any[] = []
-      if (data) {
-        Object.keys(data).forEach(promotorKey => {
-          const tglData = data[promotorKey]
-          if (tglData && typeof tglData === 'object') {
-            Object.keys(tglData).forEach(dateKey => {
-              list.push({ ...tglData[dateKey], promotorKey, dateKey })
-            })
-          }
-        })
-      }
-      setCheckinList(list)
-    })
+  const unsubReset = onValue(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), (snap) => {
+    if (snap.exists()) setLastResetTimestamp(snap.val())
+    else setLastResetTimestamp(0)
+  })
 
-    const unsubUser = onValue(ref(db, 'users/whitelist'), (snap) => {
-      const data = snap.val()
-      const list: any[] = []
-      if (data) {
-        Object.keys(data).forEach(k => {
-          if (data[k].role !== 'ADMIN') list.push({ ...data[k], _key: k })
-        })
-      }
-      setWhitelistUsers(list)
-      setLoading(false)
-    })
-
-    return () => {
-      unsubStat()
-      unsubReset()
-      unsubCheckin()
-      unsubUser()
+  const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
+    const data = snap.val()
+    const list: any[] = []
+    if (data) {
+      Object.keys(data).forEach(promotorKey => {
+        const tglData = data[promotorKey]
+        if (tglData && typeof tglData === 'object') {
+          Object.keys(tglData).forEach(dateKey => {
+            list.push({ ...tglData[dateKey], promotorKey, dateKey })
+          })
+        }
+      })
     }
-  }, [TOKO_ID])
+    setCheckinList(list)
+  })
+
+  const unsubUser = onValue(ref(db, 'users/whitelist'), (snap) => {
+    const data = snap.val()
+    const list: any[] = []
+    if (data) {
+      Object.keys(data).forEach(k => {
+        if (data[k].role !== 'ADMIN') list.push({ ...data[k], _key: k })
+      })
+    }
+    setWhitelistUsers(list)
+    setLoading(false)
+  })
+
+  return () => {
+    unsubStat()
+    unsubReset()
+    unsubCheckin()
+    unsubUser()
+  }
+}, [TOKO_ID])
 
   useEffect(() => {
     if (mounted) {
@@ -118,16 +127,16 @@ export default function AktivitasAdminPage() {
   const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick')
   const checkinHariIni = checkinList.filter(c => c.tanggalKey === todayKey)
 
-  // Rekap Promotor Bulanan (Menggunakan seluruh data tanpa terpengaruh reset harian)
+  // Rekap Promotor Bulanan (Menggunakan state stateful dari useEffect agar aman dari prerender)
   const rekapPromotorMap = statistikList
-    .filter(a => a.aksi === 'BawaCustomer' && a.nama && a.tanggal)
+    .filter(a => {
+      if (a.aksi !== 'BawaCustomer' || !a.nama) return false
+      const ts = Number(a.waktuSelesai || a.waktu || 0)
+      if (!ts) return false
+      const d = new Date(ts)
+      return d.getMonth() === targetBulanIdx && d.getFullYear() === targetTahun
+    })
     .reduce((acc: any, curr: any) => {
-      const parts = String(curr.tanggal).split('-')
-      if (parts.length === 3) {
-        const blnThn = `${NAMA_BULAN[parseInt(parts[1]) - 1]} ${parts[2]}`
-        if (blnThn !== periodeBulanIni) return acc
-      }
-
       const nama = curr.nama.toUpperCase()
       if (!acc[nama]) {
         acc[nama] = { namaPromotor: nama, deal: 0, lihat: 0, noSale: 0, hariSet: new Set() }
