@@ -393,15 +393,17 @@ export default function ManajemenPage() {
   }
 
   const handleResetHariIni = () => {
-    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian, check-in, dan seluruh rincian harian? Rekap bulanan promotor dijamin aman.', async () => {
+    showModal('confirm', 'Reset Hari Ini', '⚠️ Bersihkan antrian dan check-in harian? Rekap bulanan promotor tetap aman.', async () => {
       setIsProcessing(true)
       try {
+        // Hanya hapus antrian aktif dan check-in hari ini
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
         await remove(ref(db, `toko/${TOKO_ID}/checkinHarian`))
-        await remove(ref(db, `toko/${TOKO_ID}/statistikAktivitas`))
+        
+        // Catat timestamp reset agar aktivitas sebelum jam ini otomatis tersembunyi dari tampilan harian
         await set(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), Date.now())
 
-        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Tampilan rincian harian promotor bersih total menjadi 0.')
+        showModal('success', 'Berhasil', 'Reset hari ini berhasil! Antrian dan rincian harian dibersihkan tanpa menghapus database bulanan.')
       } catch (err) {
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
       } finally {
@@ -409,7 +411,6 @@ export default function ManajemenPage() {
       }
     }, 'Ya, Reset')
   }
-
   if (authLoading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   }
