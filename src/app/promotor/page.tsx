@@ -202,12 +202,24 @@ export default function PromotorPage() {
     if (!userData || !todayKey) return
     const clean = cleanNama(userData.nama)
     const unsub = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`), (snap) => {
-      setSudahCheckinHariIni(snap.exists())
-      setJamCheckin(snap.exists() ? snap.val().waktu : null)
+      if (snap.exists()) {
+        const val = snap.val()
+        const waktuCheckin = Number(val.waktu || 0)
+        if (lastResetTimestamp > 0 && waktuCheckin < lastResetTimestamp) {
+          setSudahCheckinHariIni(false)
+          setJamCheckin(null)
+        } else {
+          setSudahCheckinHariIni(true)
+          setJamCheckin(val.waktu)
+        }
+      } else {
+        setSudahCheckinHariIni(false)
+        setJamCheckin(null)
+      }
       setIsLoadingCheckin(false)
     })
     return () => unsub()
-  }, [userData, todayKey, TOKO_ID])
+  }, [userData, todayKey, TOKO_ID, lastResetTimestamp])
 
   useEffect(() => {
     if (!TOKO_ID) return
@@ -484,11 +496,17 @@ export default function PromotorPage() {
     }
   }
 
-// Filter Harian (Hanya menampilkan aktivitas yang terjadi SETELAH tombol Reset Hari Ini ditekan)
+  // Filter Aktivitas Harian (Bawa Customer, Ibadah, Keluar otomatis jadi 0 setelah Reset Hari Ini)
   const aktivitasHariIni = statistikList.filter(a => {
-    const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
+    const waktuAktivitas = Number(a.waktu || a.waktuMulai || a.waktuSelesai || 0)
+    
+    // Syarat 1: Harus terjadi SETELAH tombol reset ditekan oleh admin
     const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
+    
+    // Syarat 2: Harus milik promotor yang sedang login
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
+    
+    // Syarat 3: Wajib di hari yang sama (hari ini)
     const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
 
     return isSetelahReset && isPromotorSama && isHariIni
@@ -497,13 +515,20 @@ export default function PromotorPage() {
   const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
   const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
-  const listIbadahSaya = aktivitasHariIni.filter(a => (a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah'))
+  const listIbadahSaya = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
   const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
-  const listAutokickSaya = aktivitasHariIni.filter(a => (a.aksi === 'Autokick' || a.aksi === 'AutoKick'))
+  const listAutokickSaya = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
 
-  // Filter Rekap Bulanan (Aman, tersimpan utuh dan tidak terpengaruh reset harian)
+  // Total Bulanan (Memisahkan Oktober, November, dll., dan otomatis mereset saat berganti tahun)
+  const tahunIni = new Date().getFullYear()
   const rekapBulananMap = statistikList
-    .filter(a => a.aksi === 'BawaCustomer' && a.waktu && String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase())
+    .filter(a => {
+      if (a.aksi !== 'BawaCustomer' || !a.waktu) return false
+      const d = new Date(a.waktu)
+      // Reset otomatis ganti tahun (hanya ambil tahun berjalan)
+      if (d.getFullYear() !== tahunIni) return false
+      return String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
+    })
     .reduce((acc: any, curr: any) => {
       const d = new Date(curr.waktu)
       const bulanIdx = d.getMonth()
@@ -995,7 +1020,7 @@ export default function PromotorPage() {
         </div>
       )}
 
-      <LogoutModal show={showLogoutConfirm} onCancel={() => setShowLogoutConfirm5(false)} onConfirm={handleLogout} />
+      <LogoutModal show={showLogoutConfirm} onCancel={() => setShowLogoutConfirm(false)} onConfirm={handleLogout} />
     </div>
   )
 }
