@@ -4,32 +4,20 @@ import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
 import {
   Loader2, UserPlus, UserMinus, Play, Lock, Unlock,
-  ShieldAlert, LayoutDashboard, History, Settings, LogOut, Sun, Moon,
-  Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee, RefreshCcw
+  ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee, RefreshCcw
 } from 'lucide-react'
-import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import { CustomModal } from '@/components/ui/CustomModal'
+import { AdminShell } from '@/components/admin/admin-shell'
+import { SectionCard, StatTile, inputCls, btn } from '@/components/admin/admin-ui'
 
 interface Option { label: string; value: string }
 
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
-
-/* ===== STYLE TOMBOL (gradasi cerah, sama kesan dengan halaman promotor) ===== */
-const btnBase =
-  'w-full py-4 rounded-xl font-black text-xs uppercase tracking-wider flex justify-center items-center gap-2 shadow-lg border-t border-white/40 transition-all active:scale-95 disabled:opacity-50'
-
-const btnEmerald = `${btnBase} bg-gradient-to-b from-emerald-400 to-emerald-500 text-white shadow-emerald-500/50 hover:from-emerald-300 hover:to-emerald-400`
-const btnAmber = `${btnBase} bg-gradient-to-b from-amber-400 to-amber-500 text-white shadow-amber-500/50 hover:from-amber-300 hover:to-amber-400`
-const btnCyan = `${btnBase} bg-gradient-to-b from-cyan-300 to-cyan-500 text-slate-950 shadow-cyan-500/50 hover:from-cyan-200 hover:to-cyan-400`
-const btnRose = `${btnBase} bg-gradient-to-b from-rose-500 to-rose-600 text-white shadow-rose-500/50 hover:from-rose-400 hover:to-rose-500`
-const btnRed = `${btnBase} bg-gradient-to-b from-red-500 to-red-600 text-white shadow-red-500/50 hover:from-red-400 hover:to-red-500`
-const btnPurple = `${btnBase} bg-gradient-to-b from-purple-500 to-purple-600 text-white shadow-purple-500/50 hover:from-purple-400 hover:to-purple-500`
 
 export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
   const key = cleanKey(nama)
@@ -93,7 +81,7 @@ function CustomSelect({ options, value, onChange, placeholder = 'Pilih opsi...',
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-10 text-xs font-medium text-foreground text-left focus:outline-none flex items-center justify-between shadow-sm transition-all hover:bg-slate-200/50 dark:hover:bg-secondary"
+        className={`${inputCls} ${icon ? 'pl-11' : ''} pr-10 text-left flex items-center justify-between hover:bg-secondary transition`}
       >
         {icon && <span className="absolute left-4 text-muted-foreground">{icon}</span>}
         <span className={`truncate ${!value ? 'text-muted-foreground' : 'text-foreground font-bold uppercase'}`}>{displayLabel}</span>
@@ -101,7 +89,7 @@ function CustomSelect({ options, value, onChange, placeholder = 'Pilih opsi...',
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute z-50 mt-2 w-full bg-card border border-border rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
           {options.length === 0 ? (
             <div className="p-3 text-xs text-muted-foreground text-center italic">Tidak ada pilihan</div>
           ) : (
@@ -148,7 +136,6 @@ export default function ManajemenPage() {
   const [lockDuration, setLockDuration] = useState('60')
 
   const [checkinList, setCheckinList] = useState<any[]>([])
-  const [statistikList, setStatistikList] = useState<any[]>([])
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean
@@ -165,7 +152,6 @@ export default function ManajemenPage() {
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
   useAutoReset(user ? TOKO_ID : undefined)
 
-  // Tanggal diperbarui tiap menit supaya ikut ganti hari
   useEffect(() => {
     const updateTanggal = () => {
       const d = new Date()
@@ -177,12 +163,6 @@ export default function ManajemenPage() {
     const t = setInterval(updateTanggal, 60_000)
     return () => clearInterval(t)
   }, [])
-
-  // Sinkronkan class "dark" di <html> dengan tema
-  useEffect(() => {
-    if (!mounted) return
-    document.documentElement.classList.toggle('dark', isDark)
-  }, [isDark, mounted])
 
   useEffect(() => {
     if (!TOKO_ID) return
@@ -209,13 +189,6 @@ export default function ManajemenPage() {
       setDaftarAntrian(list)
     })
 
-    const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
-      const data = snap.val()
-      const list: any[] = []
-      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
-      setStatistikList(list)
-    })
-
     const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
       const data = snap.val()
       const list: any[] = []
@@ -232,7 +205,7 @@ export default function ManajemenPage() {
       setCheckinList(list)
     })
 
-    return () => { unsubMaster(); unsubAntrian(); unsubStat(); unsubCheckin() }
+    return () => { unsubMaster(); unsubAntrian(); unsubCheckin() }
   }, [TOKO_ID])
 
   const handleTambahPromotor = async (e: React.FormEvent) => {
@@ -342,11 +315,10 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  /* ===== RESET ISTIRAHAT =====
-     Jam 13.00 -> yang check-in SEBELUM jam 12 (shift pagi) keluar antrian.
-     Jam 16.00 -> yang check-in jam 12 KE ATAS (shift siang) keluar antrian.
-     Jam shift diambil dari check-in pertama hari ini (tidak diubah oleh reset).
-     Check-in diberi 'waktuReset' supaya saat masuk lagi posisinya di belakang. */
+  /* RESET ISTIRAHAT
+     Jam 13.00: check-in sebelum jam 12 (shift pagi) keluar antrian.
+     Jam 16.00: check-in jam 12 ke atas (shift siang) keluar antrian.
+     Jam shift dari check-in pertama; reset hanya menambah 'waktuReset'. */
   const handleResetIstirahat = () => {
     showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
       setIsProcessing(true)
@@ -370,8 +342,8 @@ export default function ManajemenPage() {
           const jamShift = acuan ? new Date(acuan).getHours() : 0
 
           let shouldReset = false
-          if (currentHour < 15) shouldReset = jamShift < 12   // reset jam 13: shift pagi keluar
-          else shouldReset = jamShift >= 12                   // reset jam 16: shift siang keluar
+          if (currentHour < 15) shouldReset = jamShift < 12
+          else shouldReset = jamShift >= 12
 
           if (shouldReset) {
             updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
@@ -441,7 +413,6 @@ export default function ManajemenPage() {
         await remove(ref(db, `toko/${TOKO_ID}/antrian`))
         await remove(ref(db, `toko/${TOKO_ID}/checkinHarian`))
         await set(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), Date.now())
-
         showModal('success', 'Berhasil', 'Reset harian berhasil! Antrian dibersihkan, rekap bulanan tetap utuh.')
       } catch (err) {
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
@@ -457,118 +428,96 @@ export default function ManajemenPage() {
 
   const opsiPromotor = masterSales.map(s => ({ label: s.nama, value: s.nama }))
 
+  const jmlHA = daftarAntrian.filter(a => a.kategori === 'HA').length
+  const jmlAV = daftarAntrian.filter(a => a.kategori === 'AV').length
+  const jmlMelayani = daftarAntrian.filter(a => a.status === 'Melayani').length
+  const jmlIbadah = daftarAntrian.filter(a => a.status === 'Ibadah').length
+
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex relative font-sans transition-colors duration-300 pb-20 md:pb-6">
-      <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
-        <div className="p-5 flex items-center gap-3 border-b border-border">
-          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
-            <img src="/logo-ufo.png" alt="UFO Logo" className="w-full h-full object-contain" />
-          </div>
-          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Admin</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
+    <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout}>
+      {/* RINGKASAN LIVE */}
+      <section className="flex flex-col gap-3">
+        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Kondisi antrian saat ini</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile label="Antrian HA" value={jmlHA} tone="cyan" />
+          <StatTile label="Antrian AV" value={jmlAV} tone="purple" />
+          <StatTile label="Melayani" value={jmlMelayani} tone="blue" />
+          <StatTile label="Ibadah" value={jmlIbadah} tone="amber" />
         </div>
-        <nav className="flex-1 p-3 space-y-1.5">
-          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
-          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
-          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><ShieldAlert className="w-4 h-4" /> Kontrol Antrian</Link>
-          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
-        </nav>
-        <div className="p-3 border-t border-border">
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
-            <LogOut className="w-3.5 h-3.5" /> Keluar
+      </section>
+
+      {/* ATUR ANTRIAN */}
+      <SectionCard icon={<UserMinus className="w-5 h-5" />} tone="amber" title="Atur Antrian" subtitle="Masukkan, keluarkan, atau paksa melayani">
+        <div className="space-y-3">
+          <CustomSelect options={opsiPromotor} value={selectedSales} onChange={setSelectedSales} placeholder="-- Pilih Promotor --" icon={<Users className="w-4 h-4" />} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <CustomSelect options={[{ label: 'Kategori HA', value: 'HA' }, { label: 'Kategori AV', value: 'AV' }]} value={selectedKategori} onChange={setSelectedKategori} placeholder="Pilih Kategori" />
+            <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Nomor antrian (kosong = akhir)" className={inputCls} min="1" />
+          </div>
+          <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className={btn.emerald}>
+            <UserPlus className="w-5 h-5" /> MASUKKAN KE ANTRIAN
+          </button>
+          <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className={btn.amber}>
+            <UserMinus className="w-5 h-5" /> KELUARKAN DARI ANTRIAN
+          </button>
+          <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className={btn.cyan}>
+            <Play className="w-5 h-5" /> PAKSA BAWA CUSTOMER
           </button>
         </div>
-      </aside>
+      </SectionCard>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-4 md:p-6 overflow-y-auto max-w-3xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">AKSI CEPAT</h1>
-            <p className="text-xs text-muted-foreground uppercase">Kontrol Penuh Admin</p>
-          </div>
-          <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
-            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+      {/* RESET */}
+      <SectionCard icon={<RefreshCcw className="w-5 h-5" />} tone="purple" title="Reset Antrian" subtitle="Reset istirahat dan reset harian">
+        <div className="space-y-3">
+          <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className={btn.amber}>
+            <Coffee className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
+          </button>
+          <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className={btn.purple}>
+            <RefreshCcw className="w-5 h-5" /> RESET HARI INI
           </button>
         </div>
+      </SectionCard>
 
-        <div className="space-y-4">
-          {/* TAMBAH PROMOTOR */}
-          <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Tambah Promotor Baru</h3>
-            <form onSubmit={handleTambahPromotor} className="space-y-3">
-              <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-bold text-foreground focus:outline-none uppercase" required />
-              <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" required />
-              <button type="submit" disabled={isProcessing} className={btnCyan}>
-                {isProcessing ? 'Memproses...' : 'Simpan Promotor'}
-              </button>
-            </form>
-          </div>
+      {/* TINDAKAN DARURAT */}
+      <SectionCard icon={<ShieldAlert className="w-5 h-5" />} tone="rose" title="Tindakan Darurat" subtitle="Kunci akun atau hapus promotor">
+        <div className="space-y-3">
+          <CustomSelect options={opsiPromotor} value={selectedLockSales} onChange={setSelectedLockSales} placeholder="-- Pilih Promotor --" icon={<Users className="w-4 h-4" />} />
+          <CustomSelect options={[{ label: 'Lock Akun Promotor', value: 'LOCK' }, { label: 'Unlock Akun Promotor', value: 'UNLOCK' }]} value={lockAction} onChange={setLockAction} placeholder="Pilih Aksi" icon={<KeyRound className="w-4 h-4" />} />
 
-          {/* ATUR ANTRIAN */}
-          <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-500" /> Atur Antrian</h3>
-            <div className="space-y-3">
-              <CustomSelect options={opsiPromotor} value={selectedSales} onChange={setSelectedSales} placeholder="-- Pilih Promotor --" icon={<Users className="w-4 h-4" />} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <CustomSelect options={[{ label: 'Kategori HA', value: 'HA' }, { label: 'Kategori AV', value: 'AV' }]} value={selectedKategori} onChange={setSelectedKategori} placeholder="Pilih Kategori" />
-                <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Nomor antrian (kosong = paling akhir)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 px-4 text-xs font-medium text-foreground focus:outline-none" min="1" />
+          {lockAction === 'LOCK' && (
+            <>
+              <div className="relative">
+                <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none"><FileText className="w-4 h-4" /></div>
+                <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Alasan (misal: Pulang tanpa keluar antrian)" className={`${inputCls} pl-11`} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button type="button" onClick={handleMasukanAntri} disabled={isProcessing} className={btnEmerald}>
-                  <UserPlus className="w-5 h-5" /> Masukkan ke Antrian
-                </button>
-                <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className={btnAmber}>
-                  <UserMinus className="w-5 h-5" /> Keluarkan dari Antrian
-                </button>
+              <div className="relative">
+                <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none"><Clock className="w-4 h-4" /></div>
+                <input type="number" min="1" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className={`${inputCls} pl-11`} />
               </div>
-              <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className={btnCyan}>
-                <Play className="w-5 h-5" /> Paksa Bawa Customer
-              </button>
-            </div>
-          </div>
+              <p className="text-[11px] text-muted-foreground italic px-1">ℹ️ Timer hukuman baru mulai saat promotor melakukan konfirmasi kehadiran.</p>
+            </>
+          )}
 
-          {/* TINDAKAN DARURAT */}
-          <div className="bg-white dark:bg-card border border-border rounded-3xl p-5 md:p-6 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-rose-500" /> Tindakan Darurat</h3>
-            <div className="space-y-3">
-              <CustomSelect options={opsiPromotor} value={selectedLockSales} onChange={setSelectedLockSales} placeholder="-- Pilih Promotor untuk Lock / Hapus --" icon={<Users className="w-4 h-4" />} />
-              <CustomSelect options={[{ label: 'Lock Akun Promotor', value: 'LOCK' }, { label: 'Unlock Akun Promotor', value: 'UNLOCK' }]} value={lockAction} onChange={setLockAction} placeholder="Pilih Aksi" icon={<KeyRound className="w-4 h-4" />} />
-
-              {lockAction === 'LOCK' && (
-                <>
-                  <div className="relative">
-                    <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none"><FileText className="w-4 h-4" /></div>
-                    <input type="text" value={lockReason} onChange={e => setLockReason(e.target.value)} placeholder="Masukkan alasan (misal: Pulang tanpa keluar antrian)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" />
-                  </div>
-                  <div className="relative">
-                    <div className="absolute left-4 top-3.5 text-muted-foreground pointer-events-none"><Clock className="w-4 h-4" /></div>
-                    <input type="number" min="1" value={lockDuration} onChange={e => setLockDuration(e.target.value)} placeholder="Durasi (menit)" className="w-full bg-slate-100 dark:bg-secondary/50 border border-border rounded-2xl py-3 pl-11 pr-4 text-xs font-medium text-foreground focus:outline-none" />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground italic px-1">ℹ️ Timer hukuman baru mulai saat promotor melakukan konfirmasi kehadiran.</p>
-                </>
-              )}
-
-              <button type="button" onClick={handleLockUnlock} disabled={isProcessing} className={btnRose}>
-                {lockAction === 'LOCK' ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
-                {lockAction === 'LOCK' ? 'Kunci Akun' : 'Buka Kunci'}
-              </button>
-
-              <button type="button" onClick={() => handleHapusPermanen(selectedLockSales)} disabled={isProcessing || !selectedLockSales} className={btnRed}>
-                <Trash2 className="w-5 h-5" /> Hapus Promotor Permanen
-              </button>
-
-              <hr className="border-border my-2" />
-
-              <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className={btnAmber}>
-                <Coffee className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
-              </button>
-
-              <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className={btnPurple}>
-                <RefreshCcw className="w-5 h-5" /> RESET HARI INI
-              </button>
-            </div>
-          </div>
+          <button type="button" onClick={handleLockUnlock} disabled={isProcessing} className={btn.rose}>
+            {lockAction === 'LOCK' ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+            {lockAction === 'LOCK' ? 'KUNCI AKUN' : 'BUKA KUNCI'}
+          </button>
+          <button type="button" onClick={() => handleHapusPermanen(selectedLockSales)} disabled={isProcessing || !selectedLockSales} className={btn.rose}>
+            <Trash2 className="w-5 h-5" /> HAPUS PROMOTOR PERMANEN
+          </button>
         </div>
-      </motion.div>
+      </SectionCard>
+
+      {/* TAMBAH PROMOTOR */}
+      <SectionCard icon={<UserPlus className="w-5 h-5" />} tone="cyan" title="Tambah Promotor Baru" subtitle="Promotor bisa login dengan akun Google">
+        <form onSubmit={handleTambahPromotor} className="space-y-3">
+          <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className={`${inputCls} uppercase font-bold`} required />
+          <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className={inputCls} required />
+          <button type="submit" disabled={isProcessing} className={btn.cyan}>
+            {isProcessing ? 'MEMPROSES...' : 'SIMPAN PROMOTOR'}
+          </button>
+        </form>
+      </SectionCard>
 
       <CustomModal
         isOpen={modalConfig.isOpen}
@@ -579,6 +528,6 @@ export default function ManajemenPage() {
         onConfirm={modalConfig.onConfirm}
         onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
       />
-    </div>
+    </AdminShell>
   )
 }
