@@ -4,254 +4,160 @@ import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, update } from 'firebase/database'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Loader2, LogOut, Users, LayoutDashboard, 
-  ListOrdered, Settings, UserCheck, Unlock, Lock, 
-  Sun, Moon,
-  History, ShieldAlert
-} from 'lucide-react'
+import { Loader2, Unlock, Lock, Users } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
+import { useAutoReset } from '@/hooks/useAutoReset'
 import { toast } from 'sonner'
+import { AdminShell } from '@/components/admin/admin-shell'
+import { SectionCard, StatTile } from '@/components/admin/admin-ui'
 
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
-  const { antrian, setting, loading: dataLoading } = useAntrian(user?.tokoId || 'ufo-kebonsari')
+  const { antrian, setting } = useAntrian(user?.tokoId || 'ufo-kebonsari')
   const { isDark, toggleTheme, mounted } = useTheme()
-  
+
   const [isUpdating, setIsUpdating] = useState(false)
   const [hariIniIndo, setHariIniIndo] = useState('')
-  
-  // State untuk pop-up logout
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
+  useAutoReset(user ? TOKO_ID : undefined)
 
+  // Tanggal diperbarui tiap menit supaya ikut ganti hari
   useEffect(() => {
-    const d = new Date()
-    const pad = (n: number) => String(n).padStart(2, '0')
-    setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`)
+    const update = () => {
+      const d = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
+    }
+    update()
+    const t = setInterval(update, 60_000)
+    return () => clearInterval(t)
   }, [])
 
   if (authLoading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   if (error) return <div className="min-h-screen flex items-center justify-center bg-background text-destructive">{error}</div>
-  if (!user) { 
+  if (!user) {
     if (typeof window !== 'undefined') window.location.href = '/login'
-    return null 
+    return null
   }
 
   const ubahStatusAntrian = async (statusBaru: 'BUKA' | 'TUTUP') => {
     if (!TOKO_ID || isUpdating || setting?.statusAntrian === statusBaru) return
     setIsUpdating(true)
-    try { 
-      await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: statusBaru }) 
+    try {
+      await update(ref(db, `toko/${TOKO_ID}/setting`), { statusAntrian: statusBaru })
       toast.success(`Antrian berhasil diubah menjadi ${statusBaru}`)
-    } 
-    catch (err) { console.error(err); toast.error('Gagal mengubah status antrian') } 
-    finally { setIsUpdating(false) }
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal mengubah status antrian')
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
-  const handleLogoutClick = async () => {
-    setIsLoggingOut(true)
-    await logout()
-    setIsLoggingOut(false)
-  }
-
-  // Hitung Statistik Dashboard
   const totalStandby = antrian.filter(a => a.status === 'Standby').length
   const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
-  const totalHA = antrian.filter(a => a.kategori === 'HA').length
-  const totalAV = antrian.filter(a => a.kategori === 'AV').length
-
   const listHA = antrian.filter(a => a.kategori === 'HA')
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
+  const isBuka = setting?.statusAntrian !== 'TUTUP'
+
+  const btnBase = 'flex-1 py-4 font-black rounded-xl transition-all flex justify-center items-center gap-2 text-sm'
+  const btnBukaCls = `${btnBase} ${isBuka
+    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 cursor-default'
+    : 'bg-secondary text-muted-foreground hover:bg-emerald-500 hover:text-white active:scale-95'}`
+  const btnTutupCls = `${btnBase} ${!isBuka
+    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 cursor-default'
+    : 'bg-secondary text-muted-foreground hover:bg-rose-600 hover:text-white active:scale-95'}`
+
   return (
-    <div className="min-h-[100dvh] bg-background flex relative font-sans text-foreground transition-colors duration-300 pb-12 md:pb-6">
-      
-      {/* SIDEBAR (Desktop) */}
-      <aside className="w-64 bg-card border-r border-border flex-col hidden md:flex">
-        <div className="p-5 flex items-center gap-3 border-b border-border">
-          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-md overflow-hidden border border-border p-1">
-            <img src="/logo-ufo.png" alt="UFO Logo" className="w-full h-full object-contain" />
-          </div>
-          <div><h1 className="text-xs font-bold text-foreground uppercase">UFO Malang</h1><p className="text-[9px] text-muted-foreground uppercase">Kebonsari</p></div>
-        </div>
-        <nav className="flex-1 p-3 space-y-1.5">
-          <Link href="/admin" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/10 text-primary font-semibold text-xs"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
-          <Link href="/admin/aktivitas" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><History className="w-4 h-4" /> Aktivitas & Rekap</Link>
-          <Link href="/admin/manajemen" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><ShieldAlert className="w-4 h-4" /> Kontrol Antrian</Link>
-          <Link href="/admin/pengaturan" className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-muted-foreground hover:bg-secondary transition text-xs"><Settings className="w-4 h-4" /> Pengaturan</Link>
-        </nav>
-        <div className="p-3 border-t border-border">
-          <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition text-xs font-semibold shadow-sm">
-            <LogOut className="w-3.5 h-3.5" /> Keluar
+    <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout} tokoId={TOKO_ID}>
+      <p className="px-1 text-xs text-muted-foreground">
+        Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span> • Hari ini: <span className="font-semibold text-foreground">{hariIniIndo}</span>
+      </p>
+
+      {/* KONTROL BUKA / TUTUP */}
+      <SectionCard
+        icon={isBuka ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+        tone={isBuka ? 'emerald' : 'rose'}
+        title="Status Antrian"
+        subtitle={isBuka ? 'Antrian sedang dibuka' : 'Antrian sedang ditutup'}
+      >
+        <div className="flex gap-3">
+          <button type="button" onClick={() => ubahStatusAntrian('BUKA')} disabled={isUpdating || isBuka} className={btnBukaCls}>
+            {isUpdating && !isBuka ? <Loader2 className="w-5 h-5 animate-spin" /> : <Unlock className="w-5 h-5" />}
+            BUKA
+          </button>
+          <button type="button" onClick={() => ubahStatusAntrian('TUTUP')} disabled={isUpdating || !isBuka} className={btnTutupCls}>
+            {isUpdating && isBuka ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
+            TUTUP
           </button>
         </div>
-      </aside>
+      </SectionCard>
 
-      {/* KONTEN UTAMA */}
-      <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-5xl mx-auto space-y-6">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-foreground uppercase tracking-tight">Dashboard Admin</h2>
-            <p className="text-xs text-muted-foreground">Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span> • Hari ini: <span className="font-semibold text-foreground">{hariIniIndo}</span></p>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
-            <button onClick={toggleTheme} className="p-2.5 rounded-full bg-card border border-border text-muted-foreground hover:text-primary transition-colors shadow-sm">
-              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-            
-            {/* TOMBOL BUKA & TUTUP ANTRIAN */}
-            <div className="flex items-center gap-1.5 flex-1 md:flex-none">
-              <button 
-                onClick={() => ubahStatusAntrian('BUKA')} 
-                disabled={isUpdating || setting?.statusAntrian === 'BUKA'} 
-                className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold tracking-wide transition-all shadow-sm uppercase ${
-                  setting?.statusAntrian === 'BUKA' 
-                    ? 'bg-emerald-600 text-white shadow-emerald-500/20 cursor-default' 
-                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border border-transparent'
-                }`}
-              >
-                {isUpdating && setting?.statusAntrian !== 'BUKA' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlock className="w-3.5 h-3.5" />}
-                BUKA
-              </button>
-              
-              <button 
-                onClick={() => ubahStatusAntrian('TUTUP')} 
-                disabled={isUpdating || setting?.statusAntrian === 'TUTUP'} 
-                className={`flex-1 md:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold tracking-wide transition-all shadow-sm uppercase ${
-                  setting?.statusAntrian === 'TUTUP' 
-                    ? 'bg-rose-600 text-white shadow-rose-500/20 cursor-default' 
-                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border border-transparent'
-                }`}
-              >
-                {isUpdating && setting?.statusAntrian !== 'TUTUP' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
-                TUTUP
-              </button>
-            </div>
-          </div>
+      {/* STATISTIK */}
+      <section className="flex flex-col gap-3">
+        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Kondisi antrian saat ini</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile label="Total Antri" value={totalStandby} tone="cyan" />
+          <StatTile label="Sedang Dilayani" value={totalMelayani} tone="blue" />
+          <StatTile label="Kategori HA" value={listHA.length} tone="amber" />
+          <StatTile label="Kategori AV" value={listAV.length} tone="purple" />
         </div>
+      </section>
 
-        {/* STATISTIK KARTU KECIL */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard title="Total Antri" value={totalStandby} icon={<Users />} color="text-sky-500" bg="bg-sky-500/10" />
-          <StatCard title="Sedang Dilayani" value={totalMelayani} icon={<UserCheck />} color="text-cyan-500" bg="bg-cyan-500/10" />
-          <StatCard title="Kategori HA" value={totalHA} icon={<ListOrdered />} color="text-amber-500" bg="bg-amber-500/10" />
-          <StatCard title="Kategori AV" value={totalAV} icon={<ListOrdered />} color="text-purple-500" bg="bg-purple-500/10" />
-        </div>
+      {/* LIVE URUTAN HA & AV */}
+      <div className="space-y-4">
+        {(['HA', 'AV'] as const).map((kat) => {
+          const list = kat === 'HA' ? listHA : listAV
+          const listStandby = list.filter(a => a.status === 'Standby')
 
-        {/* LIVE URUTAN ANTRIAN HA & AV */}
-        <div className="space-y-4">
-          {['HA', 'AV'].map((kat) => {
-            const list = kat === 'HA' ? listHA : listAV;
-            const listStandby = list.filter(a => a.status === 'Standby');
-            
-            return (
-              <div key={kat} className="bg-card border border-border p-5 rounded-3xl shadow-sm">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase">
-                    <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-cyan-500' : 'bg-purple-500'}`}></span>
-                    Live Urutan {kat}
-                  </h3>
-                  <span className="text-[10px] font-bold bg-secondary text-muted-foreground px-2.5 py-1 rounded-md">
-                    {listStandby.length} Antri
-                  </span>
-                </div>
-                
-                <div className="space-y-2">
-                  {list.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic text-center py-2">Belum ada antrian</p>
-                  ) : (
-                    list.map((item, idx) => {
-                      const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0;
-                      
-                      return (
-                        <div key={idx} className="flex justify-between items-center p-3 rounded-xl transition-colors bg-white dark:bg-secondary/50 text-slate-900 dark:text-foreground border border-slate-200 dark:border-border/60 shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
-                              {item.status === 'Melayani' ? '-' : (idx + 1)}
-                            </span>
-                            <span className="text-xs font-bold uppercase text-slate-900 dark:text-foreground">
-                              {item.nama}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            {item.status === 'Melayani' ? (
-                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 dark:bg-blue-500/20 text-white dark:text-blue-400">Melayani</span>
-                            ) : item.status === 'Dipanggil CS' ? (
-                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 dark:bg-purple-500/20 text-white dark:text-purple-400">CS / GUDANG</span>
-                            ) : item.status === 'Ibadah' ? (
-                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-400">Ibadah</span>
-                            ) : isGiliranUtama ? (
-                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
-                            ) : (
-                              <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-slate-200 dark:bg-secondary text-slate-800 dark:text-muted-foreground">Standby</span>
-                            )}
-                          </div>
+          return (
+            <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase">
+                  <span className={`w-2 h-2 rounded-full ${kat === 'HA' ? 'bg-cyan-500' : 'bg-purple-500'}`}></span>
+                  Live Urutan {kat}
+                </h3>
+                <span className="text-[10px] font-bold bg-secondary text-muted-foreground px-2.5 py-1 rounded-md">{listStandby.length} Antri</span>
+              </div>
+
+              <div className="space-y-2">
+                {list.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">Belum ada antrian</p>
+                ) : (
+                  list.map((item, idx) => {
+                    const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0
+                    return (
+                      <div key={item._key || idx} className="flex justify-between items-center p-3 rounded-xl bg-secondary/50 border border-border/60 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
+                            {item.status === 'Melayani' ? '-' : (idx + 1)}
+                          </span>
+                          <span className="text-xs font-bold uppercase text-foreground">{item.nama}</span>
                         </div>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
 
-      </main>
-
-      {/* MODAL KONFIRMASI LOGOUT ADMIN */}
-      <AnimatePresence>
-        {showLogoutConfirm && (
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card text-foreground border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
-            >
-              <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                <LogOut className="w-8 h-8" />
+                        {item.status === 'Melayani' ? (
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 text-white">Melayani</span>
+                        ) : item.status === 'Dipanggil CS' ? (
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">CS / Gudang</span>
+                        ) : item.status === 'Ibadah' ? (
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 text-white">Ibadah</span>
+                        ) : isGiliranUtama ? (
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                        ) : (
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-secondary text-muted-foreground">Standby</span>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
               </div>
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">KELUAR APLIKASI</h3>
-                <p className="text-xs text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi admin?</p>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button 
-                  onClick={() => setShowLogoutConfirm(false)}
-                  disabled={isLoggingOut}
-                  className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
-                >
-                  Batal
-                </button>
-                <button 
-                  onClick={handleLogoutClick}
-                  disabled={isLoggingOut}
-                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2"
-                >
-                  {isLoggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ya, Keluar'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-function StatCard({ title, value, icon, color, bg }: { title: string, value: number, icon: React.ReactNode, color: string, bg: string }) {
-  return (
-    <div className="bg-card border border-border p-3.5 rounded-3xl flex flex-col justify-between shadow-sm">
-      <div className="flex justify-between items-start mb-3"><div className={`p-2 rounded-2xl ${bg} ${color}`}>{icon}</div></div>
-      <div><p className="text-xl md:text-2xl font-black text-foreground">{value}</p><p className="text-[10px] text-muted-foreground font-bold mt-0.5 uppercase tracking-wide">{title}</p></div>
-    </div>
+            </div>
+          )
+        })}
+      </div>
+    </AdminShell>
   )
 }
