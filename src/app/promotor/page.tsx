@@ -424,14 +424,13 @@ useEffect(() => {
           }
         }
 
-        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`)
+               const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`)
         const checkinSnap = await get(checkinRef)
 
         let waktuStandbyFinal: number
-       if (checkinSnap.exists()) {
-  const v = checkinSnap.val()
-  waktuStandbyFinal = Math.max(Number(v.waktu) || 0, Number(v.waktuReset) || 0)
-}
+        if (checkinSnap.exists()) {
+          const v = checkinSnap.val()
+          waktuStandbyFinal = Math.max(Number(v.waktu) || 0, Number(v.waktuReset) || 0)
         } else {
           waktuStandbyFinal = Date.now()
           await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: todayKey, waktu: waktuStandbyFinal })
