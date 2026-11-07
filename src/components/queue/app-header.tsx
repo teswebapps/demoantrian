@@ -8,9 +8,10 @@ type AppHeaderProps = {
   onLogout?: () => void
   onToggleTheme?: () => void
   isDark?: boolean
+  showLogout?: boolean
 }
 
-export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }: AppHeaderProps) {
+export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark, showLogout = true }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-[1000] bg-background/80 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl">
       <div className="flex items-center gap-3">
@@ -22,7 +23,7 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
             {storeName}
           </h1>
         </div>
-        
+
         <button
           type="button"
           onClick={onToggleTheme}
@@ -31,14 +32,17 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark }
         >
           {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
-        <button
-          type="button"
-          onClick={onLogout}
-          aria-label="Keluar"
-          className="flex size-11 items-center justify-center rounded-full bg-destructive/15 text-destructive transition-colors hover:bg-destructive/25 active:scale-95"
-        >
-          <LogOut className="size-5" aria-hidden="true" />
-        </button>
+
+        {showLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            aria-label="Keluar"
+            className="flex size-11 items-center justify-center rounded-full bg-destructive/15 text-destructive transition-colors hover:bg-destructive/25 active:scale-95"
+          >
+            <LogOut className="size-5" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between rounded-2xl bg-card px-4 py-3 border border-border shadow-sm">
