@@ -48,6 +48,7 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
         storeName="UFO Admin Kebonsari"
         isOpen={isOpen}
         onLogout={() => setShowLogout(true)}
+        showLogout={false}
         onToggleTheme={onToggleTheme}
         isDark={isDark}
       />
@@ -56,7 +57,7 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
 
       {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto max-w-2xl grid grid-cols-4 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto max-w-2xl grid grid-cols-5 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active =
               href === '/admin'
@@ -75,6 +76,14 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
               </Link>
             )
           })}
+          <button
+            type="button"
+            onClick={() => setShowLogout(true)}
+            className="flex flex-col items-center justify-center gap-0.5 rounded-2xl py-2 text-[10px] font-bold uppercase tracking-wide text-destructive transition hover:bg-destructive/10"
+          >
+            <LogOut className="w-5 h-5" />
+            Keluar
+          </button>
         </div>
       </nav>
 
