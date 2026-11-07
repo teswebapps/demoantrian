@@ -35,7 +35,7 @@ export function LoginBrand() {
     return () => unsub()
   }, [])
 
-   return (
+  return (
     <section className="flex flex-col items-center justify-center text-center w-full">
       <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
         <div aria-hidden="true" className="absolute inset-0 rounded-[24px] blur-2xl opacity-40 bg-sky-500" />
@@ -72,6 +72,5 @@ export function LoginBrand() {
         ))}
       </ul>
     </section>
-  )
   )
 }
