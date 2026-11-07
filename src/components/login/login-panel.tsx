@@ -49,14 +49,14 @@ export function LoginPanel() {
   return (
     <section
       aria-labelledby="login-title"
-      className="relative w-full overflow-hidden rounded-3xl bg-card border border-border p-6 md:p-8 shadow-xl"
+      className="relative w-full overflow-hidden rounded-3xl bg-card border border-border p-5 md:p-8 shadow-xl"
     >
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-600" />
 
       <h2 id="login-title" className="text-xl font-black text-foreground text-center">
         Selamat Datang
       </h2>
-      <p className="mt-1 mb-6 text-xs text-muted-foreground text-center">
+      <p className="mt-1 mb-4 text-xs text-muted-foreground text-center">
         Silakan masuk menggunakan akun Google yang sudah terdaftar.
       </p>
 

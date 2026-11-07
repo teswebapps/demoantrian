@@ -8,14 +8,26 @@ import { AuthGate } from './auth-gate'
 export function LoginShell({ children }: { children: React.ReactNode }) {
   const { isDark, toggleTheme, mounted } = useTheme()
 
-  // Samakan class "dark" di <html> dengan tema, sama seperti halaman lain
+  // Kunci scroll halaman login (terang maupun gelap), dilepas saat pindah halaman
   useEffect(() => {
-    if (!mounted) return
-    document.documentElement.classList.toggle('dark', isDark)
-  }, [isDark, mounted])
+    const html = document.documentElement
+    const body = document.body
+    const prevHtml = html.style.overflow
+    const prevBody = body.style.overflow
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    return () => {
+      html.style.overflow = prevHtml
+      body.style.overflow = prevBody
+    }
+  }, [])
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-background text-foreground flex flex-col transition-colors duration-300">
+    <div
+      className={`fixed inset-0 h-[100dvh] overflow-hidden bg-background text-foreground flex flex-col transition-opacity duration-200 ${
+        mounted ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
       {/* Latar: cahaya lembut + grid halus */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-[40%] left-[20%] w-[600px] h-[600px] rounded-full bg-cyan-500/15 dark:bg-cyan-500/20 blur-[120px]" />

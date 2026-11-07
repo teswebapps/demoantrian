@@ -35,35 +35,36 @@ export function LoginBrand() {
     return () => unsub()
   }, [])
 
-  return (
+   return (
     <section className="flex flex-col items-center justify-center text-center w-full">
       <div className="relative motion-safe:animate-[float_5s_ease-in-out_infinite]">
-        <div aria-hidden="true" className="absolute inset-0 rounded-[28px] blur-2xl opacity-40 bg-sky-500" />
-        <div className="relative flex size-24 items-center justify-center overflow-hidden rounded-[24px] bg-white dark:bg-slate-900 border border-border p-2 shadow-xl shadow-sky-500/30">
+        <div aria-hidden="true" className="absolute inset-0 rounded-[24px] blur-2xl opacity-40 bg-sky-500" />
+        <div className="relative flex size-20 items-center justify-center overflow-hidden rounded-[22px] bg-white dark:bg-slate-900 border border-border p-2 shadow-xl shadow-sky-500/30">
           <Image
             src="/logo-ufo.png"
             alt="UFO Elektronika"
-            width={96}
-            height={96}
+            width={80}
+            height={80}
             className="object-contain"
             priority
           />
         </div>
       </div>
 
-      <h1 className="mt-6 text-xl md:text-2xl font-extrabold tracking-tight text-foreground text-center uppercase leading-tight">
+      <h1 className="mt-4 text-lg md:text-2xl font-extrabold tracking-tight text-foreground text-center uppercase leading-tight">
         {setting.namaSistem}
       </h1>
 
-      <p className="mt-2 text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+      <p className="mt-1.5 text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         {setting.namaToko}
       </p>
 
-      <ul className="mt-5 flex flex-wrap justify-center gap-2 text-xs font-semibold">
+      {/* Badge disembunyikan di layar pendek supaya tetap muat */}
+      <ul className="mt-4 flex flex-wrap justify-center gap-2 text-xs font-semibold [@media(max-height:680px)]:hidden">
         {features.map(({ icon: Icon, label }) => (
           <li
             key={label}
-            className="inline-flex items-center gap-1.5 rounded-full bg-card px-4 py-2 text-foreground border border-border shadow-sm font-medium"
+            className="inline-flex items-center gap-1.5 rounded-full bg-card px-3.5 py-1.5 text-foreground border border-border shadow-sm font-medium"
           >
             <Icon className="size-3.5 text-cyan-500" aria-hidden="true" />
             {label}
@@ -71,5 +72,6 @@ export function LoginBrand() {
         ))}
       </ul>
     </section>
+  )
   )
 }
