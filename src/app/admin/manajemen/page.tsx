@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import { CustomModal } from '@/components/ui/CustomModal'
 import { AdminShell } from '@/components/admin/admin-shell'
-import { SectionCard, StatTile, inputCls, btn } from '@/components/admin/admin-ui'
+import { SectionCard, inputCls, btn } from '@/components/admin/admin-ui'
 
 interface Option { label: string; value: string }
 
@@ -428,24 +428,9 @@ export default function ManajemenPage() {
 
   const opsiPromotor = masterSales.map(s => ({ label: s.nama, value: s.nama }))
 
-  const jmlHA = daftarAntrian.filter(a => a.kategori === 'HA').length
-  const jmlAV = daftarAntrian.filter(a => a.kategori === 'AV').length
-  const jmlMelayani = daftarAntrian.filter(a => a.status === 'Melayani').length
-  const jmlIbadah = daftarAntrian.filter(a => a.status === 'Ibadah').length
 
   return (
     <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout}>
-      {/* RINGKASAN LIVE */}
-      <section className="flex flex-col gap-3">
-        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Kondisi antrian saat ini</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <StatTile label="Antrian HA" value={jmlHA} tone="cyan" />
-          <StatTile label="Antrian AV" value={jmlAV} tone="purple" />
-          <StatTile label="Melayani" value={jmlMelayani} tone="blue" />
-          <StatTile label="Ibadah" value={jmlIbadah} tone="amber" />
-        </div>
-      </section>
-
       {/* ATUR ANTRIAN */}
       <SectionCard icon={<UserMinus className="w-5 h-5" />} tone="amber" title="Atur Antrian" subtitle="Masukkan, keluarkan, atau paksa melayani">
         <div className="space-y-3">
