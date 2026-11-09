@@ -1,11 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { CircleAlert, ShieldCheck, Loader2 } from 'lucide-react'
+import Image from 'next/image'
+import { CircleAlert, Loader2 } from 'lucide-react'
 import { GoogleIcon } from './google-icon'
 import { signInWithPopup } from 'firebase/auth'
 import { ref, get } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
+
+/* ===== GANTI NAMA DI SINI ===== */
+const NAMA_TOKO = 'UFO KEBONSARI'
+const NAMA_APLIKASI = 'Antrian Promotor'
+/* ============================== */
 
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
@@ -47,21 +53,30 @@ export function LoginPanel() {
   }
 
   return (
-    <section
-      aria-labelledby="login-title"
-      className="relative w-full overflow-hidden rounded-3xl bg-card border border-border p-5 md:p-8 shadow-xl"
-    >
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-600" />
+    <section className="w-full max-w-sm rounded-[28px] bg-card border border-border p-8 shadow-xl text-center">
+      <div className="mx-auto size-[120px] overflow-hidden rounded-2xl shadow-md">
+        <Image
+          src="/logo-ufo.png"
+          alt="UFO Elektronika"
+          width={120}
+          height={120}
+          className="size-full object-cover"
+          priority
+        />
+      </div>
 
-      <h2 id="login-title" className="text-xl font-black text-foreground text-center">
-        Selamat Datang
-      </h2>
-      <p className="mt-1 mb-4 text-xs text-muted-foreground text-center">
-        Silakan masuk menggunakan akun Google yang sudah terdaftar.
+      <p className="mt-5 text-xs font-extrabold tracking-[0.2em] text-muted-foreground uppercase">
+        {NAMA_TOKO}
+      </p>
+      <p className="mt-1 text-base font-bold text-sky-500">{NAMA_APLIKASI}</p>
+
+      <h1 className="mt-7 text-2xl font-black text-foreground">Selamat Datang</h1>
+      <p className="mt-2 mb-6 text-sm text-muted-foreground">
+        Silakan login dengan akun Google Anda untuk mengakses antrian.
       </p>
 
       {error && (
-        <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-destructive/10 p-3 text-xs text-destructive border border-destructive/20">
+        <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-destructive/10 p-3 text-left text-xs text-destructive border border-destructive/20">
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </div>
@@ -71,16 +86,11 @@ export function LoginPanel() {
         type="button"
         onClick={handleLogin}
         disabled={loading}
-        className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-extrabold text-slate-900 border border-slate-300 dark:border-transparent shadow-lg transition-all hover:shadow-xl active:scale-95 disabled:opacity-70"
+        className="flex h-14 w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-blue-700 to-cyan-600 text-sm font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:brightness-110 active:scale-95 disabled:opacity-70"
       >
-        {loading ? <Loader2 className="size-5 animate-spin text-slate-900" /> : <GoogleIcon className="size-5" />}
-        {loading ? 'Menghubungkan...' : 'Lanjutkan dengan Google'}
+        {loading ? <Loader2 className="size-5 animate-spin" /> : <GoogleIcon className="size-5" />}
+        {loading ? 'Menghubungkan...' : 'Login with Google'}
       </button>
-
-      <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
-        <ShieldCheck className="size-4 text-cyan-500" aria-hidden="true" />
-        {'Login aman · data hanya untuk keperluan antrian'}
-      </div>
     </section>
   )
 }
