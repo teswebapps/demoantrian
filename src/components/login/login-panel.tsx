@@ -87,7 +87,7 @@ export function LoginPanel() {
       <p className="mt-5 text-xs font-extrabold tracking-[0.2em] text-muted-foreground uppercase">
         {namaToko}
       </p>
-      <p className="mt-1 text-base font-bold text-sky-500">{namaAplikasi}</p>
+      <p className="mt-1 text-base font-bold text-sky-500 uppercase">{namaAplikasi}</p>
 
       <h1 className="mt-7 text-2xl font-black text-foreground">Selamat Datang</h1>
       <p className="mt-2 mb-6 text-sm text-muted-foreground">
