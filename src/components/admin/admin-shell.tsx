@@ -45,7 +45,7 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col bg-background relative">
       <AppHeader
-        storeName="UFO Admin Kebonsari"
+        storeName="UFO Malang Kebonsari"
         isOpen={isOpen}
         onLogout={() => setShowLogout(true)}
         showLogout={false}

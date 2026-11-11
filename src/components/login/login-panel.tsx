@@ -1,21 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { CircleAlert, Loader2 } from 'lucide-react'
 import { GoogleIcon } from './google-icon'
 import { signInWithPopup } from 'firebase/auth'
-import { ref, get } from 'firebase/database'
+import { ref, get, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
-/* ===== GANTI NAMA DI SINI ===== */
-const NAMA_TOKO = 'UFO KEBONSARI'
-const NAMA_APLIKASI = 'Antrian Promotor'
-/* ============================== */
+/* Teks default, dipakai kalau pengaturan belum diisi atau tidak bisa dibaca */
+const DEFAULT_NAMA_TOKO = 'UFO KEBONSARI'
+const DEFAULT_NAMA_APLIKASI = 'Antrian Promotor'
+const TOKO_ID = 'ufo-kebonsari'
 
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [namaToko, setNamaToko] = useState(DEFAULT_NAMA_TOKO)
+  const [namaAplikasi, setNamaAplikasi] = useState(DEFAULT_NAMA_APLIKASI)
+
+  useEffect(() => {
+    const unsubToko = onValue(
+      ref(db, `toko/${TOKO_ID}/setting/namaToko`),
+      (snap) => setNamaToko(snap.val() || DEFAULT_NAMA_TOKO),
+      () => {} // error (mis. rules) diabaikan, tetap pakai teks default
+    )
+    const unsubSistem = onValue(
+      ref(db, `toko/${TOKO_ID}/setting/namaSistem`),
+      (snap) => setNamaAplikasi(snap.val() || DEFAULT_NAMA_APLIKASI),
+      () => {}
+    )
+    return () => {
+      unsubToko()
+      unsubSistem()
+    }
+  }, [])
 
   async function handleLogin() {
     setError(null)
@@ -66,9 +85,9 @@ export function LoginPanel() {
       </div>
 
       <p className="mt-5 text-xs font-extrabold tracking-[0.2em] text-muted-foreground uppercase">
-        {NAMA_TOKO}
+        {namaToko}
       </p>
-      <p className="mt-1 text-base font-bold text-sky-500">{NAMA_APLIKASI}</p>
+      <p className="mt-1 text-base font-bold text-sky-500">{namaAplikasi}</p>
 
       <h1 className="mt-7 text-2xl font-black text-foreground">Selamat Datang</h1>
       <p className="mt-2 mb-6 text-sm text-muted-foreground">
