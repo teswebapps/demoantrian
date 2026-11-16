@@ -27,13 +27,13 @@ interface AdminShellProps {
 export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId = 'ufo-kebonsari' }: AdminShellProps) {
   const pathname = usePathname()
   const [showLogout, setShowLogout] = useState(false)
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState<boolean | null>(null) // null = belum selesai dimuat
 
   // Status buka/tutup antrian diambil dari pengaturan toko
   useEffect(() => {
     const unsub = onValue(ref(db, `toko/${tokoId}/setting/statusAntrian`), (snap) => {
       setIsOpen(snap.val() !== 'TUTUP')
-    })
+    }, () => setIsOpen(true))
     return () => unsub()
   }, [tokoId])
 
@@ -45,8 +45,9 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col bg-background relative">
       <AppHeader
-        storeName="UFO Malang Kebonsari"
-        isOpen={isOpen}
+        storeName="UFO Admin Kebonsari"
+        isOpen={isOpen !== false}
+        statusLoading={isOpen === null}
         onLogout={() => setShowLogout(true)}
         showLogout={false}
         onToggleTheme={onToggleTheme}

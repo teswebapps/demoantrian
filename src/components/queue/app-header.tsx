@@ -9,9 +9,18 @@ type AppHeaderProps = {
   onToggleTheme?: () => void
   isDark?: boolean
   showLogout?: boolean
+  statusLoading?: boolean // true = status antrian belum diketahui, tampilkan "Memuat..."
 }
 
-export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark, showLogout = true }: AppHeaderProps) {
+export function AppHeader({
+  storeName,
+  isOpen,
+  onLogout,
+  onToggleTheme,
+  isDark,
+  showLogout = true,
+  statusLoading = false,
+}: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-[1000] bg-background/80 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl">
       <div className="flex items-center gap-3">
@@ -47,21 +56,29 @@ export function AppHeader({ storeName, isOpen, onLogout, onToggleTheme, isDark, 
 
       <div className="mt-3 flex items-center justify-between rounded-2xl bg-card px-4 py-3 border border-border shadow-sm">
         <span className="text-sm text-muted-foreground">Status antrian</span>
-        <span
-          className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-            isOpen ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'
-          }`}
-        >
-          <span className="relative flex size-2">
-            {isOpen && (
-              <span className={`absolute inline-flex size-full animate-ping rounded-full opacity-75 ${isDark ? 'bg-accent' : 'bg-white'}`} />
-            )}
-            <span
-              className={`relative inline-flex size-2 rounded-full ${isDark ? (isOpen ? 'bg-accent' : 'bg-destructive') : 'bg-white'}`}
-            />
+
+        {statusLoading ? (
+          <span className="inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
+            <span className="size-2 animate-pulse rounded-full bg-muted-foreground/50" />
+            Memuat...
           </span>
-          {isOpen ? 'Buka' : 'Tutup'}
-        </span>
+        ) : (
+          <span
+            className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+              isOpen ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'
+            }`}
+          >
+            <span className="relative flex size-2">
+              {isOpen && (
+                <span className={`absolute inline-flex size-full animate-ping rounded-full opacity-75 ${isDark ? 'bg-accent' : 'bg-white'}`} />
+              )}
+              <span
+                className={`relative inline-flex size-2 rounded-full ${isDark ? (isOpen ? 'bg-accent' : 'bg-destructive') : 'bg-white'}`}
+              />
+            </span>
+            {isOpen ? 'Buka' : 'Tutup'}
+          </span>
+        )}
       </div>
     </header>
   )

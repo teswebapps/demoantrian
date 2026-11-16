@@ -14,7 +14,7 @@ import { SectionCard, StatTile } from '@/components/admin/admin-ui'
 
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
-  const { antrian, setting } = useAntrian(user?.tokoId || 'ufo-kebonsari')
+  const { antrian, setting, loading: dataLoading } = useAntrian(user?.tokoId || 'ufo-kebonsari')
   const { isDark, toggleTheme, mounted } = useTheme()
 
   const [isUpdating, setIsUpdating] = useState(false)
@@ -62,12 +62,13 @@ export default function AdminPage() {
   const listAV = antrian.filter(a => a.kategori === 'AV')
 
   const isBuka = setting?.statusAntrian !== 'TUTUP'
+  const statusLoading = !!dataLoading // jangan tampilkan Buka/Tutup sebelum data selesai dimuat
 
   const btnBase = 'flex-1 py-4 font-black rounded-xl transition-all flex justify-center items-center gap-2 text-sm'
-  const btnBukaCls = `${btnBase} ${isBuka
+  const btnBukaCls = `${btnBase} ${statusLoading ? 'bg-secondary text-muted-foreground cursor-default' : isBuka
     ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 cursor-default'
     : 'bg-secondary text-muted-foreground hover:bg-emerald-500 hover:text-white active:scale-95'}`
-  const btnTutupCls = `${btnBase} ${!isBuka
+  const btnTutupCls = `${btnBase} ${statusLoading ? 'bg-secondary text-muted-foreground cursor-default' : !isBuka
     ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 cursor-default'
     : 'bg-secondary text-muted-foreground hover:bg-rose-600 hover:text-white active:scale-95'}`
 
@@ -80,16 +81,16 @@ export default function AdminPage() {
       {/* KONTROL BUKA / TUTUP */}
       <SectionCard
         icon={isBuka ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-        tone={isBuka ? 'emerald' : 'rose'}
+        tone={statusLoading ? 'primary' : isBuka ? 'emerald' : 'rose'}
         title="Status Antrian"
-        subtitle={isBuka ? 'Antrian sedang dibuka' : 'Antrian sedang ditutup'}
+        subtitle={statusLoading ? 'Memuat status...' : isBuka ? 'Antrian sedang dibuka' : 'Antrian sedang ditutup'}
       >
         <div className="flex gap-3">
-          <button type="button" onClick={() => ubahStatusAntrian('BUKA')} disabled={isUpdating || isBuka} className={btnBukaCls}>
+          <button type="button" onClick={() => ubahStatusAntrian('BUKA')} disabled={isUpdating || statusLoading || isBuka} className={btnBukaCls}>
             {isUpdating && !isBuka ? <Loader2 className="w-5 h-5 animate-spin" /> : <Unlock className="w-5 h-5" />}
             BUKA
           </button>
-          <button type="button" onClick={() => ubahStatusAntrian('TUTUP')} disabled={isUpdating || !isBuka} className={btnTutupCls}>
+          <button type="button" onClick={() => ubahStatusAntrian('TUTUP')} disabled={isUpdating || statusLoading || !isBuka} className={btnTutupCls}>
             {isUpdating && isBuka ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
             TUTUP
           </button>
@@ -98,10 +99,10 @@ export default function AdminPage() {
 
       {/* STATISTIK */}
       <section className="flex flex-col gap-3">
-        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Live antrian saat ini</h2>
+        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Kondisi antrian saat ini</h2>
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="Total Antri" value={totalStandby} tone="cyan" />
-          <StatTile label="Sedang Melayani" value={totalMelayani} tone="blue" />
+          <StatTile label="Sedang Dilayani" value={totalMelayani} tone="blue" />
           <StatTile label="Kategori HA" value={listHA.length} tone="amber" />
           <StatTile label="Kategori AV" value={listAV.length} tone="purple" />
         </div>
