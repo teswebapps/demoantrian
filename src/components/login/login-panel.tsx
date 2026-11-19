@@ -92,10 +92,10 @@ export function LoginPanel() {
       className="w-full max-w-[430px] rounded-[12px] bg-white border border-[#e5e7eb] p-8 shadow-[0_4px_16px_rgba(15,23,42,0.05)] text-left"
     >
       <h1 className="m-0 mb-1.5 text-[24px] font-bold tracking-[-0.02em] text-[#111827]">
-        Dashboard Promotor
+        Antrian Promotor
       </h1>
       <p className="m-0 mb-6 text-[14px] leading-normal text-[#6b7280] sm:whitespace-nowrap">
-        Login dengan email Google untuk akses Dashboard
+        Login dengan email Google untuk akses Antrian
       </p>
 
       {error && (
