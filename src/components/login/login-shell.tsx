@@ -8,7 +8,6 @@ import { AuthGate } from './auth-gate'
 export function LoginShell({ children }: { children: React.ReactNode }) {
   const { isDark, toggleTheme, mounted } = useTheme()
 
-  // Kunci scroll halaman login, dilepas saat pindah halaman
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
@@ -23,18 +22,14 @@ export function LoginShell({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <div
-      className={`fixed inset-0 h-[100dvh] overflow-hidden bg-slate-100 dark:bg-background text-foreground flex flex-col transition-opacity duration-200 ${
-        mounted ? 'opacity-100' : 'opacity-0'
-      }`}
-    >
+    <div className="fixed inset-0 h-[100dvh] overflow-hidden bg-[#fafafa] dark:bg-background text-foreground flex items-center justify-center p-5 font-sans">
       <button
         type="button"
         onClick={toggleTheme}
         aria-label="Ganti tema"
-        className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-20 flex size-11 items-center justify-center rounded-full bg-card border border-border text-amber-500 shadow-sm transition active:scale-95"
+        className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-20 flex size-10 items-center justify-center rounded-full bg-white dark:bg-card border border-[#e5e7eb] dark:border-border text-slate-700 dark:text-amber-400 shadow-sm transition active:scale-95"
       >
-        {mounted && isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+        {mounted && isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </button>
 
       <AuthGate>{children}</AuthGate>

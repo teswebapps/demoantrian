@@ -18,14 +18,18 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         return
       }
       try {
-        const snap = await get(ref(db, 'users/whitelist/' + user.email.replace(/\./g, ',')))
+        const emailKey = user.email.trim().toLowerCase().replace(/\./g, ',')
+        const snap = await get(ref(db, 'users/whitelist/' + emailKey))
         if (snap.exists()) {
-          router.replace(snap.val().role === 'ADMIN' ? '/admin' : '/promotor')
-          return // tetap tampilkan spinner sampai pindah halaman
+          const role = snap.val()?.role
+          if (role === 'ADMIN' || role === 'PROMOTOR') {
+            router.replace(role === 'ADMIN' ? '/admin' : '/promotor')
+            return
+          }
         }
-        await signOut(auth) // hanya logout kalau memang tidak terdaftar
+        await signOut(auth)
       } catch (err) {
-        console.error(err) // error jaringan: jangan logout, tampilkan form login
+        console.error(err)
       }
       setChecking(false)
     })
@@ -35,7 +39,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (checking) {
     return (
       <div className="relative z-10 flex flex-1 items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#111827] animate-spin" />
       </div>
     )
   }

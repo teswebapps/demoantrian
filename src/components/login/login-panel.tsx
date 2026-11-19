@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { CircleAlert, Loader2 } from 'lucide-react'
 import { GoogleIcon } from './google-icon'
-import { signInWithPopup } from 'firebase/auth'
+import { signInWithPopup, signInWithRedirect } from 'firebase/auth'
 import { ref, get, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
-/* Teks default, dipakai kalau pengaturan belum diisi atau tidak bisa dibaca */
 const DEFAULT_NAMA_TOKO = 'UFO KEBONSARI'
 const DEFAULT_NAMA_APLIKASI = 'Antrian Promotor'
 const TOKO_ID = 'ufo-kebonsari'
@@ -23,7 +21,7 @@ export function LoginPanel() {
     const unsubToko = onValue(
       ref(db, `toko/${TOKO_ID}/setting/namaToko`),
       (snap) => setNamaToko(snap.val() || DEFAULT_NAMA_TOKO),
-      () => {} // error (mis. rules) diabaikan, tetap pakai teks default
+      () => {}
     )
     const unsubSistem = onValue(
       ref(db, `toko/${TOKO_ID}/setting/namaSistem`),
@@ -40,11 +38,25 @@ export function LoginPanel() {
     setError(null)
     setLoading(true)
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      const user = result.user
-      if (!user.email) throw new Error('Akun Google tidak mengirimkan email.')
+      googleProvider.setCustomParameters({ prompt: 'select_account' })
+      let result: any
+      try {
+        result = await signInWithPopup(auth, googleProvider)
+      } catch (err: any) {
+        if (
+          err.code === 'auth/popup-blocked' ||
+          err.code === 'auth/operation-not-supported-in-this-environment'
+        ) {
+          await signInWithRedirect(auth, googleProvider)
+          return
+        }
+        throw err
+      }
 
-      const emailKey = user.email.replace(/\./g, ',')
+      const user = result?.user
+      if (!user?.email) throw new Error('Akun Google tidak mengirimkan email.')
+
+      const emailKey = user.email.trim().toLowerCase().replace(/\./g, ',')
       const snap = await get(ref(db, 'users/whitelist/' + emailKey))
 
       if (!snap.exists()) {
@@ -53,14 +65,17 @@ export function LoginPanel() {
       }
 
       const data = snap.val()
-
-      // Hard redirect agar session Firebase siap sebelum pindah halaman
-      if (data.role === 'ADMIN') window.location.href = '/admin'
-      else if (data.role === 'PROMOTOR') window.location.href = '/promotor'
-      else {
-        await auth.signOut()
-        throw new Error('Role akun tidak valid.')
+      if (data.role === 'ADMIN') {
+        window.location.href = '/admin'
+        return
       }
+      if (data.role === 'PROMOTOR') {
+        window.location.href = '/promotor'
+        return
+      }
+
+      await auth.signOut()
+      throw new Error('Role akun tidak valid.')
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
         setLoading(false)
@@ -72,30 +87,22 @@ export function LoginPanel() {
   }
 
   return (
-    <section className="w-full max-w-sm rounded-[28px] bg-card border border-border p-8 shadow-xl text-center">
-      <div className="mx-auto size-[120px] overflow-hidden rounded-2xl shadow-md">
-        <Image
-          src="/logo-ufo.png"
-          alt="UFO Elektronika"
-          width={120}
-          height={120}
-          className="size-full object-cover"
-          priority
-        />
-      </div>
-
-      <p className="mt-5 text-xs font-extrabold tracking-[0.2em] text-muted-foreground uppercase">
-        {namaToko}
-      </p>
-      <p className="mt-1 text-base font-bold text-sky-500 uppercase">{namaAplikasi}</p>
-
-      <h1 className="mt-7 text-2xl font-black text-foreground">Selamat Datang</h1>
-      <p className="mt-2 mb-6 text-sm text-muted-foreground">
-        Silakan login dengan akun Google Anda untuk mengakses antrian.
+    <section
+      aria-label={`${namaToko} - ${namaAplikasi}`}
+      className="w-full max-w-[430px] rounded-[12px] bg-white border border-[#e5e7eb] p-8 shadow-[0_4px_16px_rgba(15,23,42,0.05)] text-left"
+    >
+      <h1 className="m-0 mb-1.5 text-[24px] font-bold tracking-[-0.02em] text-[#111827]">
+        Dashboard Promotor
+      </h1>
+      <p className="m-0 mb-6 text-[14px] leading-normal text-[#6b7280] sm:whitespace-nowrap">
+        Login dengan email Google untuk akses Dashboard
       </p>
 
       {error && (
-        <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-destructive/10 p-3 text-left text-xs text-destructive border border-destructive/20">
+        <div
+          role="alert"
+          className="mb-[18px] flex items-start gap-2 rounded-[8px] border border-[#fecaca] bg-[#fef2f2] px-3 py-2.5 text-[13px] leading-[1.45] text-[#dc2626]"
+        >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </div>
@@ -105,10 +112,14 @@ export function LoginPanel() {
         type="button"
         onClick={handleLogin}
         disabled={loading}
-        className="flex h-14 w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-blue-700 to-cyan-600 text-sm font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:brightness-110 active:scale-95 disabled:opacity-70"
+        className="flex h-[42px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#111827] text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1f2937] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? <Loader2 className="size-5 animate-spin" /> : <GoogleIcon className="size-5" />}
-        {loading ? 'Menghubungkan...' : 'Login with Google'}
+        {loading ? (
+          <Loader2 className="size-4 animate-spin text-white" />
+        ) : (
+          <GoogleIcon className="size-[18px]" />
+        )}
+        <span>{loading ? 'Menghubungkan...' : 'Sign in with Google'}</span>
       </button>
     </section>
   )
