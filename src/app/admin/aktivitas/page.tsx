@@ -145,7 +145,32 @@ export default function AktivitasAdminPage() {
   })
 
   const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
-  const listIbadah = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
+
+  // Gabungkan sesi Ibadah per promotor dalam rentang jam (contoh: 11.20 - 12.05)
+  const sesiIbadahHariIni = (() => {
+    const raw = aktivitasHariIni
+      .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+
+    const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
+    for (const item of raw) {
+      const nama = String(item.nama || '').trim()
+      const namaKey = nama.toLowerCase()
+      const t = Number(item.waktuMulai || item.waktu || 0)
+
+      if (item.waktuSelesai) {
+        hasil.push({ nama, waktuMulai: t, waktuSelesai: Number(item.waktuSelesai) })
+      } else if (item.aksi === 'MulaiIbadah' || item.aksi === 'Ibadah') {
+        hasil.push({ nama, waktuMulai: t })
+      } else if (item.aksi === 'SelesaiIbadah') {
+        const openIdx = hasil.findIndex(s => s.nama.toLowerCase() === namaKey && !s.waktuSelesai)
+        if (openIdx !== -1) hasil[openIdx].waktuSelesai = t
+        else hasil.push({ nama, waktuMulai: t, waktuSelesai: t })
+      }
+    }
+    return hasil
+  })()
+
   const listKeluar = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
   const checkinHariIni = checkinList.filter(c => (c.dateKey || c.tanggalKey) === todayKey)
@@ -221,7 +246,7 @@ export default function AktivitasAdminPage() {
 
   const listRekapPromotor = Object.values(rekapPromotorMap)
     .map((item) => ({ ...item, hari: item.hariSet.size }))
-    .sort((a, b) => b.deal - a.deal || b.lihat - a.lihat || a.noSale - b.noSale)
+    .sort((a, b) => b.deal - a.deal || b.lihat - a.lihat || a.noSale - a.noSale)
 
   if (authLoading || loading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
@@ -238,7 +263,7 @@ export default function AktivitasAdminPage() {
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="Check-in" value={checkinHariIni.length} tone="cyan" />
           <StatTile label="Bawa Customer" value={listBawa.length} tone="blue" />
-          <StatTile label="Ibadah" value={listIbadah.length} tone="amber" />
+          <StatTile label="Ibadah" value={sesiIbadahHariIni.length} tone="amber" />
           <StatTile label="Keluar Antrian" value={listKeluar.length} tone="purple" />
         </div>
       </section>
@@ -248,7 +273,7 @@ export default function AktivitasAdminPage() {
         <div className="space-y-3">
           <MenuRow icon={<ShieldCheck className="w-5 h-5" />} tone="bg-emerald-500/10 text-emerald-500" title="Check-in Promotor" desc="Kehadiran hari ini" count={checkinHariIni.length} countCls="bg-emerald-500 text-white" onClick={() => setPopupType('checkin')} />
           <MenuRow icon={<Users className="w-5 h-5" />} tone="bg-cyan-500/10 text-cyan-500" title="Bawa Customer" desc="Semua promotor hari ini" count={listBawa.length} countCls="bg-cyan-500 text-slate-950" onClick={() => setPopupType('bawa')} />
-          <MenuRow icon={<Coffee className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan istirahat / ibadah" count={listIbadah.length} countCls="bg-amber-500 text-white" onClick={() => setPopupType('ibadah')} />
+          <MenuRow icon={<Coffee className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan istirahat / ibadah" count={sesiIbadahHariIni.length} countCls="bg-amber-500 text-white" onClick={() => setPopupType('ibadah')} />
           <MenuRow icon={<LogOut className="w-5 h-5" />} tone="bg-rose-500/10 text-rose-500" title="Keluar Antrian" desc="Manual dan reset istirahat" count={listKeluar.length} countCls="bg-rose-500 text-white" onClick={() => setPopupType('keluar')} />
           <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="bg-red-500/10 text-red-500" title="Autokick" desc="Pelanggaran sistem" count={listAutokick.length} countCls="bg-red-500 text-white" onClick={() => setPopupType('autokick')} />
         </div>
@@ -350,10 +375,12 @@ export default function AktivitasAdminPage() {
 
                 {popupType === 'ibadah' && (
                   <div className="space-y-2">
-                    {listIbadah.length === 0 ? <p className={emptyCls}>Belum ada</p> : listIbadah.map((a, i) => (
+                    {sesiIbadahHariIni.length === 0 ? <p className={emptyCls}>Belum ada</p> : sesiIbadahHariIni.map((s, i) => (
                       <div key={i} className={rowCls}>
-                        <span className="font-bold text-foreground uppercase">{a.nama}</span>
-                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktuMulai || a.waktu)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : ''}</span>
+                        <span className="font-bold text-foreground uppercase">{s.nama}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold">
+                          {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
+                        </span>
                       </div>
                     ))}
                   </div>

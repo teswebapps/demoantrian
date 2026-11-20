@@ -480,14 +480,44 @@ export default function PromotorPage() {
         setShowClosing(false)
       } else if (aksi === 'Ibadah') {
         const posisi = posisiStandby()
-        await update(ref(db, pathAntrian), { status: 'Ibadah', posisiTerkunci: posisi, waktuStandbySebelumIbadah: dataSaya?.waktuStandby || Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'MulaiIbadah', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, kategori: 'Ibadah', posisi })
+        const now = Date.now()
+        await update(ref(db, pathAntrian), { status: 'Ibadah', posisiTerkunci: posisi, waktuStandbySebelumIbadah: dataSaya?.waktuStandby || now, waktuMulaiIbadah: now })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'MulaiIbadah', waktu: now, waktuMulai: now, tanggal: tglIndo, tanggalKey: todayKey, kategori: 'Ibadah', posisi })
         toast.info('Waktu Ibadah dimulai.')
       } else if (aksi === 'KembaliIbadah') {
         const posisiLama = dataSaya?.posisiTerkunci || 0
         const waktuStandbyKembali = dataSaya?.waktuStandbySebelumIbadah || dataSaya?.waktuStandby || Date.now()
-        await update(ref(db, pathAntrian), { status: 'Standby', posisiTerkunci: 0, waktuStandby: waktuStandbyKembali })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'SelesaiIbadah', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, kategori: 'Ibadah', posisi: posisiLama })
+        const now = Date.now()
+        const snapAkt = await get(ref(db, pathStatistik))
+        const dataAkt = snapAkt.val() || {}
+        const ibadahBelumSelesai = Object.keys(dataAkt)
+          .filter((key) => String(dataAkt[key].nama || '').trim().toLowerCase() === userData.nama.trim().toLowerCase() && (dataAkt[key].aksi === 'MulaiIbadah' || dataAkt[key].aksi === 'Ibadah') && !dataAkt[key].waktuSelesai)
+          .map((key) => ({ _key: key, ...dataAkt[key] }))
+          .sort((a: any, b: any) => (b.waktu || 0) - (a.waktu || 0))
+        const targetIbadah = ibadahBelumSelesai[0]
+        const waktuMulaiIb = Number(targetIbadah?.waktuMulai || targetIbadah?.waktu || dataSaya?.waktuMulaiIbadah || now)
+
+        await update(ref(db, pathAntrian), { status: 'Standby', posisiTerkunci: 0, waktuStandby: waktuStandbyKembali, waktuMulaiIbadah: null })
+        if (targetIbadah && targetIbadah._key) {
+          await update(ref(db, `${pathStatistik}/${targetIbadah._key}`), {
+            waktuSelesai: now,
+            durasiDetik: Math.max(0, Math.floor((now - waktuMulaiIb) / 1000)),
+            posisiSelesai: posisiLama,
+          })
+        } else {
+          await push(ref(db, pathStatistik), {
+            nama: userData.nama,
+            aksi: 'MulaiIbadah',
+            waktu: waktuMulaiIb,
+            waktuMulai: waktuMulaiIb,
+            waktuSelesai: now,
+            durasiDetik: Math.max(0, Math.floor((now - waktuMulaiIb) / 1000)),
+            tanggal: tglIndo,
+            tanggalKey: todayKey,
+            kategori: 'Ibadah',
+            posisi: posisiLama,
+          })
+        }
         toast.success('Kembali ke antrian.')
       } else if (aksi === 'PanggilCS') {
         const posisi = posisiStandby()
@@ -524,7 +554,28 @@ export default function PromotorPage() {
   const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
   const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
-  const listIbadahSaya = aktivitasHariIni.filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
+
+  // Gabungkan sesi Ibadah (Mulai & Selesai dalam satu baris rentang jam, termasuk data lama yang terpisah)
+  const sesiIbadahSaya = (() => {
+    const raw = aktivitasHariIni
+      .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+    const hasil: { waktuMulai: number; waktuSelesai?: number }[] = []
+    for (const item of raw) {
+      const t = Number(item.waktuMulai || item.waktu || 0)
+      if (item.waktuSelesai) {
+        hasil.push({ waktuMulai: t, waktuSelesai: Number(item.waktuSelesai) })
+      } else if (item.aksi === 'MulaiIbadah' || item.aksi === 'Ibadah') {
+        hasil.push({ waktuMulai: t })
+      } else if (item.aksi === 'SelesaiIbadah') {
+        const openIdx = hasil.findIndex(s => !s.waktuSelesai)
+        if (openIdx !== -1) hasil[openIdx].waktuSelesai = t
+        else hasil.push({ waktuMulai: t, waktuSelesai: t })
+      }
+    }
+    return hasil
+  })()
+
   const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokickSaya = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
 
@@ -854,21 +905,23 @@ export default function PromotorPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">{listIbadahSaya.length}</span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-amber-500 text-white">{sesiIbadahSaya.length}</span>
                     {openCollapse.ibadah ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
                 {openCollapse.ibadah && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
                     <p className="font-bold text-foreground">Rincian Catatan Ibadah:</p>
-                    {listIbadahSaya.length === 0 ? (
+                    {sesiIbadahSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Belum ada catatan ibadah hari ini.</p>
                     ) : (
-                      <div className="space-y-1 pt-1">
-                        {listIbadahSaya.map((a, i) => (
+                      <div className="space-y-1.5 pt-1">
+                        {sesiIbadahSaya.map((s, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-amber-600">{a.aksi === 'MulaiIbadah' ? 'Mulai Ibadah' : a.aksi === 'SelesaiIbadah' ? 'Selesai Ibadah' : 'Ibadah'}</span>
-                            <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
+                            <span className="font-medium text-amber-600">Ibadah {sesiIbadahSaya.length > 1 ? `#${i + 1}` : ''}</span>
+                            <span className="font-bold text-foreground">
+                              {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
+                            </span>
                           </div>
                         ))}
                       </div>
