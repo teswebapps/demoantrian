@@ -34,6 +34,8 @@ const getTanggalKey = (d?: Date) => {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 const cleanNama = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
+const normKategori = (kat: any): 'HA' | 'AV' =>
+  String(kat || '').trim().toUpperCase() === 'AV' ? 'AV' : 'HA'
 
 const NAMA_BULAN = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -348,13 +350,13 @@ export default function PromotorPage() {
 
   const dataSaya = antrian.find(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
   const statusSaya = dataSaya ? dataSaya.status : 'Offline'
-  const listHA = antrian.filter(a => a.kategori === 'HA')
-  const listAV = antrian.filter(a => a.kategori === 'AV')
+  const listHA = antrian.filter(a => normKategori(a.kategori ?? a.subkategori) === 'HA')
+  const listAV = antrian.filter(a => normKategori(a.kategori ?? a.subkategori) === 'AV')
 
   const posisiStandby = () => {
-    const kat = String(dataSaya?.kategori || 'HA').toUpperCase()
+    const kat = normKategori(dataSaya?.kategori ?? dataSaya?.subkategori)
     const listStandby = antrian
-      .filter(i => i.status === 'Standby' && String(i.kategori).toUpperCase() === kat)
+      .filter(i => i.status === 'Standby' && normKategori(i.kategori ?? i.subkategori) === kat)
       .sort((a, b) => (a.waktuStandby || 0) - (b.waktuStandby || 0))
     return listStandby.findIndex(i => i.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
   }
@@ -453,6 +455,7 @@ export default function PromotorPage() {
         const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${tKeyAktif}`)
         const checkinSnap = await get(checkinRef)
         const nowTs = Date.now()
+        const katDipilih = normKategori(kategoriPilih)
 
         // Jika sebelumnya sempat melewatkan reset istirahat saat melayani/ibadah/CS, bersihkan flag & tetap letakkan di paling bawah
         const checkinVal = checkinSnap.exists() ? checkinSnap.val() || {} : {}
@@ -472,7 +475,7 @@ export default function PromotorPage() {
         const maxWaktuStandbyKategori = Object.keys(antrianVal)
           .filter((k) => {
             const item = antrianVal[k]
-            return item && item.nama && String(item.kategori).toUpperCase() === kategoriPilih && item.nama.toLowerCase() !== userData.nama.toLowerCase()
+            return item && item.nama && normKategori(item.kategori ?? item.subkategori) === katDipilih && String(item.nama).trim().toLowerCase() !== String(userData.nama).trim().toLowerCase()
           })
           .reduce((max, k) => Math.max(max, Number(antrianVal[k].waktuStandby) || 0), 0)
 
@@ -487,8 +490,8 @@ export default function PromotorPage() {
           status: 'Standby',
           waktuStandby: waktuStandbyFinal,
           waktuMasukAntrian: nowTs,
-          kategori: kategoriPilih,
-          subkategori: kategoriPilih,
+          kategori: katDipilih,
+          subkategori: katDipilih,
           posisiTerkunci: 0,
         })
         toast.success('Berhasil Masuk Antrian!')
@@ -786,12 +789,12 @@ export default function PromotorPage() {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] relative z-10">Nomor Antrian Anda</p>
             <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">
               {(() => {
-                const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA
+                const listKategoriSaya = normKategori(dataSaya?.kategori ?? dataSaya?.subkategori) === 'AV' ? listAV : listHA
                 const posisi = listKategoriSaya.filter(a => a.status === 'Standby').findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
                 return posisi.toString().padStart(2, '0')
               })()}
             </div>
-            <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {dataSaya?.kategori}</div>
+            <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold mb-8 bg-primary/10 text-primary border border-primary/20 uppercase relative z-10">KATEGORI {normKategori(dataSaya?.kategori ?? dataSaya?.subkategori)}</div>
             <div className="space-y-3 relative z-10">
               <button onClick={() => handleAksi('BawaCustomer')} className="w-full py-4 bg-cyan-500 text-slate-950 font-black rounded-xl shadow-lg shadow-cyan-500/30 hover:bg-cyan-400 transition-all active:scale-95 flex justify-center items-center gap-2">
                 <Play className="w-5 h-5 fill-slate-950" /> SUDAH MEMBAWA CUSTOMER
