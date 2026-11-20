@@ -1,8 +1,11 @@
-import { get, ref, runTransaction, update } from 'firebase/database'
+import { get, push, ref, runTransaction, update } from 'firebase/database'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 export const getTodayKey = (d = new Date()) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+const getTanggalIndo = (d = new Date()) => {
+  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 }
 
 const cleanNama = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
@@ -26,6 +29,10 @@ async function prosesGelombangIstirahat(
   if (!tx.committed) return false
 
   const batasTs = getBatasJam(now, gelombang === '13' ? 13 : 16)
+  const labelJamReset = gelombang === '13' ? '13.00' : '16.00'
+  const keteranganKeluar = `Keluar antrian istirahat ${labelJamReset}`
+  const tglIndo = getTanggalIndo(now)
+
   const [antrianSnap, checkinSnap] = await Promise.all([
     get(ref(db, `toko/${tokoId}/antrian`)),
     get(ref(db, `toko/${tokoId}/checkinHarian`)),
@@ -34,6 +41,7 @@ async function prosesGelombangIstirahat(
   const antrian = antrianSnap.val() || {}
   const checkin = checkinSnap.val() || {}
   const updates: Record<string, any> = {}
+  const logKeluarList: any[] = []
 
   Object.keys(antrian).forEach((key) => {
     const item = antrian[key]
@@ -50,6 +58,15 @@ async function prosesGelombangIstirahat(
     const status = String(item.status || '')
     if (status === 'Standby') {
       updates[`toko/${tokoId}/antrian/${key}`] = null
+      logKeluarList.push({
+        nama: item.nama,
+        aksi: 'KeluarAntrian',
+        waktu: Date.now(),
+        tanggal: tglIndo,
+        tanggalKey: today,
+        jamReset: labelJamReset,
+        hasil: keteranganKeluar,
+      })
     } else if (status === 'Melayani' || status === 'Ibadah' || status === 'Dipanggil CS') {
       updates[`toko/${tokoId}/checkinHarian/${clean}/${today}/nama`] = item.nama
       updates[`toko/${tokoId}/checkinHarian/${clean}/${today}/tanggalKey`] = today
@@ -60,6 +77,11 @@ async function prosesGelombangIstirahat(
   if (Object.keys(updates).length > 0) {
     await update(ref(db), updates)
   }
+
+  for (const logItem of logKeluarList) {
+    await push(ref(db, `toko/${tokoId}/statistikAktivitas`), logItem)
+  }
+
   return true
 }
 
