@@ -144,9 +144,12 @@ export default function AktivitasAdminPage() {
     return isHariIni && waktuAktivitas > lastResetTimestamp
   })
 
-  const listBawa = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
+  // Bawa Customer: waktu terbaru di paling atas
+  const listBawa = aktivitasHariIni
+    .filter(a => a.aksi === 'BawaCustomer')
+    .sort((a, b) => Number(b.waktuMulai || b.waktu || 0) - Number(a.waktuMulai || a.waktu || 0))
 
-  // Gabungkan sesi Ibadah per promotor dalam rentang jam (contoh: 11.20 - 12.05)
+  // Gabungkan sesi Ibadah lalu urutkan agar waktu terbaru berada di paling atas
   const sesiIbadahHariIni = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
@@ -168,12 +171,33 @@ export default function AktivitasAdminPage() {
         else hasil.push({ nama, waktuMulai: t, waktuSelesai: t })
       }
     }
-    return hasil
+    return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
   })()
 
-  const listKeluar = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
-  const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
-  const checkinHariIni = checkinList.filter(c => (c.dateKey || c.tanggalKey) === todayKey)
+  // Keluar Antrian & Autokick: waktu terbaru di paling atas
+  const listKeluar = aktivitasHariIni
+    .filter(a => a.aksi === 'KeluarAntrian')
+    .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
+
+  const listAutokick = aktivitasHariIni
+    .filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
+    .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
+
+  const checkinHariIni = checkinList
+    .filter(c => (c.dateKey || c.tanggalKey) === todayKey)
+    .sort((a, b) => Number(b.waktu || 0) - Number(a.waktu || 0))
+
+  // Check-in promotor: yang sudah check-in diurutkan dari jam terbaru di atas
+  const whitelistCheckinTerurut = [...whitelistUsers].sort((a, b) => {
+    const ca = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(a.nama || '').toLowerCase())
+    const cb = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(b.nama || '').toLowerCase())
+    const tsA = Number(ca?.waktu || 0)
+    const tsB = Number(cb?.waktu || 0)
+    if (tsA > 0 && tsB > 0) return tsB - tsA
+    if (tsB > 0) return 1
+    if (tsA > 0) return -1
+    return String(a.nama || '').localeCompare(String(b.nama || ''))
+  })
 
   const rekapPromotorMap = (() => {
     const acc: Record<string, { namaPromotor: string; deal: number; lihat: number; noSale: number; hariSet: Set<string> }> = {}
@@ -306,7 +330,7 @@ export default function AktivitasAdminPage() {
 
                 {popupType === 'checkin' && (
                   <div className="space-y-2">
-                    {whitelistUsers.length === 0 ? <p className={emptyCls}>Belum ada promotor terdaftar</p> : whitelistUsers.map((p, idx) => {
+                    {whitelistCheckinTerurut.length === 0 ? <p className={emptyCls}>Belum ada promotor terdaftar</p> : whitelistCheckinTerurut.map((p, idx) => {
                       const checkinData = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(p.nama || '').toLowerCase())
                       return (
                         <div key={idx} className={rowCls}>
