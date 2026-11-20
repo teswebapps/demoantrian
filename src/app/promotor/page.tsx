@@ -853,7 +853,6 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.checkin && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-1.5 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Status Kehadiran (Terbaru di Atas):</p>
                     {riwayatCheckinSaya.length === 0 ? (
                       <p className="text-muted-foreground">Anda belum melakukan check-in hari ini.</p>
                     ) : (
@@ -886,11 +885,10 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.bawa && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Rincian Waktu Mulai & Selesai Melayani (Terbaru di Atas):</p>
                     {listBawaSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Belum ada riwayat membawa customer hari ini.</p>
                     ) : (
-                      <div className="space-y-2 pt-1">
+                      <div className="space-y-2">
                         {listBawaSaya.map((a, i) => {
                           const durasiMenit = a.durasiDetik ? Math.floor(a.durasiDetik / 60) : null
                           return (
@@ -928,11 +926,10 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.ibadah && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Rincian Catatan Ibadah (Terbaru di Atas):</p>
                     {sesiIbadahSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Belum ada catatan ibadah hari ini.</p>
                     ) : (
-                      <div className="space-y-1.5 pt-1">
+                      <div className="space-y-1.5">
                         {sesiIbadahSaya.map((s, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
                             <span className="font-medium text-amber-600">Ibadah {sesiIbadahSaya.length > 1 ? `#${sesiIbadahSaya.length - i}` : ''}</span>
@@ -963,11 +960,10 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.keluar && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Riwayat Keluar Antrian (Terbaru di Atas):</p>
                     {listKeluarSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Tidak ada riwayat keluar antrian hari ini.</p>
                     ) : (
-                      <div className="space-y-1 pt-1">
+                      <div className="space-y-1">
                         {listKeluarSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
                             <span className="font-medium text-rose-600">{a.hasil && a.hasil !== 'Manual' ? a.hasil : 'Keluar Antrian'}</span>
@@ -996,11 +992,10 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.autokick && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Riwayat Autokick Sistem (Terbaru di Atas):</p>
                     {listAutokickSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Tidak ada catatan autokick hari ini.</p>
                     ) : (
-                      <div className="space-y-1 pt-1">
+                      <div className="space-y-1">
                         {listAutokickSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
                             <span className="font-medium text-red-600">Autokick Sistem</span>
@@ -1029,7 +1024,6 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.rekap && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Ringkasan Performa Hari Ini:</p>
                     <div className="bg-background border border-border rounded-xl p-3 flex justify-around text-center shadow-sm">
                       <div>
                         <p className="text-muted-foreground text-[10px] uppercase font-bold">Deal</p>
@@ -1061,11 +1055,10 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.bulanan && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Akumulasi Deal & Lihat Bulanan:</p>
                     {listRekapBulanan.length === 0 ? (
                       <p className="text-muted-foreground italic">Belum ada data rekap bulanan.</p>
                     ) : (
-                      <div className="space-y-2 pt-1">
+                      <div className="space-y-2">
                         {listRekapBulanan.map((rekap: any, idx: number) => (
                           <div key={idx} className="bg-background border border-border rounded-xl p-3 flex justify-between items-center shadow-sm">
                             <span className="font-bold text-foreground">{rekap.label}</span>
