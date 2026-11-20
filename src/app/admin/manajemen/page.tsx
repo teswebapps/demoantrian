@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Loader2, UserPlus, UserMinus, Play, Lock, Unlock,
   ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee, RefreshCcw
@@ -18,6 +18,13 @@ interface Option { label: string; value: string }
 
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const getTodayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+const getTodayIndo = (d = new Date()) => `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`
+
+// Check-in jam 08.00 - 11.59 = Shift Pagi | Check-in jam 12.00 - 15.59 = Shift Siang
+const isShiftPagi = (jamShift: number) => jamShift >= 8 && jamShift <= 11
+const isShiftSiang = (jamShift: number) => jamShift >= 12 && jamShift <= 15
 
 export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
   const key = cleanKey(nama)
@@ -136,6 +143,7 @@ export default function ManajemenPage() {
   const [lockDuration, setLockDuration] = useState('60')
 
   const [checkinList, setCheckinList] = useState<any[]>([])
+  const autoRunningRef = useRef(false)
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean
@@ -155,9 +163,8 @@ export default function ManajemenPage() {
   useEffect(() => {
     const updateTanggal = () => {
       const d = new Date()
-      const pad = (n: number) => String(n).padStart(2, '0')
-      setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
-      setTodayKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+      setHariIniIndo(getTodayIndo(d))
+      setTodayKey(getTodayKey(d))
     }
     updateTanggal()
     const t = setInterval(updateTanggal, 60_000)
@@ -208,6 +215,98 @@ export default function ManajemenPage() {
     return () => { unsubMaster(); unsubAntrian(); unsubCheckin() }
   }, [TOKO_ID])
 
+  // Reset istirahat otomatis bila admin lupa:
+  // - Jam 13.00: mengeluarkan Standby yang check-in jam 08.00 - 11.59 (Shift Pagi)
+  // - Jam 16.00: mengeluarkan Standby yang check-in jam 12.00 - 15.59 (Shift Siang)
+  const jalankanResetIstirahat = useCallback(
+    async ({ otomatis, gelombang }: { otomatis: boolean; gelombang: '13' | '16' }) => {
+      if (!TOKO_ID) return
+      const now = Date.now()
+      const tKey = getTodayKey(new Date(now))
+      const tIndo = getTodayIndo(new Date(now))
+
+      const [antrianSnap, checkinSnap, logGelombangSnap] = await Promise.all([
+        get(ref(db, `toko/${TOKO_ID}/antrian`)),
+        get(ref(db, `toko/${TOKO_ID}/checkinHarian`)),
+        get(ref(db, `toko/${TOKO_ID}/resetIstirahatOtomatis/${tKey}/${gelombang}`)),
+      ])
+
+      if (otomatis && logGelombangSnap.exists()) return
+
+      const antrianVal = antrianSnap.val() || {}
+      const checkinVal = checkinSnap.val() || {}
+      const updates: Record<string, any> = {}
+      let adaPerubahan = false
+
+      for (const k of Object.keys(antrianVal)) {
+        const item = antrianVal[k]
+        if (!item || !item.nama || item.status !== 'Standby') continue
+
+        const clean = item._key || cleanKey(item.nama)
+        const checkinHari = checkinVal?.[clean]?.[tKey]
+        const acuan = checkinHari?.waktu || item.waktuStandby
+        const jamShift = acuan ? new Date(Number(acuan)).getHours() : -1
+
+        const shouldReset = gelombang === '13' ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
+        if (!shouldReset) continue
+
+        if (otomatis && checkinHari?.[`autoReset_${gelombang}`]) continue
+
+        updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
+        if (checkinHari) {
+          updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${tKey}/waktuReset`] = now
+          if (otomatis) {
+            updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${tKey}/autoReset_${gelombang}`] = true
+          }
+        }
+        const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
+        updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
+          nama: item.nama,
+          aksi: 'KeluarAntrian',
+          waktu: now,
+          tanggal: tIndo,
+          tanggalKey: tKey,
+          hasil: otomatis ? `Reset Istirahat (${gelombang}.00)` : 'Reset Istirahat',
+        }
+        adaPerubahan = true
+      }
+
+      if (otomatis) {
+        updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKey}/${gelombang}`] = now
+      }
+
+      if (adaPerubahan || otomatis) {
+        await update(ref(db), updates)
+      }
+    },
+    [TOKO_ID]
+  )
+
+  useEffect(() => {
+    if (!TOKO_ID || !user) return
+
+    const cekSlotOtomatis = async () => {
+      if (autoRunningRef.current || isProcessing) return
+      const nowDate = new Date()
+      const jam = nowDate.getHours()
+      const gelombang: '13' | '16' | null = jam >= 16 ? '16' : jam >= 13 ? '13' : null
+      if (!gelombang) return
+
+      autoRunningRef.current = true
+      try {
+        await jalankanResetIstirahat({ otomatis: true, gelombang })
+      } catch (err) {
+        console.error('Auto reset istirahat gagal:', err)
+      } finally {
+        autoRunningRef.current = false
+      }
+    }
+
+    cekSlotOtomatis()
+    const timer = setInterval(cekSlotOtomatis, 30_000)
+    return () => clearInterval(timer)
+  }, [TOKO_ID, user, isProcessing, jalankanResetIstirahat])
+
   const handleTambahPromotor = async (e: React.FormEvent) => {
     e.preventDefault()
     const nama = formNama.trim().toUpperCase()
@@ -230,7 +329,6 @@ export default function ManajemenPage() {
 
   const hitungWaktuStandby = (kategori: string, posisi: number, antrianTerbaru: any[]) => {
     const katNorm = String(kategori).toUpperCase()
-    // Gunakan seluruh item di kategori yang sama (terurut waktuStandby) agar posisi sesuai Live Urutan
     const listKategori = antrianTerbaru
       .filter(a => a && a.nama && String(a.kategori || a.subkategori || 'HA').toUpperCase() === katNorm)
       .sort((a, b) => (Number(a.waktuStandby) || 0) - (Number(b.waktuStandby) || 0))
@@ -240,18 +338,15 @@ export default function ManajemenPage() {
 
     if (listKategori.length === 0) return nowTs
 
-    // Jika posisi tidak diisi atau lebih besar dari jumlah antrian saat ini -> taruh di paling bawah
     if (!posisi || posisi < 1 || posisi > listKategori.length) {
       return Math.max(nowTs, maxWaktu + 1000)
     }
 
-    // Jika pilih nomor 1 -> taruh sebelum item pertama
     if (posisi === 1) {
       const firstTs = Number(listKategori[0].waktuStandby) || nowTs
       return firstTs - 1000
     }
 
-    // Sisipkan tepat di antara item (posisi - 2) dan item (posisi - 1)
     const beforeTs = Number(listKategori[posisi - 2].waktuStandby) || 0
     const afterTs = Number(listKategori[posisi - 1].waktuStandby) || beforeTs + 2000
 
@@ -259,7 +354,6 @@ export default function ManajemenPage() {
       return Math.floor((beforeTs + afterTs) / 2)
     }
 
-    // Jika terlalu rapat, beri jarak yang cukup
     return beforeTs + 1
   }
 
@@ -271,7 +365,6 @@ export default function ManajemenPage() {
       const snap = await get(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
       if (snap.exists()) throw new Error('Promotor sudah ada di antrian.')
 
-      // Ambil snapshot terbaru langsung dari Firebase agar perhitungan posisi selalu akurat
       const allSnap = await get(ref(db, `toko/${TOKO_ID}/antrian`))
       const allVal = allSnap.val() || {}
       const antrianTerbaru = Object.keys(allVal)
@@ -295,7 +388,6 @@ export default function ManajemenPage() {
         }
       }
 
-      // Jika disisipkan di tengah dan ada item setelah posisi target yang waktunya <= waktuStandbyBaru, geser ke bawah
       if (posisi >= 1) {
         const listKategori = antrianTerbaru
           .filter(a => String(a.kategori || a.subkategori || 'HA').toUpperCase() === katNorm)
@@ -377,21 +469,43 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  /* RESET ISTIRAHAT
-     Jam 13.00: check-in sebelum jam 12 (shift pagi) keluar antrian.
-     Jam 16.00: check-in jam 12 ke atas (shift siang) keluar antrian.
-     Jam shift dari check-in pertama; reset hanya menambah 'waktuReset'. */
-  const handleResetIstirahat = () => {
+  /* RESET ISTIRAHAT MANUAL
+     Jam 12.00 - 14.59: check-in jam 08.00 - 11.59 (Shift Pagi) keluar antrian.
+     Jam 15.00 ke atas: check-in jam 12.00 - 15.59 (Shift Siang) keluar antrian.
+     Jika gelombang otomatis sudah berjalan hari ini, tampilkan popup informasi. */
+  const handleResetIstirahat = async () => {
+    const now = Date.now()
+    const currentHour = new Date(now).getHours()
+
+    if (currentHour < 12) {
+      showModal('error', 'Belum Waktunya', 'Reset istirahat hanya bisa dijalankan mulai jam 12.00.')
+      return
+    }
+
+    const tKey = getTodayKey(new Date(now))
+    const gelombangAktif: '13' | '16' = currentHour >= 16 ? '16' : '13'
+
+    try {
+      const logSnap = await get(ref(db, `toko/${TOKO_ID}/resetIstirahatOtomatis/${tKey}/${gelombangAktif}`))
+      if (logSnap.exists()) {
+        showModal(
+          'alert',
+          'Sudah Direset Otomatis',
+          `Reset istirahat gelombang ${gelombangAktif}.00 sudah dijalankan otomatis hari ini (${getTodayIndo(new Date(now))}).`
+        )
+        return
+      }
+    } catch (err) {
+      console.error('Gagal cek status reset otomatis:', err)
+    }
+
     showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
       setIsProcessing(true)
       try {
-        const now = Date.now()
-        const currentHour = new Date().getHours()
-
-        if (currentHour < 12) {
-          showModal('error', 'Belum Waktunya', 'Reset istirahat hanya bisa dijalankan mulai jam 12.00.')
-          return
-        }
+        const eksekusiAt = Date.now()
+        const eksekusiHour = new Date(eksekusiAt).getHours()
+        const tKeyEksekusi = getTodayKey(new Date(eksekusiAt))
+        const tIndoEksekusi = getTodayIndo(new Date(eksekusiAt))
 
         const updates: Record<string, any> = {}
 
@@ -399,23 +513,27 @@ export default function ManajemenPage() {
           if (item.status !== 'Standby') continue
           const clean = cleanKey(item.nama)
 
-          const checkin = checkinList.find(c => c.namaClean === clean && c.tanggalKey === todayKey)
+          const checkin = checkinList.find(c => c.namaClean === clean && c.tanggalKey === tKeyEksekusi)
           const acuan = checkin?.waktu || item.waktuStandby
-          const jamShift = acuan ? new Date(acuan).getHours() : 0
+          const jamShift = acuan ? new Date(Number(acuan)).getHours() : -1
 
-          let shouldReset = false
-          if (currentHour < 15) shouldReset = jamShift < 12
-          else shouldReset = jamShift >= 12
+          const shouldReset = eksekusiHour < 15 ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
 
           if (shouldReset) {
             updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
-            if (checkin) updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}/waktuReset`] = now
+            if (checkin) updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${tKeyEksekusi}/waktuReset`] = eksekusiAt
             const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
             updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
-              nama: item.nama, aksi: 'KeluarAntrian', waktu: now,
-              tanggal: hariIniIndo, tanggalKey: todayKey, hasil: 'Reset Istirahat'
+              nama: item.nama, aksi: 'KeluarAntrian', waktu: eksekusiAt,
+              tanggal: tIndoEksekusi, tanggalKey: tKeyEksekusi, hasil: 'Reset Istirahat'
             }
           }
+        }
+
+        if (eksekusiHour >= 16) {
+          updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKeyEksekusi}/16`] = eksekusiAt
+        } else if (eksekusiHour >= 13) {
+          updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKeyEksekusi}/13`] = eksekusiAt
         }
 
         if (Object.keys(updates).length > 0) await update(ref(db), updates)
@@ -523,7 +641,7 @@ export default function ManajemenPage() {
       </SectionCard>
 
       {/* RESET */}
-      <SectionCard icon={<RefreshCcw className="w-5 h-5" />} tone="purple" title="Reset Antrian" subtitle="Reset istirahat dan reset harian">
+      <SectionCard icon={<RefreshCcw className="w-5 h-5" />} tone="purple" title="Reset Antrian" subtitle="Otomatis jam 13.00 & 16.00 (cadangan bila lupa) atau manual">
         <div className="space-y-3">
           <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className={btn.amber}>
             <Coffee className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
