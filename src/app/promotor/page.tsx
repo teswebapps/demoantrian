@@ -534,7 +534,6 @@ export default function PromotorPage() {
     }
   }
 
-  // Rekap & aktivitas harian promotor (tidak terhapus saat reset antrian maupun reset istirahat)
   const aktivitasHariIni = statistikList.filter(a => {
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
     const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
@@ -583,7 +582,6 @@ export default function PromotorPage() {
     .filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
     .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
 
-  // Total bulanan tidak tereset oleh reset antrian maupun reset istirahat
   const rekapBulananMap = statistikList
     .filter(a => {
       if (!tahunIni) return false

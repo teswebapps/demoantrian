@@ -9,6 +9,7 @@ const getTanggalIndo = (d: Date) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)
 const getTanggalKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const cleanNama = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 
+// Reset antrian manual (tidak menghapus statistikAktivitas / Total Bulanan)
 export async function jalankanResetAntrianManual(tokoId: string) {
   const now = new Date()
   const tKey = getTanggalKey(now)
@@ -17,9 +18,9 @@ export async function jalankanResetAntrianManual(tokoId: string) {
   await set(ref(db, `toko/${tokoId}/resetAntrianHarian/${tKey}`), now.getTime())
 }
 
-// Reset Istirahat langsung berbasis jam check-in:
-// - Gelombang '13' (jam 13.00 - 15.59): hanya check-in pagi (< 12.00)
-// - Gelombang '16' (jam >= 16.00): hanya check-in siang (>= 12.00)
+// Reset istirahat langsung berdasarkan jam check-in:
+// - '13': hanya yang check-in < 12.00
+// - '16': hanya yang check-in >= 12.00
 export async function jalankanResetIstirahatLangsung(tokoId: string, gelombangTarget?: '13' | '16') {
   const now = new Date()
   const nowTs = now.getTime()
@@ -65,7 +66,6 @@ export async function jalankanResetIstirahatLangsung(tokoId: string, gelombangTa
     if (!cocokGelombang) continue
 
     updates[`toko/${tokoId}/antrian/${key}`] = null
-    updates[`toko/${tokoId}/checkinHarian/${clean}/${tKey}/terlewatReset_${gelombang}`] = null
     jumlahKeluar += 1
 
     logAktivitas.push({
@@ -91,38 +91,48 @@ export function useAutoReset(tokoId?: string) {
   useEffect(() => {
     if (!tokoId) return
 
-    const cekOtomatis = async () => {
+    const cekJadwalTepatWaktu = async () => {
       try {
         const now = new Date()
+        const jam = now.getHours()
+        const menit = now.getMinutes()
         const tKey = getTanggalKey(now)
-        const jamSekarang = now.getHours()
 
-        // 1. Reset Antrian otomatis saat pergantian hari 00.00 (tidak menghapus rekap/total bulanan)
-        const resetHariSnap = await get(ref(db, `toko/${tokoId}/resetAntrianHarian/${tKey}`))
-        if (!resetHariSnap.exists()) {
-          const awalHariTs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime()
-          await update(ref(db), {
-            [`toko/${tokoId}/antrian`]: null,
-            [`toko/${tokoId}/lastResetTimestamp`]: awalHariTs,
-            [`toko/${tokoId}/resetAntrianHarian/${tKey}`]: Date.now(),
-          })
+        // 1. Reset Antrian otomatis tepat jam 00.00 (tidak menghapus rekap/total bulanan)
+        if (jam === 0 && menit === 0) {
+          const resetHariRef = ref(db, `toko/${tokoId}/resetAntrianHarian/${tKey}`)
+          const resetHariSnap = await get(resetHariRef)
+          if (!resetHariSnap.exists()) {
+            const awalHariTs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime()
+            await update(ref(db), {
+              [`toko/${tokoId}/antrian`]: null,
+              [`toko/${tokoId}/lastResetTimestamp`]: awalHariTs,
+              [`toko/${tokoId}/resetAntrianHarian/${tKey}`]: Date.now(),
+            })
+          }
         }
 
-        // 2. Reset Istirahat langsung per gelombang saat masuk jam 13.00 atau 16.00
-        if (jamSekarang >= 13) {
-          const gelombang: '13' | '16' = jamSekarang >= 16 ? '16' : '13'
-          const flagSnap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_${gelombang}`))
-          if (!flagSnap.exists()) {
-            await jalankanResetIstirahatLangsung(tokoId, gelombang)
+        // 2. Reset Istirahat gelombang 13.00 (check-in < 12.00) tepat jam 13.00
+        if (jam === 13 && menit === 0) {
+          const flag13Snap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_13`))
+          if (!flag13Snap.exists()) {
+            await jalankanResetIstirahatLangsung(tokoId, '13')
+          }
+        }
+
+        // 3. Reset Istirahat gelombang 16.00 (check-in >= 12.00) tepat jam 16.00
+        if (jam === 16 && menit === 0) {
+          const flag16Snap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_16`))
+          if (!flag16Snap.exists()) {
+            await jalankanResetIstirahatLangsung(tokoId, '16')
           }
         }
       } catch (err) {
-        console.error('Gagal menjalankan auto reset:', err)
+        console.error('Gagal mengecek jadwal reset:', err)
       }
     }
 
-    cekOtomatis()
-    const interval = setInterval(cekOtomatis, 15_000)
+    const interval = setInterval(cekJadwalTepatWaktu, 20_000)
     return () => clearInterval(interval)
   }, [tokoId])
 }
