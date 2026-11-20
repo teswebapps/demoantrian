@@ -137,11 +137,41 @@ export default function AktivitasAdminPage() {
 
   const formatJam = (ts: number) => ts ? `${pad2(new Date(ts).getHours())}.${pad2(new Date(ts).getMinutes())}` : '-'
 
-  // Aktivitas hari ini: hanya yang dibuat SETELAH reset terakhir
+  // Samakan teks reset persis dengan yang muncul di halaman promotor
+  const getKeteranganKeluar = (item: any) => {
+    const kandidatKeys = ['keterangan', 'alasan', 'catatan', 'hasil', 'status', 'sumber', 'kategori', 'pesan', 'detail', 'label']
+    for (const k of kandidatKeys) {
+      const val = item?.[k]
+      if (typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'keluarantrian') {
+        return val.trim()
+      }
+    }
+
+    // Cari di semua nilai string pada objek log jika nama field-nya berbeda
+    for (const [k, val] of Object.entries(item || {})) {
+      if (['_key', 'nama', 'aksi', 'tanggal', 'tanggalKey', 'tokoId'].includes(k)) continue
+      if (typeof val === 'string') {
+        const clean = val.trim()
+        if (/reset|istirahat/i.test(clean)) return clean
+      }
+    }
+
+    const ts = Number(item?.waktu || item?.waktuMulai || 0)
+    if (ts) {
+      const jam = new Date(ts).getHours()
+      if (jam >= 13 && jam < 16) return 'Reset Istirahat 13.00'
+      if (jam >= 16) return 'Reset Istirahat 16.00'
+    }
+    return 'Keluar Antrian'
+  }
+
+  // Aktivitas hari ini: log KeluarAntrian hari ini tetap tampil meskipun lastResetTimestamp berdekatan saat tes
   const aktivitasHariIni = statistikList.filter(a => {
     const isHariIni = a.tanggal === hariIniIndo
+    if (!isHariIni) return false
+    if (a.aksi === 'KeluarAntrian') return true
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
-    return isHariIni && waktuAktivitas > lastResetTimestamp
+    return waktuAktivitas >= lastResetTimestamp
   })
 
   // Bawa Customer: waktu terbaru di paling atas
@@ -412,12 +442,21 @@ export default function AktivitasAdminPage() {
 
                 {popupType === 'keluar' && (
                   <div className="space-y-2">
-                    {listKeluar.length === 0 ? <p className={emptyCls}>Belum ada</p> : listKeluar.map((a, i) => (
-                      <div key={i} className={rowCls}>
-                        <span className="font-bold text-foreground uppercase">{a.nama}</span>
-                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktu)}</span>
-                      </div>
-                    ))}
+                    {listKeluar.length === 0 ? <p className={emptyCls}>Belum ada</p> : listKeluar.map((a, i) => {
+                      const keterangan = getKeteranganKeluar(a)
+                      const isResetIstirahat = /reset|istirahat/i.test(keterangan)
+                      return (
+                        <div key={i} className={rowCls}>
+                          <div>
+                            <span className="font-bold text-foreground uppercase block">{a.nama}</span>
+                            <span className={`text-[10px] font-bold ${isResetIstirahat ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                              {keterangan}
+                            </span>
+                          </div>
+                          <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktu || a.waktuMulai)}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
 
