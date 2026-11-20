@@ -883,7 +883,7 @@ export default function PromotorPage() {
                     <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center"><LogOut className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">KELUAR ANTRIAN</h4>
-                      <p className="text-[11px] text-muted-foreground">Riwayat keluar manual</p>
+                      <p className="text-[11px] text-muted-foreground">Riwayat keluar manual & reset istirahat</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -900,7 +900,7 @@ export default function PromotorPage() {
                       <div className="space-y-1 pt-1">
                         {listKeluarSaya.map((a, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-rose-600">Keluar Antrian</span>
+                            <span className="font-medium text-rose-600">{a.hasil && a.hasil !== 'Manual' ? a.hasil : 'Keluar Antrian'}</span>
                             <span className="text-muted-foreground">{formatJam(a.waktu)}</span>
                           </div>
                         ))}
