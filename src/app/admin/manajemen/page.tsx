@@ -764,7 +764,7 @@ export default function ManajemenPage() {
         icon={<RefreshCcw className="w-5 h-5" />}
         tone="purple"
         title="Reset Antrian"
-        subtitle={`Otomatis jam ${jamReset1Aktif.labelTitik} & ${jamReset2Aktif.labelTitik} WIB (cadangan bila lupa) atau manual`}
+        subtitle="Tombol reset hanya digunakan jika otomatis error"
       >
         <div className="space-y-3">
           <form onSubmit={handleSimpanJamResetIstirahat} className="bg-secondary/50 border border-border/60 rounded-2xl p-3.5 space-y-3">
