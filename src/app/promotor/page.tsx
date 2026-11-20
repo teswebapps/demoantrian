@@ -143,6 +143,7 @@ export default function PromotorPage() {
   const [hariIniIndo, setHariIniIndo] = useState('')
   const [tahunIni, setTahunIni] = useState<number>(0)
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(true)
+  const [nowTick, setNowTick] = useState<number>(0)
 
   const [openCollapse, setOpenCollapse] = useState<{ [key: string]: boolean }>({
     checkin: false,
@@ -166,12 +167,14 @@ export default function PromotorPage() {
 
   useEffect(() => {
     const update = () => {
-      setHariIniIndo(getTanggalIndo())
-      setTodayKey(getTanggalKey())
-      setTahunIni(new Date().getFullYear())
+      const now = new Date()
+      setHariIniIndo(getTanggalIndo(now))
+      setTodayKey(getTanggalKey(now))
+      setTahunIni(now.getFullYear())
+      setNowTick(Date.now())
     }
     update()
-    const t = setInterval(update, 60_000)
+    const t = setInterval(update, 30_000)
     return () => clearInterval(t)
   }, [])
 
@@ -343,22 +346,6 @@ export default function PromotorPage() {
     setJarak(hitungJarak(userLoc.lat, userLoc.lng, latTokoFinal, lngTokoFinal))
   }, [userLoc, latTokoFinal, lngTokoFinal])
 
-  const mintaIzinGPS = () => {
-    if (!window.isSecureContext) { setStatusGPS('Situs harus dibuka lewat HTTPS agar GPS bisa jalan.'); return }
-    if (!navigator.geolocation) { setStatusGPS('Browser tidak mendukung GPS.'); return }
-    setStatusGPS('Sedang meminta lokasi...')
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setStatusGPS('GPS aktif')
-      },
-      (err) => {
-        setStatusGPS(pesanErrorGPS(err))
-      },
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
-    )
-  }
-
   const dataSaya = antrian.find(a => a.nama.toLowerCase() === userData?.nama.toLowerCase())
   const statusSaya = dataSaya ? dataSaya.status : 'Offline'
   const listHA = antrian.filter(a => a.kategori === 'HA')
@@ -372,11 +359,63 @@ export default function PromotorPage() {
     return listStandby.findIndex(i => i.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
   }
 
+  // Cek apakah promotor melewatkan gelombang reset istirahat (13.00 / 16.00) saat sedang Melayani / Ibadah / CS
+  // Jika ya: keluarkan dari antrian & aktifkan lock timer agar harus hubungi Admin untuk buka kunci
+  const cekDanKunciJikaMelewatkanReset = async (clean: string, tKey: string) => {
+    const now = Date.now()
+    const nowHour = new Date(now).getHours()
+    const checkinPath = `toko/${TOKO_ID}/checkinHarian/${clean}/${tKey}`
+    const snap = await get(ref(db, checkinPath))
+    if (!snap.exists()) return false
+
+    const checkinData = snap.val() || {}
+    const gelombangTerlewat: '13' | '16' | null =
+      checkinData.terlewatReset_16 && nowHour >= 16
+        ? '16'
+        : checkinData.terlewatReset_13 && nowHour >= 13
+        ? '13'
+        : null
+
+    if (!gelombangTerlewat) return false
+
+    const durasiMenit = Number(checkinData[`terlewatResetDurasi_${gelombangTerlewat}`]) || 60
+    const alasan =
+      checkinData[`terlewatResetAlasan_${gelombangTerlewat}`] ||
+      `Tidak keluar antrian saat reset istirahat (${gelombangTerlewat}.00)`
+    const selesai = now + durasiMenit * 60000
+
+    const lockObj = {
+      nama: userData.nama,
+      locked: true,
+      alasan,
+      durasiMenit,
+      lockStarted: true,
+      waktuMulaiLock: now,
+      waktuSelesaiLock: selesai,
+      createdAt: now,
+    }
+
+    await update(ref(db), {
+      [`toko/${TOKO_ID}/antrian/${clean}`]: null,
+      [`toko/${TOKO_ID}/lockPromotor/${clean}`]: lockObj,
+      [`${checkinPath}/terlewatReset_${gelombangTerlewat}`]: null,
+      [`${checkinPath}/terlewatResetDurasi_${gelombangTerlewat}`]: null,
+      [`${checkinPath}/terlewatResetAlasan_${gelombangTerlewat}`]: null,
+    })
+
+    setLockData(lockObj)
+    const mAwal = Math.floor(durasiMenit)
+    setSisaWaktu(`${mAwal}:00`)
+    toast.error('🔒 Akun dikunci karena melewatkan reset istirahat. Hubungi Admin untuk membuka kunci.')
+    return true
+  }
+
   const handleAksi = async (aksi: string, hasil: string = '') => {
     if (!userData) return
     setIsProcessing(true)
     const clean = cleanNama(userData.nama)
     const tglIndo = getTanggalIndo()
+    const tKeyAktif = todayKey || getTanggalKey()
     const pathAntrian = `toko/${TOKO_ID}/antrian/${clean}`
     const pathStatistik = `toko/${TOKO_ID}/statistikAktivitas`
 
@@ -409,7 +448,7 @@ export default function PromotorPage() {
               setLockData(lockBaru)
               const mAwal = Math.floor((selesai - mulai) / 60000)
               setSisaWaktu(`${mAwal}:00`)
-              toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
+              toast.error(`🔒 Akun Anda dikunci. Hubungi Admin. Alasan: ${l.alasan || '-'}`)
               return
             }
 
@@ -417,14 +456,17 @@ export default function PromotorPage() {
             const expired = Number(l.waktuSelesaiLock) || 0
             if (expired === 0 || now < expired) {
               setLockData(l)
-              toast.error(`🔒 Akun Anda dikunci. Alasan: ${l.alasan || '-'}`)
+              toast.error(`🔒 Akun Anda dikunci. Hubungi Admin. Alasan: ${l.alasan || '-'}`)
               return
             }
             await remove(lockRef)
           }
         }
 
-        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`)
+        const terkenaLockReset = await cekDanKunciJikaMelewatkanReset(clean, tKeyAktif)
+        if (terkenaLockReset) return
+
+        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${tKeyAktif}`)
         const checkinSnap = await get(checkinRef)
 
         // Ambil data antrian terbaru langsung dari Firebase agar posisi selalu di paling bawah kategori terpilih
@@ -441,7 +483,7 @@ export default function PromotorPage() {
         const waktuStandbyFinal = Math.max(nowTs, maxWaktuStandbyKategori + 1)
 
         if (!checkinSnap.exists()) {
-          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: todayKey, waktu: nowTs })
+          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: tKeyAktif, waktu: nowTs })
         }
 
         await set(ref(db, pathAntrian), {
@@ -455,7 +497,7 @@ export default function PromotorPage() {
         toast.success('Berhasil Masuk Antrian!')
       } else if (aksi === 'BawaCustomer') {
         await update(ref(db, pathAntrian), { status: 'Melayani', posisiTerkunci: 0, waktuMulaiMelayani: Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, waktuMulai: Date.now() })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif, waktuMulai: Date.now() })
         toast.success('Status: Melayani Customer')
       } else if (aksi === 'Selesai') {
         setShowClosing(true)
@@ -474,15 +516,16 @@ export default function PromotorPage() {
         if (target && target._key) {
           await update(ref(db, `${pathStatistik}/${target._key}`), { waktuSelesai: now, hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
         } else {
-          await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: waktuMulai, tanggal: tglIndo, tanggalKey: todayKey, waktuMulai, waktuSelesai: now, hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
+          await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: waktuMulai, tanggal: tglIndo, tanggalKey: tKeyAktif, waktuMulai, waktuSelesai: now, hasil, durasiDetik: Math.floor((now - waktuMulai) / 1000) })
         }
         toast.success(`Berhasil disimpan: ${hasil}`)
         setShowClosing(false)
+        await cekDanKunciJikaMelewatkanReset(clean, tKeyAktif)
       } else if (aksi === 'Ibadah') {
         const posisi = posisiStandby()
         const now = Date.now()
         await update(ref(db, pathAntrian), { status: 'Ibadah', posisiTerkunci: posisi, waktuStandbySebelumIbadah: dataSaya?.waktuStandby || now, waktuMulaiIbadah: now })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'MulaiIbadah', waktu: now, waktuMulai: now, tanggal: tglIndo, tanggalKey: todayKey, kategori: 'Ibadah', posisi })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'MulaiIbadah', waktu: now, waktuMulai: now, tanggal: tglIndo, tanggalKey: tKeyAktif, kategori: 'Ibadah', posisi })
         toast.info('Waktu Ibadah dimulai.')
       } else if (aksi === 'KembaliIbadah') {
         const posisiLama = dataSaya?.posisiTerkunci || 0
@@ -513,25 +556,33 @@ export default function PromotorPage() {
             waktuSelesai: now,
             durasiDetik: Math.max(0, Math.floor((now - waktuMulaiIb) / 1000)),
             tanggal: tglIndo,
-            tanggalKey: todayKey,
+            tanggalKey: tKeyAktif,
             kategori: 'Ibadah',
             posisi: posisiLama,
           })
         }
-        toast.success('Kembali ke antrian.')
+
+        const terkenaLockReset = await cekDanKunciJikaMelewatkanReset(clean, tKeyAktif)
+        if (!terkenaLockReset) {
+          toast.success('Kembali ke antrian.')
+        }
       } else if (aksi === 'PanggilCS') {
         const posisi = posisiStandby()
         await update(ref(db, pathAntrian), { status: 'Dipanggil CS', posisiTerkunci: posisi, waktuStandbySebelumCS: dataSaya?.waktuStandby || Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'PanggilCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'PanggilCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif })
         toast.info('Dipanggil ke CS/Gudang.')
       } else if (aksi === 'KembaliCS') {
         const waktuStandbyKembali = dataSaya?.waktuStandbySebelumCS || dataSaya?.waktuStandby || Date.now()
         await update(ref(db, pathAntrian), { status: 'Standby', waktuStandby: waktuStandbyKembali, posisiTerkunci: 0 })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KembaliAntriDariCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey })
-        toast.success('Kembali ke antrian.')
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KembaliAntriDariCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif })
+
+        const terkenaLockReset = await cekDanKunciJikaMelewatkanReset(clean, tKeyAktif)
+        if (!terkenaLockReset) {
+          toast.success('Kembali ke antrian.')
+        }
       } else if (aksi === 'Keluar') {
         await remove(ref(db, pathAntrian))
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: tglIndo, tanggalKey: todayKey, hasil: 'Manual' })
+        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif, hasil: 'Manual' })
         toast.success('Anda keluar dari antrian.')
       }
     } catch (err) {
@@ -615,7 +666,8 @@ export default function PromotorPage() {
 
   if (lockData?.locked) {
     const expired = Number(lockData.waktuSelesaiLock) || 0
-    const sisa = expired - Date.now()
+    const acuanWaktu = nowTick || expired
+    const sisa = expired - acuanWaktu
     const sudahHabis = expired !== 0 && sisa <= 0
 
     return (
@@ -633,7 +685,9 @@ export default function PromotorPage() {
             <>
               <p className="text-xs uppercase tracking-widest mb-1 text-rose-200 font-bold">Sisa Waktu Hukuman</p>
               <div className="text-5xl font-black text-white tracking-tighter my-2">{sisaWaktu}</div>
-              <p className="text-[11px] text-rose-200/80 mt-2">Harap tunggu hingga timer selesai.</p>
+              <p className="text-xs text-rose-100 font-medium mt-3">
+                Silakan hubungi Admin untuk membuka kunci akun Anda.
+              </p>
             </>
           ) : (
             <div className="py-2">
