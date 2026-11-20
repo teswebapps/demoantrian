@@ -9,6 +9,56 @@ const getTanggalIndo = (d: Date) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)
 const getTanggalKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const cleanNama = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 
+export type GelombangReset = '1' | '2'
+
+export interface JamMenitConfig {
+  jam: number
+  menit: number
+  label: string
+}
+
+export function parseJamMenit(raw: any, fallbackJam: number, fallbackMenit: number): JamMenitConfig {
+  if (typeof raw === 'string' && raw.trim()) {
+    const normalized = raw.trim().replace('.', ':')
+    const parts = normalized.split(':')
+    const j = Number(parts[0])
+    const m = Number(parts[1] ?? 0)
+    if (!Number.isNaN(j) && !Number.isNaN(m) && j >= 0 && j <= 23 && m >= 0 && m <= 59) {
+      return {
+        jam: j,
+        menit: m,
+        label: `${pad(j)}.${pad(m)}`,
+      }
+    }
+  }
+  return {
+    jam: fallbackJam,
+    menit: fallbackMenit,
+    label: `${pad(fallbackJam)}.${pad(fallbackMenit)}`,
+  }
+}
+
+export async function ambilKonfigurasiJamReset(tokoId: string): Promise<{
+  gelombang1: JamMenitConfig
+  gelombang2: JamMenitConfig
+}> {
+  const snap = await get(ref(db, `toko/${tokoId}/setting`))
+  const setting = snap.exists() ? snap.val() : {}
+
+  const gelombang1 = parseJamMenit(
+    setting?.jamResetIstirahat1 ?? setting?.resetIstirahat1 ?? setting?.jamReset1,
+    13,
+    0
+  )
+  const gelombang2 = parseJamMenit(
+    setting?.jamResetIstirahat2 ?? setting?.resetIstirahat2 ?? setting?.jamReset2,
+    16,
+    0
+  )
+
+  return { gelombang1, gelombang2 }
+}
+
 // Reset antrian manual (tidak menghapus statistikAktivitas / Total Bulanan)
 export async function jalankanResetAntrianManual(tokoId: string) {
   const now = new Date()
@@ -19,19 +69,35 @@ export async function jalankanResetAntrianManual(tokoId: string) {
 }
 
 // Reset istirahat langsung berdasarkan jam check-in:
-// - '13': hanya yang check-in < 12.00
-// - '16': hanya yang check-in >= 12.00
-export async function jalankanResetIstirahatLangsung(tokoId: string, gelombangTarget?: '13' | '16') {
+// - '1' (sesi istirahat 1): yang check-in < 12.00
+// - '2' (sesi istirahat 2): yang check-in >= 12.00
+export async function jalankanResetIstirahatLangsung(
+  tokoId: string,
+  gelombangTarget?: GelombangReset | '13' | '16',
+  labelOverride?: string
+) {
   const now = new Date()
   const nowTs = now.getTime()
   const jamSekarang = now.getHours()
   const tKey = getTanggalKey(now)
   const tglIndo = getTanggalIndo(now)
 
-  const gelombang: '13' | '16' | null =
-    gelombangTarget || (jamSekarang >= 16 ? '16' : jamSekarang >= 13 ? '13' : null)
+  const mappedTarget: GelombangReset | null =
+    gelombangTarget === '13' || gelombangTarget === '1'
+      ? '1'
+      : gelombangTarget === '16' || gelombangTarget === '2'
+        ? '2'
+        : jamSekarang >= 16
+          ? '2'
+          : jamSekarang >= 13
+            ? '1'
+            : null
 
-  if (!gelombang) return 0
+  if (!mappedTarget) return 0
+
+  const cfg = await ambilKonfigurasiJamReset(tokoId)
+  const aktifCfg = mappedTarget === '1' ? cfg.gelombang1 : cfg.gelombang2
+  const labelJam = labelOverride || aktifCfg.label
 
   const [antrianSnap, checkinSnap] = await Promise.all([
     get(ref(db, `toko/${tokoId}/antrian`)),
@@ -41,7 +107,7 @@ export async function jalankanResetIstirahatLangsung(tokoId: string, gelombangTa
   const antrianData = antrianSnap.val() || {}
   const checkinAll = checkinSnap.val() || {}
   const updates: Record<string, any> = {
-    [`toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_${gelombang}`]: nowTs,
+    [`toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_${mappedTarget}`]: nowTs,
   }
   const logAktivitas: any[] = []
   let jumlahKeluar = 0
@@ -60,8 +126,8 @@ export async function jalankanResetIstirahatLangsung(tokoId: string, gelombangTa
     const isCheckinSiang = jamCheckin >= 12
 
     const cocokGelombang =
-      (gelombang === '13' && isCheckinPagi) ||
-      (gelombang === '16' && isCheckinSiang)
+      (mappedTarget === '1' && isCheckinPagi) ||
+      (mappedTarget === '2' && isCheckinSiang)
 
     if (!cocokGelombang) continue
 
@@ -74,7 +140,7 @@ export async function jalankanResetIstirahatLangsung(tokoId: string, gelombangTa
       waktu: nowTs,
       tanggal: tglIndo,
       tanggalKey: tKey,
-      hasil: `Reset Istirahat ${gelombang}.00`,
+      hasil: `Reset Istirahat ${labelJam}`,
     })
   }
 
@@ -112,19 +178,21 @@ export function useAutoReset(tokoId?: string) {
           }
         }
 
-        // 2. Reset Istirahat gelombang 13.00 (check-in < 12.00) tepat jam 13.00
-        if (jam === 13 && menit === 0) {
-          const flag13Snap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_13`))
-          if (!flag13Snap.exists()) {
-            await jalankanResetIstirahatLangsung(tokoId, '13')
+        const { gelombang1, gelombang2 } = await ambilKonfigurasiJamReset(tokoId)
+
+        // 2. Reset Istirahat gelombang 1 (check-in < 12.00) sesuai jam setting toko (default 13:00)
+        if (jam === gelombang1.jam && menit === gelombang1.menit) {
+          const flag1Snap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_1`))
+          if (!flag1Snap.exists()) {
+            await jalankanResetIstirahatLangsung(tokoId, '1', gelombang1.label)
           }
         }
 
-        // 3. Reset Istirahat gelombang 16.00 (check-in >= 12.00) tepat jam 16.00
-        if (jam === 16 && menit === 0) {
-          const flag16Snap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_16`))
-          if (!flag16Snap.exists()) {
-            await jalankanResetIstirahatLangsung(tokoId, '16')
+        // 3. Reset Istirahat gelombang 2 (check-in >= 12.00) sesuai jam setting toko (default 16:00)
+        if (jam === gelombang2.jam && menit === gelombang2.menit) {
+          const flag2Snap = await get(ref(db, `toko/${tokoId}/resetIstirahatLog/${tKey}/gelombang_2`))
+          if (!flag2Snap.exists()) {
+            await jalankanResetIstirahatLangsung(tokoId, '2', gelombang2.label)
           }
         }
       } catch (err) {
@@ -132,6 +200,7 @@ export function useAutoReset(tokoId?: string) {
       }
     }
 
+    cekJadwalTepatWaktu()
     const interval = setInterval(cekJadwalTepatWaktu, 20_000)
     return () => clearInterval(interval)
   }, [tokoId])

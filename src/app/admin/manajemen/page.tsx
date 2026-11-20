@@ -6,7 +6,7 @@ import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Loader2, UserPlus, UserMinus, Play, Lock, Unlock,
-  ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, Coffee, RefreshCcw
+  ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, RefreshCcw, Check
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAutoReset } from '@/hooks/useAutoReset'
@@ -16,11 +16,63 @@ import { SectionCard, inputCls, btn } from '@/components/admin/admin-ui'
 
 interface Option { label: string; value: string }
 
+interface JamConfig {
+  jam: number
+  menit: number
+  inputVal: string
+  labelTitik: string
+}
+
+const MosqueIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M12 2.5v2" />
+    <path d="M12 4.5c-3.6 2-5.5 4.2-5.5 6.5h11c0-2.3-1.9-4.5-5.5-6.5Z" />
+    <path d="M4.5 11h15" />
+    <path d="M5.5 11v10h13V11" />
+    <path d="M19.5 8.5v12.5" />
+    <path d="M19.5 6.5a1.5 1.5 0 0 1 0 3" />
+    <path d="M10 21v-4.5a2 2 0 0 1 4 0V21" />
+    <path d="M2.5 21h19" />
+  </svg>
+)
+
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
 const pad2 = (n: number) => String(n).padStart(2, '0')
 const getTodayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 const getTodayIndo = (d = new Date()) => `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`
+
+function parseJamConfig(raw: any, fallbackJam: number, fallbackMenit: number): JamConfig {
+  if (typeof raw === 'string' && raw.trim()) {
+    const parts = raw.trim().replace('.', ':').split(':')
+    const j = Number(parts[0])
+    const m = Number(parts[1] ?? 0)
+    if (!Number.isNaN(j) && !Number.isNaN(m) && j >= 0 && j <= 23 && m >= 0 && m <= 59) {
+      return {
+        jam: j,
+        menit: m,
+        inputVal: `${pad2(j)}:${pad2(m)}`,
+        labelTitik: `${pad2(j)}.${pad2(m)}`,
+      }
+    }
+  }
+  return {
+    jam: fallbackJam,
+    menit: fallbackMenit,
+    inputVal: `${pad2(fallbackJam)}:${pad2(fallbackMenit)}`,
+    labelTitik: `${pad2(fallbackJam)}.${pad2(fallbackMenit)}`,
+  }
+}
 
 // Check-in jam 08.00 - 11.59 = Shift Pagi | Check-in jam 12.00 - 15.59 = Shift Siang
 const isShiftPagi = (jamShift: number) => jamShift >= 8 && jamShift <= 11
@@ -124,11 +176,17 @@ export default function ManajemenPage() {
   const { user, loading: authLoading, logout } = useAuth('ADMIN')
   const { isDark, toggleTheme, mounted } = useTheme()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isSavingJam, setIsSavingJam] = useState(false)
 
   const [masterSales, setMasterSales] = useState<any[]>([])
   const [daftarAntrian, setDaftarAntrian] = useState<any[]>([])
   const [hariIniIndo, setHariIniIndo] = useState('')
   const [todayKey, setTodayKey] = useState('')
+
+  const [jamReset1Input, setJamReset1Input] = useState('13:00')
+  const [jamReset2Input, setJamReset2Input] = useState('16:00')
+  const [jamReset1Aktif, setJamReset1Aktif] = useState<JamConfig>(() => parseJamConfig('13:00', 13, 0))
+  const [jamReset2Aktif, setJamReset2Aktif] = useState<JamConfig>(() => parseJamConfig('16:00', 16, 0))
 
   const [formNama, setFormNama] = useState('')
   const [formEmail, setFormEmail] = useState('')
@@ -212,18 +270,56 @@ export default function ManajemenPage() {
       setCheckinList(list)
     })
 
-    return () => { unsubMaster(); unsubAntrian(); unsubCheckin() }
+    const unsubSetting = onValue(ref(db, `toko/${TOKO_ID}/setting`), (snap) => {
+      const val = snap.exists() ? snap.val() : {}
+      const cfg1 = parseJamConfig(val?.jamResetIstirahat1 ?? val?.resetIstirahat1 ?? val?.jamReset1, 13, 0)
+      const cfg2 = parseJamConfig(val?.jamResetIstirahat2 ?? val?.resetIstirahat2 ?? val?.jamReset2, 16, 0)
+      setJamReset1Aktif(cfg1)
+      setJamReset2Aktif(cfg2)
+      setJamReset1Input(cfg1.inputVal)
+      setJamReset2Input(cfg2.inputVal)
+    })
+
+    return () => { unsubMaster(); unsubAntrian(); unsubCheckin(); unsubSetting() }
   }, [TOKO_ID])
 
-  // Reset istirahat otomatis bila admin lupa:
-  // - Jam 13.00: mengeluarkan Standby yang check-in jam 08.00 - 11.59 (Shift Pagi)
-  // - Jam 16.00: mengeluarkan Standby yang check-in jam 12.00 - 15.59 (Shift Siang)
+  const handleSimpanJamResetIstirahat = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const cfg1 = parseJamConfig(jamReset1Input, NaN, NaN)
+    const cfg2 = parseJamConfig(jamReset2Input, NaN, NaN)
+    if (Number.isNaN(cfg1.jam) || Number.isNaN(cfg2.jam)) {
+      showModal('error', 'Format Jam Tidak Valid', 'Masukkan jam reset istirahat 1 dan 2 dengan format jam yang benar (HH:MM).')
+      return
+    }
+
+    setIsSavingJam(true)
+    try {
+      await update(ref(db, `toko/${TOKO_ID}/setting`), {
+        jamResetIstirahat1: cfg1.inputVal,
+        jamResetIstirahat2: cfg2.inputVal,
+      })
+      showModal(
+        'success',
+        'Jam Reset Tersimpan',
+        `Jadwal reset istirahat otomatis untuk toko ini diatur ke ${cfg1.labelTitik} (Shift Pagi) dan ${cfg2.labelTitik} (Shift Siang).`
+      )
+    } catch (err) {
+      showModal('error', 'Gagal Menyimpan', 'Gagal menyimpan jam reset istirahat ke Firebase.')
+    } finally {
+      setIsSavingJam(false)
+    }
+  }
+
+  // Reset istirahat otomatis mengikuti jam yang diatur admin per toko:
+  // - Gelombang 1: mengeluarkan Standby yang check-in jam 08.00 - 11.59 (Shift Pagi)
+  // - Gelombang 2: mengeluarkan Standby yang check-in jam 12.00 - 15.59 (Shift Siang)
   const jalankanResetIstirahat = useCallback(
-    async ({ otomatis, gelombang }: { otomatis: boolean; gelombang: '13' | '16' }) => {
+    async ({ otomatis, gelombang }: { otomatis: boolean; gelombang: '1' | '2' }) => {
       if (!TOKO_ID) return
       const now = Date.now()
       const tKey = getTodayKey(new Date(now))
       const tIndo = getTodayIndo(new Date(now))
+      const labelJam = gelombang === '1' ? jamReset1Aktif.labelTitik : jamReset2Aktif.labelTitik
 
       const [antrianSnap, checkinSnap, logGelombangSnap] = await Promise.all([
         get(ref(db, `toko/${TOKO_ID}/antrian`)),
@@ -247,7 +343,7 @@ export default function ManajemenPage() {
         const acuan = checkinHari?.waktu || item.waktuStandby
         const jamShift = acuan ? new Date(Number(acuan)).getHours() : -1
 
-        const shouldReset = gelombang === '13' ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
+        const shouldReset = gelombang === '1' ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
         if (!shouldReset) continue
 
         if (otomatis && checkinHari?.[`autoReset_${gelombang}`]) continue
@@ -266,7 +362,7 @@ export default function ManajemenPage() {
           waktu: now,
           tanggal: tIndo,
           tanggalKey: tKey,
-          hasil: otomatis ? `Reset Istirahat (${gelombang}.00)` : 'Reset Istirahat',
+          hasil: otomatis ? `Reset Istirahat ${labelJam}` : 'Reset Istirahat',
         }
         adaPerubahan = true
       }
@@ -279,7 +375,7 @@ export default function ManajemenPage() {
         await update(ref(db), updates)
       }
     },
-    [TOKO_ID]
+    [TOKO_ID, jamReset1Aktif.labelTitik, jamReset2Aktif.labelTitik]
   )
 
   useEffect(() => {
@@ -289,7 +385,11 @@ export default function ManajemenPage() {
       if (autoRunningRef.current || isProcessing) return
       const nowDate = new Date()
       const jam = nowDate.getHours()
-      const gelombang: '13' | '16' | null = jam >= 16 ? '16' : jam >= 13 ? '13' : null
+      const menit = nowDate.getMinutes()
+
+      const cocok1 = jam === jamReset1Aktif.jam && menit === jamReset1Aktif.menit
+      const cocok2 = jam === jamReset2Aktif.jam && menit === jamReset2Aktif.menit
+      const gelombang: '1' | '2' | null = cocok2 ? '2' : cocok1 ? '1' : null
       if (!gelombang) return
 
       autoRunningRef.current = true
@@ -303,9 +403,9 @@ export default function ManajemenPage() {
     }
 
     cekSlotOtomatis()
-    const timer = setInterval(cekSlotOtomatis, 30_000)
+    const timer = setInterval(cekSlotOtomatis, 20_000)
     return () => clearInterval(timer)
-  }, [TOKO_ID, user, isProcessing, jalankanResetIstirahat])
+  }, [TOKO_ID, user, isProcessing, jalankanResetIstirahat, jamReset1Aktif, jamReset2Aktif])
 
   const handleTambahPromotor = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -469,21 +569,25 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  /* RESET ISTIRAHAT MANUAL
-     Jam 12.00 - 14.59: check-in jam 08.00 - 11.59 (Shift Pagi) keluar antrian.
-     Jam 15.00 ke atas: check-in jam 12.00 - 15.59 (Shift Siang) keluar antrian.
-     Jika gelombang otomatis sudah berjalan hari ini, tampilkan popup informasi. */
+  /* RESET ISTIRAHAT MANUAL mengikuti jam yang diatur admin */
   const handleResetIstirahat = async () => {
     const now = Date.now()
-    const currentHour = new Date(now).getHours()
+    const currentDate = new Date(now)
+    const currentHour = currentDate.getHours()
+    const currentMin = currentDate.getMinutes()
+    const currentTotalMin = currentHour * 60 + currentMin
+    const jam1TotalMin = jamReset1Aktif.jam * 60 + jamReset1Aktif.menit
+    const jam2TotalMin = jamReset2Aktif.jam * 60 + jamReset2Aktif.menit
+    const batasAwalManual = Math.max(0, jam1TotalMin - 60)
 
-    if (currentHour < 12) {
-      showModal('error', 'Belum Waktunya', 'Reset istirahat hanya bisa dijalankan mulai jam 12.00.')
+    if (currentTotalMin < batasAwalManual) {
+      showModal('error', 'Belum Waktunya', `Reset istirahat gelombang 1 baru bisa dijalankan mulai jam ${pad2(Math.floor(batasAwalManual / 60))}.${pad2(batasAwalManual % 60)}.`)
       return
     }
 
-    const tKey = getTodayKey(new Date(now))
-    const gelombangAktif: '13' | '16' = currentHour >= 16 ? '16' : '13'
+    const tKey = getTodayKey(currentDate)
+    const gelombangAktif: '1' | '2' = currentTotalMin >= jam2TotalMin ? '2' : '1'
+    const labelGelombang = gelombangAktif === '1' ? jamReset1Aktif.labelTitik : jamReset2Aktif.labelTitik
 
     try {
       const logSnap = await get(ref(db, `toko/${TOKO_ID}/resetIstirahatOtomatis/${tKey}/${gelombangAktif}`))
@@ -491,7 +595,7 @@ export default function ManajemenPage() {
         showModal(
           'alert',
           'Sudah Direset Otomatis',
-          `Reset istirahat gelombang ${gelombangAktif}.00 sudah dijalankan otomatis hari ini (${getTodayIndo(new Date(now))}).`
+          `Reset istirahat gelombang ${labelGelombang} sudah dijalankan otomatis hari ini (${getTodayIndo(currentDate)}).`
         )
         return
       }
@@ -499,15 +603,18 @@ export default function ManajemenPage() {
       console.error('Gagal cek status reset otomatis:', err)
     }
 
-    showModal('confirm', 'Reset Istirahat', '⚠️ Jalankan reset istirahat gelombang ini?', async () => {
+    showModal('confirm', 'Reset Istirahat', `⚠️ Jalankan reset istirahat gelombang ${labelGelombang}?`, async () => {
       setIsProcessing(true)
       try {
         const eksekusiAt = Date.now()
-        const eksekusiHour = new Date(eksekusiAt).getHours()
-        const tKeyEksekusi = getTodayKey(new Date(eksekusiAt))
-        const tIndoEksekusi = getTodayIndo(new Date(eksekusiAt))
+        const eksekusiDate = new Date(eksekusiAt)
+        const eksekusiTotalMin = eksekusiDate.getHours() * 60 + eksekusiDate.getMinutes()
+        const tKeyEksekusi = getTodayKey(eksekusiDate)
+        const tIndoEksekusi = getTodayIndo(eksekusiDate)
 
         const updates: Record<string, any> = {}
+        const gelombangEksekusi: '1' | '2' = eksekusiTotalMin >= jam2TotalMin ? '2' : '1'
+        const labelEksekusi = gelombangEksekusi === '1' ? jamReset1Aktif.labelTitik : jamReset2Aktif.labelTitik
 
         for (const item of daftarAntrian) {
           if (item.status !== 'Standby') continue
@@ -517,7 +624,7 @@ export default function ManajemenPage() {
           const acuan = checkin?.waktu || item.waktuStandby
           const jamShift = acuan ? new Date(Number(acuan)).getHours() : -1
 
-          const shouldReset = eksekusiHour < 15 ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
+          const shouldReset = gelombangEksekusi === '1' ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
 
           if (shouldReset) {
             updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
@@ -525,19 +632,19 @@ export default function ManajemenPage() {
             const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
             updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
               nama: item.nama, aksi: 'KeluarAntrian', waktu: eksekusiAt,
-              tanggal: tIndoEksekusi, tanggalKey: tKeyEksekusi, hasil: 'Reset Istirahat'
+              tanggal: tIndoEksekusi, tanggalKey: tKeyEksekusi, hasil: `Reset Istirahat ${labelEksekusi}`
             }
           }
         }
 
-        if (eksekusiHour >= 16) {
-          updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKeyEksekusi}/16`] = eksekusiAt
-        } else if (eksekusiHour >= 13) {
-          updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKeyEksekusi}/13`] = eksekusiAt
+        if (eksekusiTotalMin >= jam2TotalMin) {
+          updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKeyEksekusi}/2`] = eksekusiAt
+        } else if (eksekusiTotalMin >= jam1TotalMin) {
+          updates[`toko/${TOKO_ID}/resetIstirahatOtomatis/${tKeyEksekusi}/1`] = eksekusiAt
         }
 
         if (Object.keys(updates).length > 0) await update(ref(db), updates)
-        showModal('success', 'Berhasil', 'Reset istirahat gelombang ini berhasil dijalankan.')
+        showModal('success', 'Berhasil', `Reset istirahat gelombang ${labelEksekusi} berhasil dijalankan.`)
       } catch (err) {
         showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
       } finally { setIsProcessing(false) }
@@ -620,6 +727,7 @@ export default function ManajemenPage() {
           </button>
         </form>
       </SectionCard>
+
       {/* ATUR ANTRIAN */}
       <SectionCard icon={<UserMinus className="w-5 h-5" />} tone="amber" title="Atur Antrian" subtitle="Masukkan, keluarkan, atau paksa melayani">
         <div className="space-y-3">
@@ -640,11 +748,57 @@ export default function ManajemenPage() {
         </div>
       </SectionCard>
 
-      {/* RESET */}
-      <SectionCard icon={<RefreshCcw className="w-5 h-5" />} tone="purple" title="Reset Antrian" subtitle="Otomatis jam 13.00 & 16.00 (cadangan bila lupa) atau manual">
+      {/* RESET & JAM RESET ISTIRAHAT PER TOKO */}
+      <SectionCard
+        icon={<RefreshCcw className="w-5 h-5" />}
+        tone="purple"
+        title="Reset Antrian"
+        subtitle={`Otomatis jam ${jamReset1Aktif.labelTitik} & ${jamReset2Aktif.labelTitik} (cadangan bila lupa) atau manual`}
+      >
         <div className="space-y-3">
+          <form onSubmit={handleSimpanJamResetIstirahat} className="bg-secondary/50 border border-border/60 rounded-2xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wide text-foreground flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-primary" /> Jam Reset Istirahat Toko
+              </span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">{TOKO_ID}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Istirahat 1 (Pagi)</label>
+                <input
+                  type="time"
+                  value={jamReset1Input}
+                  onChange={e => setJamReset1Input(e.target.value)}
+                  className={inputCls}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Istirahat 2 (Siang)</label>
+                <input
+                  type="time"
+                  value={jamReset2Input}
+                  onChange={e => setJamReset2Input(e.target.value)}
+                  className={inputCls}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSavingJam || isProcessing}
+              className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 transition"
+            >
+              {isSavingJam ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {isSavingJam ? 'MENYIMPAN...' : 'SIMPAN JAM RESET ISTIRAHAT'}
+            </button>
+          </form>
+
           <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className={btn.amber}>
-            <Coffee className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
+            <MosqueIcon className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
           </button>
           <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className={btn.purple}>
             <RefreshCcw className="w-5 h-5" /> RESET HARI INI
