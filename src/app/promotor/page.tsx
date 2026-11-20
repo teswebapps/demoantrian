@@ -352,6 +352,8 @@ export default function PromotorPage() {
   const statusSaya = dataSaya ? dataSaya.status : 'Offline'
   const listHA = antrian.filter(a => normKategori(a.kategori ?? a.subkategori) === 'HA')
   const listAV = antrian.filter(a => normKategori(a.kategori ?? a.subkategori) === 'AV')
+  const giliranHA = listHA.find(a => a.status === 'Standby') || null
+  const giliranAV = listAV.find(a => a.status === 'Standby') || null
 
   const posisiStandby = () => {
     const kat = normKategori(dataSaya?.kategori ?? dataSaya?.subkategori)
@@ -739,8 +741,8 @@ export default function PromotorPage() {
         <section className="flex flex-col gap-3">
           <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Giliran saat ini</h2>
           <div className="grid grid-cols-2 gap-3">
-            <TurnCard type="HA" label="Home Appliance" holder={listHA.length > 0 ? listHA[0].nama : null} />
-            <TurnCard type="AV" label="Audio Video" holder={listAV.length > 0 ? listAV[0].nama : null} />
+            <TurnCard type="HA" label="Home Appliance" holder={giliranHA ? giliranHA.nama : null} />
+            <TurnCard type="AV" label="Audio Video" holder={giliranAV ? giliranAV.nama : null} />
           </div>
         </section>
 
