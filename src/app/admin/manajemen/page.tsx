@@ -54,15 +54,18 @@ const getTodayIndo = (d = new Date()) => `${pad2(d.getDate())}-${pad2(d.getMonth
 
 function parseJamConfig(raw: any, fallbackJam: number, fallbackMenit: number): JamConfig {
   if (typeof raw === 'string' && raw.trim()) {
-    const parts = raw.trim().replace('.', ':').split(':')
-    const j = Number(parts[0])
-    const m = Number(parts[1] ?? 0)
-    if (!Number.isNaN(j) && !Number.isNaN(m) && j >= 0 && j <= 23 && m >= 0 && m <= 59) {
-      return {
-        jam: j,
-        menit: m,
-        inputVal: `${pad2(j)}:${pad2(m)}`,
-        labelTitik: `${pad2(j)}.${pad2(m)}`,
+    const clean = raw.trim().replace('.', ':')
+    const match = clean.match(/^(\d{1,2}):(\d{1,2})$/)
+    if (match) {
+      const j = Number(match[1])
+      const m = Number(match[2])
+      if (!Number.isNaN(j) && !Number.isNaN(m) && j >= 0 && j <= 23 && m >= 0 && m <= 59) {
+        return {
+          jam: j,
+          menit: m,
+          inputVal: `${pad2(j)}:${pad2(m)}`,
+          labelTitik: `${pad2(j)}.${pad2(m)}`,
+        }
       }
     }
   }
@@ -72,6 +75,12 @@ function parseJamConfig(raw: any, fallbackJam: number, fallbackMenit: number): J
     inputVal: `${pad2(fallbackJam)}:${pad2(fallbackMenit)}`,
     labelTitik: `${pad2(fallbackJam)}.${pad2(fallbackMenit)}`,
   }
+}
+
+function formatKetikanJam24(val: string) {
+  const digits = val.replace(/\D/g, '').slice(0, 4)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`
 }
 
 // Check-in jam 08.00 - 11.59 = Shift Pagi | Check-in jam 12.00 - 15.59 = Shift Siang
@@ -288,10 +297,12 @@ export default function ManajemenPage() {
     const cfg1 = parseJamConfig(jamReset1Input, NaN, NaN)
     const cfg2 = parseJamConfig(jamReset2Input, NaN, NaN)
     if (Number.isNaN(cfg1.jam) || Number.isNaN(cfg2.jam)) {
-      showModal('error', 'Format Jam Tidak Valid', 'Masukkan jam reset istirahat 1 dan 2 dengan format jam yang benar (HH:MM).')
+      showModal('error', 'Format Jam Tidak Valid', 'Gunakan format 24 jam HH:MM (00:00 sampai 23:59), contoh 13:00 dan 16:00.')
       return
     }
 
+    setJamReset1Input(cfg1.inputVal)
+    setJamReset2Input(cfg2.inputVal)
     setIsSavingJam(true)
     try {
       await update(ref(db, `toko/${TOKO_ID}/setting`), {
@@ -301,7 +312,7 @@ export default function ManajemenPage() {
       showModal(
         'success',
         'Jam Reset Tersimpan',
-        `Jadwal reset istirahat otomatis untuk toko ini diatur ke ${cfg1.labelTitik} (Shift Pagi) dan ${cfg2.labelTitik} (Shift Siang).`
+        `Jadwal reset istirahat otomatis diatur ke ${cfg1.labelTitik} (Shift Pagi) dan ${cfg2.labelTitik} (Shift Siang).`
       )
     } catch (err) {
       showModal('error', 'Gagal Menyimpan', 'Gagal menyimpan jam reset istirahat ke Firebase.')
@@ -310,7 +321,7 @@ export default function ManajemenPage() {
     }
   }
 
-  // Reset istirahat otomatis mengikuti jam yang diatur admin per toko:
+  // Reset istirahat otomatis mengikuti jam yang diatur admin:
   // - Gelombang 1: mengeluarkan Standby yang check-in jam 08.00 - 11.59 (Shift Pagi)
   // - Gelombang 2: mengeluarkan Standby yang check-in jam 12.00 - 15.59 (Shift Siang)
   const jalankanResetIstirahat = useCallback(
@@ -748,40 +759,52 @@ export default function ManajemenPage() {
         </div>
       </SectionCard>
 
-      {/* RESET & JAM RESET ISTIRAHAT PER TOKO */}
+      {/* RESET & JAM RESET ISTIRAHAT (24 JAM) */}
       <SectionCard
         icon={<RefreshCcw className="w-5 h-5" />}
         tone="purple"
         title="Reset Antrian"
-        subtitle={`Otomatis jam ${jamReset1Aktif.labelTitik} & ${jamReset2Aktif.labelTitik} (cadangan bila lupa) atau manual`}
+        subtitle={`Otomatis jam ${jamReset1Aktif.labelTitik} & ${jamReset2Aktif.labelTitik} WIB (cadangan bila lupa) atau manual`}
       >
         <div className="space-y-3">
           <form onSubmit={handleSimpanJamResetIstirahat} className="bg-secondary/50 border border-border/60 rounded-2xl p-3.5 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wide text-foreground flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-primary" /> Jam Reset Istirahat Toko
+                <Clock className="w-4 h-4 text-primary" /> Jam Reset Istirahat (24 Jam)
               </span>
-              <span className="text-[10px] font-bold uppercase text-muted-foreground">{TOKO_ID}</span>
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">Format HH:MM</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Istirahat 1 (Pagi)</label>
                 <input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="13:00"
                   value={jamReset1Input}
-                  onChange={e => setJamReset1Input(e.target.value)}
-                  className={inputCls}
+                  onChange={e => setJamReset1Input(formatKetikanJam24(e.target.value))}
+                  onBlur={() => {
+                    const parsed = parseJamConfig(jamReset1Input, 13, 0)
+                    setJamReset1Input(parsed.inputVal)
+                  }}
+                  className={`${inputCls} font-bold tracking-wider`}
                   required
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Istirahat 2 (Siang)</label>
                 <input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="16:00"
                   value={jamReset2Input}
-                  onChange={e => setJamReset2Input(e.target.value)}
-                  className={inputCls}
+                  onChange={e => setJamReset2Input(formatKetikanJam24(e.target.value))}
+                  onBlur={() => {
+                    const parsed = parseJamConfig(jamReset2Input, 16, 0)
+                    setJamReset2Input(parsed.inputVal)
+                  }}
+                  className={`${inputCls} font-bold tracking-wider`}
                   required
                 />
               </div>
