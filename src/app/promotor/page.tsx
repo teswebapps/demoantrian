@@ -363,43 +363,6 @@ export default function PromotorPage() {
     return listStandby.findIndex(i => i.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
   }
 
-  // Jika promotor melewatkan gelombang reset istirahat (13.00 / 16.00) saat sedang Melayani / Ibadah / CS:
-  // cukup keluarkan dari antrian tanpa lock (agar saat masuk antrian lagi otomatis berada di paling bawah)
-  const cekDanKeluarkanJikaMelewatkanReset = async (clean: string, tKey: string) => {
-    const now = Date.now()
-    const nowHour = new Date(now).getHours()
-    const checkinPath = `toko/${TOKO_ID}/checkinHarian/${clean}/${tKey}`
-    const snap = await get(ref(db, checkinPath))
-    if (!snap.exists()) return false
-
-    const checkinData = snap.val() || {}
-    const gelombangTerlewat: '13' | '16' | null =
-      checkinData.terlewatReset_16 && nowHour >= 16
-        ? '16'
-        : checkinData.terlewatReset_13 && nowHour >= 13
-        ? '13'
-        : null
-
-    if (!gelombangTerlewat) return false
-
-    await update(ref(db), {
-      [`toko/${TOKO_ID}/antrian/${clean}`]: null,
-      [`${checkinPath}/terlewatReset_${gelombangTerlewat}`]: null,
-    })
-
-    await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
-      nama: userData.nama,
-      aksi: 'KeluarAntrian',
-      waktu: now,
-      tanggal: getTanggalIndo(new Date(now)),
-      tanggalKey: tKey,
-      hasil: `Reset Istirahat ${gelombangTerlewat}.00`,
-    })
-
-    toast.info(`Anda dikeluarkan dari antrian karena melewatkan reset istirahat (${gelombangTerlewat}.00). Silakan masuk antrian lagi untuk posisi paling bawah.`)
-    return true
-  }
-
   const handleAksi = async (aksi: string, hasil: string = '') => {
     if (!userData) return
     setIsProcessing(true)
@@ -416,7 +379,6 @@ export default function PromotorPage() {
           return
         }
 
-        // Lock manual dari Admin tetap berlaku jika ada
         const lockRef = ref(db, `toko/${TOKO_ID}/lockPromotor/${clean}`)
         const lockSnap = await get(lockRef)
         if (lockSnap.exists()) {
@@ -459,19 +421,6 @@ export default function PromotorPage() {
         const nowTs = Date.now()
         const katDipilih = normKategori(kategoriPilih)
 
-        // Jika sebelumnya sempat melewatkan reset istirahat saat melayani/ibadah/CS, bersihkan flag & tetap letakkan di paling bawah
-        const checkinVal = checkinSnap.exists() ? checkinSnap.val() || {} : {}
-        const adaFlagReset13 = Boolean(checkinVal.terlewatReset_13 && new Date(nowTs).getHours() >= 13)
-        const adaFlagReset16 = Boolean(checkinVal.terlewatReset_16 && new Date(nowTs).getHours() >= 16)
-        if (adaFlagReset13 || adaFlagReset16) {
-          await update(ref(db), {
-            [`toko/${TOKO_ID}/antrian/${clean}`]: null,
-            [`toko/${TOKO_ID}/checkinHarian/${clean}/${tKeyAktif}/terlewatReset_13`]: null,
-            [`toko/${TOKO_ID}/checkinHarian/${clean}/${tKeyAktif}/terlewatReset_16`]: null,
-          })
-        }
-
-        // Ambil data antrian terbaru langsung dari Firebase agar posisi selalu di paling bawah kategori terpilih (HA / AV)
         const antrianSnap = await get(ref(db, `toko/${TOKO_ID}/antrian`))
         const antrianVal = antrianSnap.val() || {}
         const maxWaktuStandbyKategori = Object.keys(antrianVal)
@@ -522,7 +471,6 @@ export default function PromotorPage() {
         }
         toast.success(`Berhasil disimpan: ${hasil}`)
         setShowClosing(false)
-        await cekDanKeluarkanJikaMelewatkanReset(clean, tKeyAktif)
       } else if (aksi === 'Ibadah') {
         const posisi = posisiStandby()
         const now = Date.now()
@@ -563,11 +511,7 @@ export default function PromotorPage() {
             posisi: posisiLama,
           })
         }
-
-        const keluarKarenaReset = await cekDanKeluarkanJikaMelewatkanReset(clean, tKeyAktif)
-        if (!keluarKarenaReset) {
-          toast.success('Kembali ke antrian.')
-        }
+        toast.success('Kembali ke antrian.')
       } else if (aksi === 'PanggilCS') {
         const posisi = posisiStandby()
         await update(ref(db, pathAntrian), { status: 'Dipanggil CS', posisiTerkunci: posisi, waktuStandbySebelumCS: dataSaya?.waktuStandby || Date.now() })
@@ -577,11 +521,7 @@ export default function PromotorPage() {
         const waktuStandbyKembali = dataSaya?.waktuStandbySebelumCS || dataSaya?.waktuStandby || Date.now()
         await update(ref(db, pathAntrian), { status: 'Standby', waktuStandby: waktuStandbyKembali, posisiTerkunci: 0 })
         await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KembaliAntriDariCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif })
-
-        const keluarKarenaReset = await cekDanKeluarkanJikaMelewatkanReset(clean, tKeyAktif)
-        if (!keluarKarenaReset) {
-          toast.success('Kembali ke antrian.')
-        }
+        toast.success('Kembali ke antrian.')
       } else if (aksi === 'Keluar') {
         await remove(ref(db, pathAntrian))
         await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KeluarAntrian', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif, hasil: 'Manual' })
@@ -594,17 +534,13 @@ export default function PromotorPage() {
     }
   }
 
-  // Filter Aktivitas Harian (Akan bersih menjadi 0 setelah Admin menekan Reset Hari Ini)
+  // Rekap & aktivitas harian promotor (tidak terhapus saat reset antrian maupun reset istirahat)
   const aktivitasHariIni = statistikList.filter(a => {
-    const waktuAktivitas = Number(a.waktu || a.waktuMulai || a.waktuSelesai || 0)
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
     const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
-    const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
-
-    return isPromotorSama && isHariIni && isSetelahReset
+    return isPromotorSama && isHariIni
   })
 
-  // Urutkan riwayat Check-in dari waktu terbaru ke terlama
   const riwayatCheckinSaya = aktivitasHariIni
     .filter(a => a.aksi === 'CheckIn')
     .map(a => Number(a.waktu || a.waktuMulai || 0))
@@ -613,14 +549,12 @@ export default function PromotorPage() {
     .filter((ts, idx, arr) => arr.indexOf(ts) === idx)
     .sort((a, b) => b - a)
 
-  // Urutkan riwayat Bawa Customer dari waktu terbaru ke terlama
   const listBawaSaya = aktivitasHariIni
     .filter(a => a.aksi === 'BawaCustomer')
     .sort((a, b) => Number(b.waktuMulai || b.waktu || 0) - Number(a.waktuMulai || a.waktu || 0))
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
   const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
 
-  // Gabungkan sesi Ibadah lalu urutkan dari waktu terbaru ke terlama
   const sesiIbadahSaya = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
@@ -641,16 +575,15 @@ export default function PromotorPage() {
     return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
   })()
 
-  // Urutkan riwayat Keluar Antrian dari waktu terbaru ke terlama
   const listKeluarSaya = aktivitasHariIni
     .filter(a => a.aksi === 'KeluarAntrian')
     .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
 
-  // Urutkan riwayat Autokick dari waktu terbaru ke terlama
   const listAutokickSaya = aktivitasHariIni
     .filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
     .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
 
+  // Total bulanan tidak tereset oleh reset antrian maupun reset istirahat
   const rekapBulananMap = statistikList
     .filter(a => {
       if (!tahunIni) return false
