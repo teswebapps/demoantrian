@@ -141,7 +141,7 @@ export default function PromotorPage() {
   const [statistikList, setStatistikList] = useState<any[]>([])
   const [lastResetTimestamp, setLastResetTimestamp] = useState<number>(0)
   const [hariIniIndo, setHariIniIndo] = useState('')
-const [tahunIni, setTahunIni] = useState<number>(0)
+  const [tahunIni, setTahunIni] = useState<number>(0)
   const [isAktivitasOpen, setIsAktivitasOpen] = useState(true)
 
   const [openCollapse, setOpenCollapse] = useState<{ [key: string]: boolean }>({
@@ -159,21 +159,21 @@ const [tahunIni, setTahunIni] = useState<number>(0)
   }
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
-useAutoReset(userData ? TOKO_ID : undefined) 
+  useAutoReset(userData ? TOKO_ID : undefined)
   const latTokoFinal = Number(setting?.latToko || setting?.lat || 0)
   const lngTokoFinal = Number(setting?.lngToko || setting?.lng || 0)
   const radiusFinal = Number(setting?.radiusToko || setting?.radiusMaks || 50) || 50
 
-useEffect(() => {
-  const update = () => {
-    setHariIniIndo(getTanggalIndo())
-    setTodayKey(getTanggalKey())
-    setTahunIni(new Date().getFullYear())
-  }
-  update()
-  const t = setInterval(update, 60_000)
-  return () => clearInterval(t)
-}, [])
+  useEffect(() => {
+    const update = () => {
+      setHariIniIndo(getTanggalIndo())
+      setTodayKey(getTanggalKey())
+      setTahunIni(new Date().getFullYear())
+    }
+    update()
+    const t = setInterval(update, 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -424,14 +424,24 @@ useEffect(() => {
           }
         }
 
-                       const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`)
+        const checkinRef = ref(db, `toko/${TOKO_ID}/checkinHarian/${clean}/${todayKey}`)
         const checkinSnap = await get(checkinRef)
 
-        // Setiap masuk antrian (HA atau AV) posisinya di belakang antrian yang sedang berjalan.
-        // Jam check-in pertama (penentu shift pagi/siang) tidak diubah.
-        const waktuStandbyFinal = Date.now()
+        // Ambil data antrian terbaru langsung dari Firebase agar posisi selalu di paling bawah kategori terpilih
+        const antrianSnap = await get(ref(db, `toko/${TOKO_ID}/antrian`))
+        const antrianVal = antrianSnap.val() || {}
+        const maxWaktuStandbyKategori = Object.keys(antrianVal)
+          .filter((k) => {
+            const item = antrianVal[k]
+            return item && item.nama && String(item.kategori).toUpperCase() === kategoriPilih && item.nama.toLowerCase() !== userData.nama.toLowerCase()
+          })
+          .reduce((max, k) => Math.max(max, Number(antrianVal[k].waktuStandby) || 0), 0)
+
+        const nowTs = Date.now()
+        const waktuStandbyFinal = Math.max(nowTs, maxWaktuStandbyKategori + 1)
+
         if (!checkinSnap.exists()) {
-          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: todayKey, waktu: waktuStandbyFinal })
+          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: todayKey, waktu: nowTs })
         }
 
         await set(ref(db, pathAntrian), {
@@ -504,14 +514,8 @@ useEffect(() => {
   // Filter Aktivitas Harian (Akan bersih menjadi 0 setelah Admin menekan Reset Hari Ini)
   const aktivitasHariIni = statistikList.filter(a => {
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || a.waktuSelesai || 0)
-    
-    // Syarat 1: Harus milik promotor yang sedang login
     const isPromotorSama = String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
-    
-    // Syarat 2: Wajib di hari yang sama (hari ini) berdasarkan tanggalKey
     const isHariIni = (a.tanggalKey && a.tanggalKey === todayKey) || (a.tanggal && a.tanggal === hariIniIndo)
-    
-    // Syarat 3: Wajib dibuat SETELAH tombol reset harian terakhir ditekan oleh admin
     const isSetelahReset = lastResetTimestamp === 0 || waktuAktivitas > lastResetTimestamp
 
     return isPromotorSama && isHariIni && isSetelahReset
@@ -524,16 +528,14 @@ useEffect(() => {
   const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
   const listAutokickSaya = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
 
-  // Total Bulanan (Memisahkan bulan, dan otomatis mereset saat berganti tahun)
- 
   const rekapBulananMap = statistikList
-  .filter(a => {
-    if (!tahunIni) return false              // <-- tambah ini
-    if (a.aksi !== 'BawaCustomer' || !a.waktu) return false
-    const d = new Date(a.waktu)
-    if (d.getFullYear() !== tahunIni) return false
-    return String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
-  })
+    .filter(a => {
+      if (!tahunIni) return false
+      if (a.aksi !== 'BawaCustomer' || !a.waktu) return false
+      const d = new Date(a.waktu)
+      if (d.getFullYear() !== tahunIni) return false
+      return String(a.nama || '').trim().toLowerCase() === String(userData?.nama || '').trim().toLowerCase()
+    })
     .reduce((acc: any, curr: any) => {
       const d = new Date(curr.waktu)
       const bulanIdx = d.getMonth()
@@ -644,7 +646,6 @@ useEffect(() => {
                     <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${jarak === null ? 'bg-amber-500/10 text-amber-600' : dalamRadius ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive'}`}>
                       {jarak !== null ? (dalamRadius ? `✓ Di dalam radius (${jarak.toFixed(0)}m)` : `⚠️ Di luar radius (${jarak.toFixed(0)}m)`) : statusGPS}
                     </div>
-                    
                   </div>
                 ) : (
                   <div className="mb-4 p-3 bg-secondary rounded-xl text-center text-xs text-muted-foreground">GPS toko belum diatur di admin.</div>
