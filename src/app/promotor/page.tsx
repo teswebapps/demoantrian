@@ -599,11 +599,23 @@ export default function PromotorPage() {
     return isPromotorSama && isHariIni && isSetelahReset
   })
 
-  const listBawaSaya = aktivitasHariIni.filter(a => a.aksi === 'BawaCustomer')
+  // Urutkan riwayat Check-in dari waktu terbaru ke terlama
+  const riwayatCheckinSaya = aktivitasHariIni
+    .filter(a => a.aksi === 'CheckIn')
+    .map(a => Number(a.waktu || a.waktuMulai || 0))
+    .filter(ts => ts > 0)
+    .concat(jamCheckin ? [Number(jamCheckin)] : [])
+    .filter((ts, idx, arr) => arr.indexOf(ts) === idx)
+    .sort((a, b) => b - a)
+
+  // Urutkan riwayat Bawa Customer dari waktu terbaru ke terlama
+  const listBawaSaya = aktivitasHariIni
+    .filter(a => a.aksi === 'BawaCustomer')
+    .sort((a, b) => Number(b.waktuMulai || b.waktu || 0) - Number(a.waktuMulai || a.waktu || 0))
   const totalDeal = listBawaSaya.filter(a => a.hasil === 'Deal').length
   const totalLihat = listBawaSaya.filter(a => a.hasil === 'Lihat').length
 
-  // Gabungkan sesi Ibadah (Mulai & Selesai dalam satu baris rentang jam, termasuk data lama yang terpisah)
+  // Gabungkan sesi Ibadah lalu urutkan dari waktu terbaru ke terlama
   const sesiIbadahSaya = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
@@ -621,11 +633,18 @@ export default function PromotorPage() {
         else hasil.push({ waktuMulai: t, waktuSelesai: t })
       }
     }
-    return hasil
+    return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
   })()
 
-  const listKeluarSaya = aktivitasHariIni.filter(a => a.aksi === 'KeluarAntrian')
-  const listAutokickSaya = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
+  // Urutkan riwayat Keluar Antrian dari waktu terbaru ke terlama
+  const listKeluarSaya = aktivitasHariIni
+    .filter(a => a.aksi === 'KeluarAntrian')
+    .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
+
+  // Urutkan riwayat Autokick dari waktu terbaru ke terlama
+  const listAutokickSaya = aktivitasHariIni
+    .filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
+    .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
 
   const rekapBulananMap = statistikList
     .filter(a => {
@@ -888,18 +907,29 @@ export default function PromotorPage() {
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><ShieldCheck className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">CHECK-IN PROMOTOR</h4>
-                      <p className="text-[11px] text-muted-foreground">{jamCheckin ? `Jam ${formatJam(jamCheckin)}` : 'Belum check-in'}</p>
+                      <p className="text-[11px] text-muted-foreground">{riwayatCheckinSaya.length > 0 ? `Jam ${formatJam(riwayatCheckinSaya[0])}` : 'Belum check-in'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">{jamCheckin ? '1' : '0'}</span>
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 text-white">{riwayatCheckinSaya.length > 0 ? '1' : '0'}</span>
                     {openCollapse.checkin ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                 </div>
                 {openCollapse.checkin && (
-                  <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-1 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Status Kehadiran:</p>
-                    <p className="text-muted-foreground">{jamCheckin ? `Anda sudah melakukan konfirmasi kehadiran pada pukul ${formatJam(jamCheckin)}` : 'Anda belum melakukan check-in hari ini.'}</p>
+                  <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-1.5 mx-3 mb-3 rounded-xl">
+                    <p className="font-bold text-foreground">Status Kehadiran (Terbaru di Atas):</p>
+                    {riwayatCheckinSaya.length === 0 ? (
+                      <p className="text-muted-foreground">Anda belum melakukan check-in hari ini.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {riwayatCheckinSaya.map((ts, idx) => (
+                          <div key={idx} className="bg-background border border-border rounded-lg p-2 flex justify-between items-center">
+                            <span className="font-medium text-emerald-600">Check-in</span>
+                            <span className="font-bold text-foreground">Jam {formatJam(ts)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -920,7 +950,7 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.bawa && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Rincian Waktu Mulai & Selesai Melayani:</p>
+                    <p className="font-bold text-foreground">Rincian Waktu Mulai & Selesai Melayani (Terbaru di Atas):</p>
                     {listBawaSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Belum ada riwayat membawa customer hari ini.</p>
                     ) : (
@@ -962,14 +992,14 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.ibadah && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Rincian Catatan Ibadah:</p>
+                    <p className="font-bold text-foreground">Rincian Catatan Ibadah (Terbaru di Atas):</p>
                     {sesiIbadahSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Belum ada catatan ibadah hari ini.</p>
                     ) : (
                       <div className="space-y-1.5 pt-1">
                         {sesiIbadahSaya.map((s, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
-                            <span className="font-medium text-amber-600">Ibadah {sesiIbadahSaya.length > 1 ? `#${i + 1}` : ''}</span>
+                            <span className="font-medium text-amber-600">Ibadah {sesiIbadahSaya.length > 1 ? `#${sesiIbadahSaya.length - i}` : ''}</span>
                             <span className="font-bold text-foreground">
                               {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
                             </span>
@@ -997,7 +1027,7 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.keluar && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Riwayat Keluar Antrian:</p>
+                    <p className="font-bold text-foreground">Riwayat Keluar Antrian (Terbaru di Atas):</p>
                     {listKeluarSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Tidak ada riwayat keluar antrian hari ini.</p>
                     ) : (
@@ -1030,7 +1060,7 @@ export default function PromotorPage() {
                 </div>
                 {openCollapse.autokick && (
                   <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
-                    <p className="font-bold text-foreground">Riwayat Autokick Sistem:</p>
+                    <p className="font-bold text-foreground">Riwayat Autokick Sistem (Terbaru di Atas):</p>
                     {listAutokickSaya.length === 0 ? (
                       <p className="text-muted-foreground italic">Tidak ada catatan autokick hari ini.</p>
                     ) : (
