@@ -186,7 +186,7 @@ export default function ManajemenPage() {
       const data = snap.val()
       const list: any[] = []
       if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
-      setDaftarAntrian(list)
+      setDaftarAntrian(list.sort((a, b) => (Number(a.waktuStandby) || 0) - (Number(b.waktuStandby) || 0)))
     })
 
     const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
@@ -228,15 +228,39 @@ export default function ManajemenPage() {
     } finally { setIsProcessing(false) }
   }
 
-  const hitungWaktuStandby = (kategori: string, posisi: number) => {
-    const standby = daftarAntrian
-      .filter(a => a.status === 'Standby' && String(a.kategori).toUpperCase() === kategori)
-      .sort((a, b) => (a.waktuStandby || 0) - (b.waktuStandby || 0))
-    if (!posisi || posisi > standby.length) return Date.now()
-    if (posisi <= 1) return (standby[0].waktuStandby || Date.now()) - 1000
-    const before = standby[posisi - 2].waktuStandby || 0
-    const after = standby[posisi - 1].waktuStandby || before + 2000
-    return Math.floor((before + after) / 2)
+  const hitungWaktuStandby = (kategori: string, posisi: number, antrianTerbaru: any[]) => {
+    const katNorm = String(kategori).toUpperCase()
+    // Gunakan seluruh item di kategori yang sama (terurut waktuStandby) agar posisi sesuai Live Urutan
+    const listKategori = antrianTerbaru
+      .filter(a => a && a.nama && String(a.kategori || a.subkategori || 'HA').toUpperCase() === katNorm)
+      .sort((a, b) => (Number(a.waktuStandby) || 0) - (Number(b.waktuStandby) || 0))
+
+    const nowTs = Date.now()
+    const maxWaktu = listKategori.reduce((max, item) => Math.max(max, Number(item.waktuStandby) || 0), 0)
+
+    if (listKategori.length === 0) return nowTs
+
+    // Jika posisi tidak diisi atau lebih besar dari jumlah antrian saat ini -> taruh di paling bawah
+    if (!posisi || posisi < 1 || posisi > listKategori.length) {
+      return Math.max(nowTs, maxWaktu + 1000)
+    }
+
+    // Jika pilih nomor 1 -> taruh sebelum item pertama
+    if (posisi === 1) {
+      const firstTs = Number(listKategori[0].waktuStandby) || nowTs
+      return firstTs - 1000
+    }
+
+    // Sisipkan tepat di antara item (posisi - 2) dan item (posisi - 1)
+    const beforeTs = Number(listKategori[posisi - 2].waktuStandby) || 0
+    const afterTs = Number(listKategori[posisi - 1].waktuStandby) || beforeTs + 2000
+
+    if (afterTs - beforeTs > 2) {
+      return Math.floor((beforeTs + afterTs) / 2)
+    }
+
+    // Jika terlalu rapat, beri jarak yang cukup
+    return beforeTs + 1
   }
 
   const handleMasukanAntri = async () => {
@@ -246,12 +270,50 @@ export default function ManajemenPage() {
       const clean = cleanKey(selectedSales)
       const snap = await get(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
       if (snap.exists()) throw new Error('Promotor sudah ada di antrian.')
-      const posisi = parseInt(selectedPosisi) || 0
-      await set(ref(db, `toko/${TOKO_ID}/antrian/${clean}`), {
-        nama: selectedSales, status: 'Standby', waktuStandby: hitungWaktuStandby(selectedKategori, posisi),
-        kategori: selectedKategori, subkategori: selectedKategori,
-        posisiTerkunci: 0, timerMulai: 0, timerAksi: ''
-      })
+
+      // Ambil snapshot terbaru langsung dari Firebase agar perhitungan posisi selalu akurat
+      const allSnap = await get(ref(db, `toko/${TOKO_ID}/antrian`))
+      const allVal = allSnap.val() || {}
+      const antrianTerbaru = Object.keys(allVal)
+        .filter(k => allVal[k] && allVal[k].nama)
+        .map(k => ({ ...allVal[k], _key: k }))
+
+      const posisi = parseInt(selectedPosisi, 10) || 0
+      const katNorm = String(selectedKategori).toUpperCase() === 'AV' ? 'AV' : 'HA'
+      const waktuStandbyBaru = hitungWaktuStandby(katNorm, posisi, antrianTerbaru)
+
+      const updates: Record<string, any> = {
+        [`toko/${TOKO_ID}/antrian/${clean}`]: {
+          nama: selectedSales,
+          status: 'Standby',
+          waktuStandby: waktuStandbyBaru,
+          kategori: katNorm,
+          subkategori: katNorm,
+          posisiTerkunci: 0,
+          timerMulai: 0,
+          timerAksi: ''
+        }
+      }
+
+      // Jika disisipkan di tengah dan ada item setelah posisi target yang waktunya <= waktuStandbyBaru, geser ke bawah
+      if (posisi >= 1) {
+        const listKategori = antrianTerbaru
+          .filter(a => String(a.kategori || a.subkategori || 'HA').toUpperCase() === katNorm)
+          .sort((a, b) => (Number(a.waktuStandby) || 0) - (Number(b.waktuStandby) || 0))
+
+        let cursorTs = waktuStandbyBaru + 1000
+        for (let i = posisi - 1; i < listKategori.length; i++) {
+          const item = listKategori[i]
+          const itemKey = item._key || cleanKey(item.nama)
+          const currentTs = Number(item.waktuStandby) || 0
+          if (currentTs <= cursorTs) {
+            updates[`toko/${TOKO_ID}/antrian/${itemKey}/waktuStandby`] = cursorTs
+            cursorTs += 1000
+          }
+        }
+      }
+
+      await update(ref(db), updates)
       showModal('success', 'Berhasil', 'Berhasil memasukkan promotor ke antrian.')
       setSelectedSales('')
       setSelectedPosisi('')
@@ -428,7 +490,6 @@ export default function ManajemenPage() {
 
   const opsiPromotor = masterSales.map(s => ({ label: s.nama, value: s.nama }))
 
-
   return (
     <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout}>
       {/* TAMBAH PROMOTOR */}
@@ -503,7 +564,7 @@ export default function ManajemenPage() {
         </div>
       </SectionCard>
 
-            <CustomModal
+      <CustomModal
         isOpen={modalConfig.isOpen}
         type={modalConfig.type}
         title={modalConfig.title}
