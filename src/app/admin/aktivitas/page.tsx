@@ -213,7 +213,7 @@ export default function AktivitasAdminPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setPopupType(null)}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()} className="bg-card rounded-3xl w-full max-w-lg border border-border shadow-2xl overflow-hidden">
               <div className="flex justify-between items-center p-5 border-b border-border">
-                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
                   {popupType === 'checkin' && `Check-in Promotor (${hariIniIndo})`}
                   {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
                   {popupType === 'ibadah' && 'Ibadah Hari Ini'}
@@ -231,8 +231,8 @@ export default function AktivitasAdminPage() {
                       const checkinData = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(p.nama || '').toLowerCase())
                       return (
                         <div key={idx} className={rowCls}>
-                          <span className="font-bold text-foreground uppercase">{p.nama}</span>
-                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-md ${checkinData ? 'bg-emerald-500/10 text-emerald-500' : 'bg-secondary text-muted-foreground'}`}>
+                          <span className="text-xs sm:text-sm font-black text-foreground uppercase">{p.nama}</span>
+                          <span className={`text-sm sm:text-base font-black px-3.5 py-1.5 rounded-xl ${checkinData ? 'bg-emerald-500/15 text-emerald-500' : 'bg-secondary text-muted-foreground'}`}>
                             {checkinData ? formatJam(checkinData.waktu) : 'Belum Check-in'}
                           </span>
                         </div>
@@ -268,11 +268,11 @@ export default function AktivitasAdminPage() {
                       <div key={i} className={rowCls}>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-foreground uppercase">{a.nama}</span>
-                          {a.hasil === 'Deal' && <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">DEAL</span>}
-                          {a.hasil === 'Lihat' && <span className="text-[9px] font-black bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">LIHAT</span>}
-                          {!a.waktuSelesai && <span className="text-[9px] font-black bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded animate-pulse">PROSES</span>}
+                          {a.hasil === 'Deal' && <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">DEAL</span>}
+                          {a.hasil === 'Lihat' && <span className="text-[10px] font-black bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">LIHAT</span>}
+                          {!a.waktuSelesai && <span className="text-[10px] font-black bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded animate-pulse">PROSES</span>}
                         </div>
-                        <span className="text-muted-foreground font-medium">{formatJam(a.waktuMulai)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : '...'}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktuMulai)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : '...'}</span>
                       </div>
                     ))}
                   </div>
@@ -283,7 +283,7 @@ export default function AktivitasAdminPage() {
                     {listIbadah.length === 0 ? <p className={emptyCls}>Belum ada</p> : listIbadah.map((a, i) => (
                       <div key={i} className={rowCls}>
                         <span className="font-bold text-foreground uppercase">{a.nama}</span>
-                        <span className="text-muted-foreground font-medium">{formatJam(a.waktuMulai || a.waktu)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : ''}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktuMulai || a.waktu)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : ''}</span>
                       </div>
                     ))}
                   </div>
@@ -294,7 +294,7 @@ export default function AktivitasAdminPage() {
                     {listKeluar.length === 0 ? <p className={emptyCls}>Belum ada</p> : listKeluar.map((a, i) => (
                       <div key={i} className={rowCls}>
                         <span className="font-bold text-foreground uppercase">{a.nama}</span>
-                        <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktu)}</span>
                       </div>
                     ))}
                   </div>
@@ -308,7 +308,7 @@ export default function AktivitasAdminPage() {
                           <span className="font-bold text-foreground uppercase block">{a.nama}</span>
                           <span className="text-[10px] text-destructive font-bold">{a.hasil || a.kategori}</span>
                         </div>
-                        <span className="text-muted-foreground font-medium">{formatJam(a.waktu)}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktu)}</span>
                       </div>
                     ))}
                   </div>
