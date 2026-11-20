@@ -114,7 +114,7 @@ export default function AdminPage() {
         {(['HA', 'AV'] as const).map((kat) => {
           const list = kat === 'HA' ? listHA : listAV
           const listStandby = list.filter(a => a.status === 'Standby')
-          const listAktifNomor = list.filter(a => a.status === 'Standby' || a.status === 'Melayani')
+          const listAktifNomor = list.filter(a => a.status !== 'Melayani')
 
           return (
             <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
@@ -136,7 +136,7 @@ export default function AdminPage() {
                     return (
                       <div key={item._key || idx} className="flex justify-between items-center p-3 rounded-xl bg-secondary/50 border border-border/60 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
+                          <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
                             {item.status === 'Melayani' ? '-' : (nomorAktif > 0 ? nomorAktif : (idx + 1))}
                           </span>
                           <span className="text-xs font-bold uppercase text-foreground">{item.nama}</span>
@@ -145,9 +145,9 @@ export default function AdminPage() {
                         {item.status === 'Melayani' ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-emerald-500 text-white">Melayani</span>
                         ) : item.status === 'Dipanggil CS' ? (
-                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">CS / Gudang</span>
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 text-white">CS / Gudang</span>
                         ) : item.status === 'Ibadah' ? (
-                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 text-white">Ibadah</span>
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Ibadah</span>
                         ) : isGiliranUtama ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
                         ) : (

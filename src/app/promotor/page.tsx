@@ -666,7 +666,7 @@ export default function PromotorPage() {
             <div className="text-8xl font-black text-foreground my-2 tracking-tighter relative z-10">
               {(() => {
                 const listKategoriSaya = dataSaya?.kategori === 'AV' ? listAV : listHA
-                const posisi = listKategoriSaya.filter(a => a.status === 'Standby' || a.status === 'Melayani').findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
+                const posisi = listKategoriSaya.filter(a => a.status === 'Standby').findIndex(a => a.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
                 return posisi.toString().padStart(2, '0')
               })()}
             </div>
@@ -718,6 +718,7 @@ export default function PromotorPage() {
           {['HA', 'AV'].map((kat) => {
             const list = kat === 'HA' ? listHA : listAV
             const listStandby = list.filter(a => a.status === 'Standby')
+            const listAktifNomor = list.filter(a => a.status !== 'Melayani')
 
             return (
               <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
@@ -735,18 +736,21 @@ export default function PromotorPage() {
                     list.map((item, idx) => {
                       const isSaya = item.nama.toLowerCase() === userData?.nama.toLowerCase()
                       const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0
+                      const nomorAktif = listAktifNomor.findIndex(a => a.nama === item.nama) + 1
                       return (
                         <div key={item._key || idx} className={`flex justify-between items-center p-3 rounded-xl transition-colors ${isSaya ? 'bg-white dark:bg-primary/20 text-slate-900 dark:text-primary border border-slate-200 dark:border-primary/30 shadow-sm' : 'bg-white dark:bg-secondary/50 text-slate-900 dark:text-foreground border border-slate-200 dark:border-border/60 shadow-sm'}`}>
                           <div className="flex items-center gap-3">
-                            <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>{item.status === 'Melayani' ? '-' : (idx + 1)}</span>
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-white text-slate-900 border border-slate-200'}`}>
+                              {item.status === 'Melayani' ? '-' : (nomorAktif > 0 ? nomorAktif : (idx + 1))}
+                            </span>
                             <span className={`text-xs font-bold uppercase ${isSaya ? 'text-slate-900 dark:text-primary' : 'text-slate-900 dark:text-foreground'}`}>{item.nama} {isSaya && '(Anda)'}</span>
                           </div>
                           {item.status === 'Melayani' ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-emerald-500 text-white">Melayani</span>
                           ) : item.status === 'Dipanggil CS' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Dipanggil CS</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 text-white">Dipanggil CS</span>
                           ) : item.status === 'Ibadah' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 text-white">Ibadah</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Ibadah</span>
                           ) : isGiliranUtama ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
                           ) : (
