@@ -14,36 +14,37 @@ export interface UserData {
   tokoId: string
 }
 
+const SESSION_KEY = 'ufo_user_session'
+
+function readCachedSession(): UserData | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const cached = localStorage.getItem(SESSION_KEY)
+    if (!cached) return null
+    return JSON.parse(cached) as UserData
+  } catch (e) {
+    console.error('Gagal baca cache session:', e)
+    return null
+  }
+}
+
 export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
   // 1. Ambil session langsung dari localStorage agar langsung dikenali sejak milidetik pertama
-  const [user, setUser] = useState<UserData | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('ufo_user_session')
-        if (cached) return JSON.parse(cached)
-      } catch (e) {
-        console.error('Gagal baca cache session:', e)
-      }
-    }
-    return null
-  })
+  const [user, setUser] = useState<UserData | null>(() => readCachedSession())
 
   // 2. Jika ada cache tersimpan, matikan status loading seketika (tidak ada jeda kedip/login)
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('ufo_user_session')) {
-      return false
-    }
-    return true
-  })
+  const [loading, setLoading] = useState<boolean>(() => readCachedSession() === null)
 
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
+    let active = true
     setPersistence(auth, browserLocalPersistence).catch(() => {})
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
-      const cachedData = localStorage.getItem('ufo_user_session')
+      if (!active) return
+      const cachedData = typeof window !== 'undefined' ? localStorage.getItem(SESSION_KEY) : null
 
       // Jika karena minimize lama lalu Firebase sempat mengirim sinyal null sesaat,
       // tapi kita PUNYA data di cache lokal, JANGAN TENDANG USER! Pertahankan sesinya.
@@ -63,59 +64,72 @@ export function useAuth(requireRole?: 'ADMIN' | 'PROMOTOR') {
         if (!email) {
           if (!cachedData) {
             await signOut(auth)
-            setUser(null)
+            if (active) setUser(null)
           }
-          setLoading(false)
+          if (active) setLoading(false)
           return
         }
 
         const emailKey = email.replace(/\./g, ',')
         const snap = await get(ref(db, 'users/whitelist/' + emailKey))
+        if (!active) return
 
         let userData: UserData
         if (snap.exists()) {
           const data = snap.val()
           userData = {
             uid: firebaseUser.uid,
-            email: email,
+            email,
             nama: data.nama || firebaseUser.displayName || email,
-            role: data.role || 'PROMOTOR',
+            role: data.role === 'ADMIN' ? 'ADMIN' : 'PROMOTOR',
             tokoId: data.tokoId || 'ufo-kebonsari',
+          }
+
+          if (requireRole && userData.role !== requireRole) {
+            setError(`Akses ditolak untuk role ${userData.role}.`)
+            setUser(userData)
+            localStorage.setItem(SESSION_KEY, JSON.stringify(userData))
+            setLoading(false)
+            return
           }
         } else if (cachedData) {
           // Fallback darurat jika koneksi lambat saat dibuka dari minimize
-          userData = JSON.parse(cachedData)
+          userData = JSON.parse(cachedData) as UserData
         } else {
           await signOut(auth)
-          localStorage.removeItem('ufo_user_session')
+          if (typeof window !== 'undefined') localStorage.removeItem(SESSION_KEY)
+          if (!active) return
           setError(`Email ${email} belum didaftarkan.`)
           setLoading(false)
           if (requireRole) router.push('/')
           return
         }
 
-        // ⚠️ BLOK REDIRECT LOOP SUDAH DIHAPUS DI SINI
-        // Jadi jika role belum sinkron sepersekian detik, user tidak akan ditendang.
-
         setUser(userData)
-        // Perbarui cache lokal agar terus segar
-        localStorage.setItem('ufo_user_session', JSON.stringify(userData))
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(userData))
+        }
         setError(null)
       } catch (err) {
         console.error('Auth error saat wake up:', err)
-        if (!localStorage.getItem('ufo_user_session')) {
+        if (active && !(typeof window !== 'undefined' && localStorage.getItem(SESSION_KEY))) {
           setError('Gagal memverifikasi sesi.')
         }
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     })
 
-    return () => unsubscribe()
+    return () => {
+      active = false
+      unsubscribe()
+    }
   }, [requireRole, router])
 
   const logout = async () => {
-    localStorage.removeItem('ufo_user_session')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(SESSION_KEY)
+    }
     await signOut(auth)
     router.push('/')
   }

@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { db } from '@/lib/firebase'
 import { ref, update } from 'firebase/database'
 import { useState, useEffect } from 'react'
-import { Loader2, Unlock, Lock, Users } from 'lucide-react'
+import { Loader2, Unlock, Lock } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAntrian } from '@/hooks/useAntrian'
 import { useAutoReset } from '@/hooks/useAutoReset'
@@ -56,10 +56,11 @@ export default function AdminPage() {
     }
   }
 
-  const totalStandby = antrian.filter(a => a.status === 'Standby').length
-  const totalMelayani = antrian.filter(a => a.status === 'Melayani').length
-  const listHA = antrian.filter(a => a.kategori === 'HA')
-  const listAV = antrian.filter(a => a.kategori === 'AV')
+  const antrianTerurut = [...antrian].sort((a, b) => (Number(a.waktuStandby) || 0) - (Number(b.waktuStandby) || 0))
+  const totalStandby = antrianTerurut.filter(a => a.status === 'Standby').length
+  const totalMelayani = antrianTerurut.filter(a => a.status === 'Melayani').length
+  const listHA = antrianTerurut.filter(a => String(a.kategori).toUpperCase() === 'HA')
+  const listAV = antrianTerurut.filter(a => String(a.kategori).toUpperCase() === 'AV')
 
   const isBuka = setting?.statusAntrian !== 'TUTUP'
   const statusLoading = !!dataLoading // jangan tampilkan Buka/Tutup sebelum data selesai dimuat
@@ -113,6 +114,7 @@ export default function AdminPage() {
         {(['HA', 'AV'] as const).map((kat) => {
           const list = kat === 'HA' ? listHA : listAV
           const listStandby = list.filter(a => a.status === 'Standby')
+          const listAktifNomor = list.filter(a => a.status === 'Standby' || a.status === 'Melayani')
 
           return (
             <div key={kat} className="bg-card border border-border p-5 rounded-3xl">
@@ -130,11 +132,12 @@ export default function AdminPage() {
                 ) : (
                   list.map((item, idx) => {
                     const isGiliranUtama = item.status === 'Standby' && listStandby.findIndex(a => a.nama === item.nama) === 0
+                    const nomorAktif = listAktifNomor.findIndex(a => a.nama === item.nama) + 1
                     return (
                       <div key={item._key || idx} className="flex justify-between items-center p-3 rounded-xl bg-secondary/50 border border-border/60 shadow-sm">
                         <div className="flex items-center gap-3">
                           <span className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black ${isGiliranUtama ? 'bg-rose-500 text-white' : 'bg-secondary text-muted-foreground'}`}>
-                            {item.status === 'Melayani' ? '-' : (idx + 1)}
+                            {item.status === 'Melayani' ? '-' : (nomorAktif > 0 ? nomorAktif : (idx + 1))}
                           </span>
                           <span className="text-xs font-bold uppercase text-foreground">{item.nama}</span>
                         </div>
