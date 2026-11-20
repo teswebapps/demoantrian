@@ -84,12 +84,13 @@ export async function autoResetHarian(db: any, tokoId: string) {
   }
 
   const jam = now.getHours()
+  if (jam >= 13) {
+    const reset13 = await prosesResetIstirahatGelombang(db, tokoId, today, '13')
+    if (reset13) adaPerubahan = true
+  }
   if (jam >= 16) {
     const reset16 = await prosesResetIstirahatGelombang(db, tokoId, today, '16')
     if (reset16) adaPerubahan = true
-  } else if (jam >= 13) {
-    const reset13 = await prosesResetIstirahatGelombang(db, tokoId, today, '13')
-    if (reset13) adaPerubahan = true
   }
 
   return adaPerubahan
