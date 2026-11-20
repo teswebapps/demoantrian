@@ -17,7 +17,7 @@ export function useAutoReset(tokoId?: string) {
     }
 
     run()
-    const t = setInterval(run, 60_000) // cek tiap menit, menangkap pergantian hari
+    const t = setInterval(run, 60_000) // cek tiap menit, menangkap pergantian hari dan jam reset
 
     return () => {
       active = false

@@ -1,16 +1,21 @@
 import { get, ref, runTransaction, update } from 'firebase/database'
 
 const pad = (n: number) => String(n).padStart(2, '0')
-export const getTodayKey = () => {
-  const d = new Date()
+export const getTodayKey = (d = new Date()) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 const cleanNama = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 
+const getBatasTimestampGelombang = (now: Date, gelombang: '13' | '16') => {
+  const jam = gelombang === '13' ? 13 : 16
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), jam, 0, 0, 0).getTime()
+}
+
 async function prosesResetIstirahatGelombang(
   db: any,
   tokoId: string,
+  now: Date,
   today: string,
   gelombang: '13' | '16'
 ) {
@@ -24,24 +29,31 @@ async function prosesResetIstirahatGelombang(
   )
   if (!res.committed) return false
 
-  const [antrianSnap, settingSnap] = await Promise.all([
+  const batasTs = getBatasTimestampGelombang(now, gelombang)
+
+  const [antrianSnap, checkinHariIniSnap] = await Promise.all([
     get(ref(db, `toko/${tokoId}/antrian`)),
-    get(ref(db, `toko/${tokoId}/setting`)),
+    get(ref(db, `toko/${tokoId}/checkinHarian`)),
   ])
 
   const antrianData = antrianSnap.val() || {}
-  const settingData = settingSnap.val() || {}
-  const durasiMenit = Number(settingData?.durasiLockIstirahat || settingData?.durasiLock || 60) || 60
-  const alasan =
-    settingData?.alasanLockIstirahat ||
-    `Tidak keluar antrian saat reset istirahat (${gelombang}.00)`
-
+  const checkinAllData = checkinHariIniSnap.val() || {}
   const updates: Record<string, any> = {}
 
   Object.keys(antrianData).forEach((key) => {
     const item = antrianData[key]
     if (!item || !item.nama) return
+
     const clean = item._key ? cleanNama(item._key) : cleanNama(item.nama) || key
+    const checkinRecord = checkinAllData?.[clean]?.[today] || {}
+    const waktuCheckin = Number(checkinRecord.waktu || 0)
+    const waktuMasuk = Number(item.waktuMasukAntrian || 0)
+
+    // Jika check-in siang (>= 13.00) maka gelombang 13 dilewati
+    if (gelombang === '13' && waktuCheckin >= batasTs) return
+    // Jika masuk antrian setelah batas jam gelombang (misal check-in siang > 13.00), jangan kena reset gelombang ini
+    if (waktuMasuk > 0 && waktuMasuk >= batasTs) return
+
     const status = String(item.status || '')
 
     if (status === 'Standby') {
@@ -51,8 +63,6 @@ async function prosesResetIstirahatGelombang(
       updates[`${checkinBase}/nama`] = item.nama
       updates[`${checkinBase}/tanggalKey`] = today
       updates[`${checkinBase}/terlewatReset_${gelombang}`] = true
-      updates[`${checkinBase}/terlewatResetDurasi_${gelombang}`] = durasiMenit
-      updates[`${checkinBase}/terlewatResetAlasan_${gelombang}`] = alasan
     }
   })
 
@@ -65,7 +75,7 @@ async function prosesResetIstirahatGelombang(
 
 export async function autoResetHarian(db: any, tokoId: string) {
   const now = new Date()
-  const today = getTodayKey()
+  const today = getTodayKey(now)
   let adaPerubahan = false
 
   // Transaction: hanya satu client yang "menang" per hari
@@ -85,11 +95,11 @@ export async function autoResetHarian(db: any, tokoId: string) {
 
   const jam = now.getHours()
   if (jam >= 13) {
-    const reset13 = await prosesResetIstirahatGelombang(db, tokoId, today, '13')
+    const reset13 = await prosesResetIstirahatGelombang(db, tokoId, now, today, '13')
     if (reset13) adaPerubahan = true
   }
   if (jam >= 16) {
-    const reset16 = await prosesResetIstirahatGelombang(db, tokoId, today, '16')
+    const reset16 = await prosesResetIstirahatGelombang(db, tokoId, now, today, '16')
     if (reset16) adaPerubahan = true
   }
 
