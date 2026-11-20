@@ -17,6 +17,10 @@ const NAMA_BULAN = [
   'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
 ]
 
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const toDateKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+const toIndoDate = (d: Date) => `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`
+
 /* Baris menu bergaya sama dengan baris "Aktivitas & Rekap" di halaman promotor */
 function MenuRow({
   icon, tone, title, desc, count, countCls, onClick, href,
@@ -74,9 +78,8 @@ export default function AktivitasAdminPage() {
   useEffect(() => {
     const updateTanggal = () => {
       const d = new Date()
-      const pad = (n: number) => String(n).padStart(2, '0')
-      setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
-      setTodayKey(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+      setHariIniIndo(toIndoDate(d))
+      setTodayKey(toDateKey(d))
       setPeriodeBulanIni(`${NAMA_BULAN[d.getMonth()]} ${d.getFullYear()}`)
       setTargetBulanIdx(d.getMonth())
       setTargetTahun(d.getFullYear())
@@ -132,7 +135,7 @@ export default function AktivitasAdminPage() {
     return () => { unsubStat(); unsubReset(); unsubCheckin(); unsubUser() }
   }, [TOKO_ID])
 
-  const formatJam = (ts: number) => ts ? `${String(new Date(ts).getHours()).padStart(2, '0')}.${String(new Date(ts).getMinutes()).padStart(2, '0')}` : '-'
+  const formatJam = (ts: number) => ts ? `${pad2(new Date(ts).getHours())}.${pad2(new Date(ts).getMinutes())}` : '-'
 
   // Aktivitas hari ini: hanya yang dibuat SETELAH reset terakhir
   const aktivitasHariIni = statistikList.filter(a => {
@@ -147,27 +150,78 @@ export default function AktivitasAdminPage() {
   const listAutokick = aktivitasHariIni.filter(a => a.aksi === 'Autokick' || a.aksi === 'AutoKick')
   const checkinHariIni = checkinList.filter(c => (c.dateKey || c.tanggalKey) === todayKey)
 
-  const rekapPromotorMap = statistikList
-    .filter(a => {
-      if (a.aksi !== 'BawaCustomer' || !a.nama) return false
-      const ts = Number(a.waktuSelesai || a.waktu || 0)
-      if (!ts) return false
-      const d = new Date(ts)
-      return d.getMonth() === targetBulanIdx && d.getFullYear() === targetTahun
+  const rekapPromotorMap = (() => {
+    const acc: Record<string, { namaPromotor: string; deal: number; lihat: number; noSale: number; hariSet: Set<string> }> = {}
+
+    const ensurePromotor = (namaRaw: string) => {
+      const nama = String(namaRaw || '').replace(/_/g, ' ').trim().toUpperCase()
+      if (!nama) return null
+      if (!acc[nama]) {
+        acc[nama] = { namaPromotor: nama, deal: 0, lihat: 0, noSale: 0, hariSet: new Set<string>() }
+      }
+      return acc[nama]
+    }
+
+    // No Sale berlaku hanya pada bulan terpilih (tidak masuk tahunan):
+    // setiap hari promotor sudah masuk antrian tetapi 0 bawa customer = +1 hari tersebut
+    const masukAntrianHari = new Set<string>()
+    const bawaPerPromotorHari = new Map<string, number>()
+
+    checkinList.forEach((c) => {
+      const tglKey = String(c.dateKey || c.tanggalKey || '')
+      if (!tglKey) return
+      const parts = tglKey.split('-')
+      if (parts.length !== 3) return
+      const tahun = Number(parts[0])
+      const bulanIdx = Number(parts[1]) - 1
+      if (tahun !== targetTahun || bulanIdx !== targetBulanIdx) return
+
+      const entry = ensurePromotor(c.nama || c.promotorKey)
+      if (!entry) return
+      masukAntrianHari.add(`${entry.namaPromotor}__${tglKey}`)
     })
-    .reduce((acc: any, curr: any) => {
-      const nama = curr.nama.toUpperCase()
-      if (!acc[nama]) acc[nama] = { namaPromotor: nama, deal: 0, lihat: 0, noSale: 0, hariSet: new Set() }
-      if (curr.hasil === 'Deal') acc[nama].deal += 1
-      else if (curr.hasil === 'Lihat') acc[nama].lihat += 1
-      else if (curr.hasil === 'No Sale' || curr.hasil === 'Tidak Deal') acc[nama].noSale += 1
-      if (curr.tanggal) acc[nama].hariSet.add(curr.tanggal)
-      return acc
-    }, {})
+
+    statistikList.forEach((a) => {
+      if (!a?.nama) return
+      const ts = Number(a.waktuSelesai || a.waktu || a.waktuMulai || 0)
+      if (!ts) return
+      const d = new Date(ts)
+      if (d.getMonth() !== targetBulanIdx || d.getFullYear() !== targetTahun) return
+
+      const entry = ensurePromotor(a.nama)
+      if (!entry) return
+
+      const tglKey = String(a.tanggalKey || toDateKey(d))
+      const tglLabel = String(a.tanggal || toIndoDate(d))
+
+      masukAntrianHari.add(`${entry.namaPromotor}__${tglKey}`)
+
+      if (a.aksi === 'BawaCustomer') {
+        entry.hariSet.add(tglLabel)
+        const keyHari = `${entry.namaPromotor}__${tglKey}`
+        bawaPerPromotorHari.set(keyHari, (bawaPerPromotorHari.get(keyHari) || 0) + 1)
+
+        if (a.hasil === 'Deal') entry.deal += 1
+        else if (a.hasil === 'Lihat') entry.lihat += 1
+      }
+    })
+
+    masukAntrianHari.forEach((keyHari) => {
+      const [namaPromotor] = keyHari.split('__')
+      const entry = ensurePromotor(namaPromotor)
+      if (!entry) return
+      const jumlahBawa = bawaPerPromotorHari.get(keyHari) || 0
+      if (jumlahBawa === 0) {
+        entry.noSale += 1
+      }
+    })
+
+    return acc
+  })()
 
   const listRekapPromotor = Object.values(rekapPromotorMap)
-    .map((item: any) => ({ ...item, hari: item.hariSet.size }))
-    .sort((a: any, b: any) => b.deal - a.deal)
+    .map((item) => ({ ...item, hari: item.hariSet.size }))
+    .sort((a, b) => b.deal - a.deal || b.lihat - a.lihat || a.noSale - b.noSale)
 
   if (authLoading || loading || !mounted) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>

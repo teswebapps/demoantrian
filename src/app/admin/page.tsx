@@ -103,7 +103,7 @@ export default function AdminPage() {
         <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Kondisi antrian saat ini</h2>
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="Total Antri" value={totalStandby} tone="cyan" />
-          <StatTile label="Sedang Dilayani" value={totalMelayani} tone="blue" />
+          <StatTile label="Sedang Melayani" value={totalMelayani} tone="blue" />
           <StatTile label="Kategori HA" value={listHA.length} tone="amber" />
           <StatTile label="Kategori AV" value={listAV.length} tone="purple" />
         </div>
@@ -143,7 +143,7 @@ export default function AdminPage() {
                         </div>
 
                         {item.status === 'Melayani' ? (
-                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 text-white">Melayani</span>
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-emerald-500 text-white">Melayani</span>
                         ) : item.status === 'Dipanggil CS' ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">CS / Gudang</span>
                         ) : item.status === 'Ibadah' ? (
@@ -151,7 +151,7 @@ export default function AdminPage() {
                         ) : isGiliranUtama ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
                         ) : (
-                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-secondary text-muted-foreground">Standby</span>
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-400 text-slate-950">Standby</span>
                         )}
                       </div>
                     )
