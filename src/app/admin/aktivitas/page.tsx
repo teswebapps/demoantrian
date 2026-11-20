@@ -5,12 +5,35 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Users, Coffee, LogOut, ShieldAlert, Award, Calendar, X, ShieldCheck, ChevronRight } from 'lucide-react'
+import { Loader2, Users, LogOut, ShieldAlert, Award, Calendar, X, ShieldCheck, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, StatTile } from '@/components/admin/admin-ui'
+
+const MosqueIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M12 2.5v2" />
+    <path d="M12 4.5c-3.6 2-5.5 4.2-5.5 6.5h11c0-2.3-1.9-4.5-5.5-6.5Z" />
+    <path d="M4.5 11h15" />
+    <path d="M5.5 11v10h13V11" />
+    <path d="M19.5 8.5v12.5" />
+    <path d="M19.5 6.5a1.5 1.5 0 0 1 0 3" />
+    <path d="M10 21v-4.5a2 2 0 0 1 4 0V21" />
+    <path d="M2.5 21h19" />
+  </svg>
+)
 
 const NAMA_BULAN = [
   'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
@@ -327,7 +350,7 @@ export default function AktivitasAdminPage() {
         <div className="space-y-3">
           <MenuRow icon={<ShieldCheck className="w-5 h-5" />} tone="bg-emerald-500/10 text-emerald-500" title="Check-in Promotor" desc="Kehadiran hari ini" count={checkinHariIni.length} countCls="bg-emerald-500 text-white" onClick={() => setPopupType('checkin')} />
           <MenuRow icon={<Users className="w-5 h-5" />} tone="bg-cyan-500/10 text-cyan-500" title="Bawa Customer" desc="Semua promotor hari ini" count={listBawa.length} countCls="bg-cyan-500 text-slate-950" onClick={() => setPopupType('bawa')} />
-          <MenuRow icon={<Coffee className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan istirahat / ibadah" count={sesiIbadahHariIni.length} countCls="bg-amber-500 text-white" onClick={() => setPopupType('ibadah')} />
+          <MenuRow icon={<MosqueIcon className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan ibadah" count={sesiIbadahHariIni.length} countCls="bg-amber-500 text-white" onClick={() => setPopupType('ibadah')} />
           <MenuRow icon={<LogOut className="w-5 h-5" />} tone="bg-rose-500/10 text-rose-500" title="Keluar Antrian" desc="Manual dan reset istirahat" count={listKeluar.length} countCls="bg-rose-500 text-white" onClick={() => setPopupType('keluar')} />
           <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="bg-red-500/10 text-red-500" title="Autokick" desc="Pelanggaran sistem" count={listAutokick.length} countCls="bg-red-500 text-white" onClick={() => setPopupType('autokick')} />
         </div>

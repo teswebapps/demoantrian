@@ -916,7 +916,7 @@ export default function PromotorPage() {
                     <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center"><MosqueIcon className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">IBADAH</h4>
-                      <p className="text-[11px] text-muted-foreground">Catatan istirahat / ibadah</p>
+                      <p className="text-[11px] text-muted-foreground">Catatan ibadah</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
