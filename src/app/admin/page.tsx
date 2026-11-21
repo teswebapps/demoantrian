@@ -100,7 +100,7 @@ export default function AdminPage() {
 
       {/* STATISTIK */}
       <section className="flex flex-col gap-3">
-        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Kondisi antrian saat ini</h2>
+        <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">Live antrian saat ini</h2>
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="Total Antri" value={totalStandby} tone="cyan" />
           <StatTile label="Sedang Melayani" value={totalMelayani} tone="blue" />
