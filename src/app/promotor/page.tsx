@@ -9,7 +9,6 @@ import { useTheme } from '@/hooks/useTheme'
 import dynamic from 'next/dynamic'
 import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, ChevronDown, ChevronUp, Users, CalendarDays, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAutoReset } from '@/hooks/useAutoReset'
 import { AppHeader } from '@/components/queue/app-header'
 import { PromoterCard } from '@/components/queue/promoter-card'
 import { TurnCard } from '@/components/queue/turn-card'
@@ -162,7 +161,6 @@ export default function PromotorPage() {
   }
 
   const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
-  useAutoReset(userData ? TOKO_ID : undefined)
   const latTokoFinal = Number(setting?.latToko || setting?.lat || 0)
   const lngTokoFinal = Number(setting?.lngToko || setting?.lng || 0)
   const radiusFinal = Number(setting?.radiusToko || setting?.radiusMaks || 50) || 50
@@ -605,7 +603,11 @@ export default function PromotorPage() {
     .sort((a, b) => b.localeCompare(a))
     .map(k => rekapBulananMap[k])
 
-  const formatJam = (ts: number) => ts ? `${pad(new Date(ts).getHours())}.${pad(new Date(ts).getMinutes())}` : '-'
+  const formatJam = (ts: number) => {
+    if (!ts) return '-'
+    const d = new Date(ts)
+    return `${pad(d.getHours())}.${pad(d.getMinutes())}.${pad(d.getSeconds())}`
+  }
 
   if (isLoading || !mounted || isLoadingCheckin) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
