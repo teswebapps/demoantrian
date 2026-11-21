@@ -89,22 +89,22 @@ export function LoginPanel() {
   return (
     <section
       aria-label={`${namaToko} - ${namaAplikasi}`}
-      className="w-full max-w-[430px] rounded-[12px] bg-white border border-[#e5e7eb] p-8 shadow-[0_4px_16px_rgba(15,23,42,0.05)] text-left"
+      className="w-full max-w-[420px] rounded-[14px] bg-white border border-[#e5e7eb] px-6 py-7 sm:p-8 shadow-[0_4px_16px_rgba(15,23,42,0.05)] text-center"
     >
-      <p className="m-0 mb-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#4b5563]">
+      <p className="m-0 mb-1.5 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-[#4b5563]">
         {namaToko}
       </p>
-      <h1 className="m-0 mb-1.5 text-[22px] font-bold capitalize tracking-[-0.02em] text-[#111827]">
+      <h1 className="m-0 mb-2 text-[20px] sm:text-[22px] font-bold capitalize leading-[1.25] tracking-[-0.02em] text-[#111827]">
         {namaAplikasi.toLowerCase()}
       </h1>
-      <p className="m-0 mb-6 text-[14px] leading-normal text-[#6b7280] sm:whitespace-nowrap">
+      <p className="m-0 mb-6 text-[13px] sm:text-[14px] leading-[1.5] text-[#6b7280]">
         Login dengan email Google untuk akses Antrian
       </p>
 
       {error && (
         <div
           role="alert"
-          className="mb-[18px] flex items-start gap-2 rounded-[8px] border border-[#fecaca] bg-[#fef2f2] px-3 py-2.5 text-[13px] leading-[1.45] text-[#dc2626]"
+          className="mb-[18px] flex items-start gap-2 rounded-[8px] border border-[#fecaca] bg-[#fef2f2] px-3 py-2.5 text-left text-[13px] leading-[1.45] text-[#dc2626]"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
@@ -115,12 +115,12 @@ export function LoginPanel() {
         type="button"
         onClick={handleLogin}
         disabled={loading}
-        className="flex h-[42px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#111827] text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1f2937] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+        className="flex h-[44px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#111827] px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1f2937] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? (
           <Loader2 className="size-4 animate-spin text-white" />
         ) : (
-          <GoogleIcon className="size-[18px]" />
+          <GoogleIcon className="size-[18px] shrink-0" />
         )}
         <span>{loading ? 'Menghubungkan...' : 'Sign in with Google'}</span>
       </button>
