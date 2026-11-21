@@ -1,11 +1,13 @@
 
+"use client";
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 import {
   getAuth,
   GoogleAuthProvider,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -25,8 +27,10 @@ const app = getApps().length === 0
 export const db = getDatabase(app);
 export const auth = getAuth(app);
 
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error("Gagal mengatur persistence auth:", error);
-});
-
 export const googleProvider = new GoogleAuthProvider();
+
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error("Gagal mengatur persistence auth:", error);
+  });
+}
