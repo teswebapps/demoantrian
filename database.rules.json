@@ -1,0 +1,82 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      "whitelist": {
+        ".read": "auth != null && auth.token.email != null",
+        "$emailKey": {
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN'"
+        }
+      }
+    },
+
+    "mastersales": {
+      ".read": "auth != null && auth.token.email != null",
+      "$salesId": {
+        ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN'"
+      }
+    },
+
+    "toko": {
+      "$tokoId": {
+        ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId",
+
+        "setting": {
+          ".read": true,
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId"
+        },
+
+        "lastResetTimestamp": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId"
+        },
+
+        "resetAntrianHarian": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId"
+        },
+
+        "resetIstirahatLog": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId"
+        },
+
+        "resetIstirahatOtomatis": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId"
+        },
+
+        "lockPromotor": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')"
+        },
+
+        "checkinHarian": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId",
+          "$promotorKey": {
+            ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')"
+          }
+        },
+
+        "antrian": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId",
+          "$promotorKey": {
+            ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')"
+          }
+        },
+
+        "statistikAktivitas": {
+          ".read": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+          "$logId": {
+            ".write": "auth != null && auth.token.email != null && root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('tokoId').val() === $tokoId && (root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'ADMIN' || root.child('users/whitelist/' + auth.token.email.toLowerCase().replace('.', ',')).child('role').val() === 'PROMOTOR')",
+            ".validate": "newData.exists() && newData.child('nama').isString() && newData.child('aksi').isString() && newData.child('waktu').isNumber()"
+          }
+        }
+      }
+    }
+  }
+}
