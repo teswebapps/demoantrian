@@ -268,10 +268,10 @@ export default function AktivitasAdminPage() {
       return acc[nama]
     }
 
-    // No Sale berlaku hanya pada bulan terpilih (tidak masuk tahunan):
-    // setiap hari promotor sudah masuk antrian tetapi 0 bawa customer = +1 hari tersebut
+    // No Sale dihitung per hari pada bulan terpilih:
+    // jika promotor masuk/beraktivitas pada hari tersebut namun jumlah Deal di hari itu = 0, maka +1 No Sale
     const masukAntrianHari = new Set<string>()
-    const bawaPerPromotorHari = new Map<string, number>()
+    const dealPerPromotorHari = new Map<string, number>()
 
     checkinList.forEach((c) => {
       const tglKey = String(c.dateKey || c.tanggalKey || '')
@@ -305,10 +305,13 @@ export default function AktivitasAdminPage() {
       if (a.aksi === 'BawaCustomer') {
         entry.hariSet.add(tglLabel)
         const keyHari = `${entry.namaPromotor}__${tglKey}`
-        bawaPerPromotorHari.set(keyHari, (bawaPerPromotorHari.get(keyHari) || 0) + 1)
 
-        if (a.hasil === 'Deal') entry.deal += 1
-        else if (a.hasil === 'Lihat') entry.lihat += 1
+        if (a.hasil === 'Deal') {
+          entry.deal += 1
+          dealPerPromotorHari.set(keyHari, (dealPerPromotorHari.get(keyHari) || 0) + 1)
+        } else if (a.hasil === 'Lihat') {
+          entry.lihat += 1
+        }
       }
     })
 
@@ -316,8 +319,8 @@ export default function AktivitasAdminPage() {
       const [namaPromotor] = keyHari.split('__')
       const entry = ensurePromotor(namaPromotor)
       if (!entry) return
-      const jumlahBawa = bawaPerPromotorHari.get(keyHari) || 0
-      if (jumlahBawa === 0) {
+      const jumlahDealHariIni = dealPerPromotorHari.get(keyHari) || 0
+      if (jumlahDealHariIni === 0) {
         entry.noSale += 1
       }
     })
