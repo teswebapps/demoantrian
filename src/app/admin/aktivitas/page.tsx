@@ -156,7 +156,9 @@ export default function AktivitasAdminPage() {
     return () => { unsubStat(); unsubReset(); unsubCheckin(); unsubUser() }
   }, [TOKO_ID])
 
-  const formatJam = (ts: number) => {
+  const formatJam = (ts: number) => ts ? `${pad2(new Date(ts).getHours())}.${pad2(new Date(ts).getMinutes())}` : '-'
+
+  const formatJamCheckin = (ts: number) => {
     if (!ts) return '-'
     const d = new Date(ts)
     return `${pad2(d.getHours())}.${pad2(d.getMinutes())}.${pad2(d.getSeconds())}`
@@ -391,7 +393,7 @@ export default function AktivitasAdminPage() {
                         <div key={idx} className={rowCls}>
                           <span className="text-xs sm:text-sm font-black text-foreground uppercase">{p.nama}</span>
                           <span className={`text-sm sm:text-base font-black px-3.5 py-1.5 rounded-xl ${checkinData ? 'bg-emerald-500/15 text-emerald-500' : 'bg-secondary text-muted-foreground'}`}>
-                            {checkinData ? formatJam(checkinData.waktu) : 'Belum Check-in'}
+                            {checkinData ? formatJamCheckin(checkinData.waktu) : 'Belum Check-in'}
                           </span>
                         </div>
                       )
