@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Users, LogOut, ShieldAlert, Award, Calendar, X, ShieldCheck, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
-import { useAutoReset } from '@/hooks/useAutoReset'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, StatTile } from '@/components/admin/admin-ui'
 
@@ -95,7 +94,6 @@ export default function AktivitasAdminPage() {
   const [targetTahun, setTargetTahun] = useState(2026)
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
-  useAutoReset(user ? TOKO_ID : undefined)
 
   // Tanggal diperbarui tiap menit supaya ikut ganti hari/bulan/tahun
   useEffect(() => {
@@ -158,7 +156,11 @@ export default function AktivitasAdminPage() {
     return () => { unsubStat(); unsubReset(); unsubCheckin(); unsubUser() }
   }, [TOKO_ID])
 
-  const formatJam = (ts: number) => ts ? `${pad2(new Date(ts).getHours())}.${pad2(new Date(ts).getMinutes())}` : '-'
+  const formatJam = (ts: number) => {
+    if (!ts) return '-'
+    const d = new Date(ts)
+    return `${pad2(d.getHours())}.${pad2(d.getMinutes())}.${pad2(d.getSeconds())}`
+  }
 
   // Samakan teks reset persis dengan yang muncul di halaman promotor
   const getKeteranganKeluar = (item: any) => {
