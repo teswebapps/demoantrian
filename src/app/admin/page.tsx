@@ -12,23 +12,44 @@ import { toast } from 'sonner'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, StatTile } from '@/components/admin/admin-ui'
 
+const NAMA_BULAN = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+]
+
+const formatTanggalPanjang = (d?: Date | number | string) => {
+  const now = d ? new Date(d) : new Date()
+  if (Number.isNaN(now.getTime())) return '-'
+  return `${now.getDate()} ${NAMA_BULAN[now.getMonth()]} ${now.getFullYear()}`
+}
+
+const DEFAULT_TOKO_ID = process.env.NEXT_PUBLIC_TOKO_ID || 'default-toko'
+
 export default function AdminPage() {
   const { user, loading: authLoading, error, logout } = useAuth('ADMIN')
-  const { antrian, setting, loading: dataLoading } = useAntrian(user?.tokoId || 'ufo-kebonsari')
+  const { antrian, setting, loading: dataLoading } = useAntrian(user?.tokoId || DEFAULT_TOKO_ID)
   const { isDark, toggleTheme, mounted } = useTheme()
 
   const [isUpdating, setIsUpdating] = useState(false)
-  const [hariIniIndo, setHariIniIndo] = useState('')
+  const [tanggalPanjang, setTanggalPanjang] = useState('')
 
-  const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
+  const TOKO_ID = user?.tokoId || DEFAULT_TOKO_ID
   useAutoReset(user ? TOKO_ID : undefined)
 
   // Tanggal diperbarui tiap menit supaya ikut ganti hari
   useEffect(() => {
     const update = () => {
-      const d = new Date()
-      const pad = (n: number) => String(n).padStart(2, '0')
-      setHariIniIndo(`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`)
+      setTanggalPanjang(formatTanggalPanjang(new Date()))
     }
     update()
     const t = setInterval(update, 60_000)
@@ -76,7 +97,7 @@ export default function AdminPage() {
   return (
     <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout} tokoId={TOKO_ID}>
       <p className="px-1 text-xs text-muted-foreground">
-        Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span> • Hari ini: <span className="font-semibold text-foreground">{hariIniIndo}</span>
+        Halo, <span className="text-primary font-bold uppercase">{user?.nama}</span> • <span className="font-semibold text-foreground">{tanggalPanjang}</span>
       </p>
 
       {/* KONTROL BUKA / TUTUP */}
