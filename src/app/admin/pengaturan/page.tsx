@@ -184,52 +184,7 @@ export default function PengaturanAdminPage() {
 
   return (
     <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout} tokoId={TOKO_ID}>
-      <form onSubmit={handleSave} className="space-y-6">
-        <SectionCard icon={<Store className="w-5 h-5" />} tone="cyan" title="Identitas Toko" subtitle="Tampil di halaman login">
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className={labelCls}>Nama Toko</label>
-              <div className="relative">
-                <Store className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input type="text" value={form.namaToko} onChange={e => setForm({ ...form, namaToko: e.target.value })} className={`${inputCls} pl-11 uppercase font-bold`} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelCls}>Nama Sistem (Tampil di Login)</label>
-              <div className="relative">
-                <Globe className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input type="text" value={form.namaSistem} onChange={e => setForm({ ...form, namaSistem: e.target.value })} className={`${inputCls} pl-11 uppercase font-bold`} />
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={<MapPin className="w-5 h-5" />} tone="emerald" title="Lokasi & Radius" subtitle="Dipakai untuk validasi kehadiran GPS">
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className={labelCls}>Latitude</label>
-                <input type="text" inputMode="decimal" placeholder="-7.xxxxx" value={form.lat} onChange={e => setForm({ ...form, lat: e.target.value })} className={inputCls} />
-              </div>
-              <div className="space-y-1.5">
-                <label className={labelCls}>Longitude</label>
-                <input type="text" inputMode="decimal" placeholder="112.xxxxx" value={form.lng} onChange={e => setForm({ ...form, lng: e.target.value })} className={inputCls} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelCls}>Radius Maksimal Absen (Meter)</label>
-              <input type="number" min="1" value={form.radiusMaks} onChange={e => setForm({ ...form, radiusMaks: e.target.value })} className={inputCls} />
-            </div>
-          </div>
-        </SectionCard>
-
-        <button type="submit" disabled={saving} className={btn.cyan}>
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-          SIMPAN PENGATURAN
-        </button>
-      </form>
-
-      {/* ===== KELOLA ADMIN ===== */}
+      {/* ===== KELOLA ADMIN DI PALING ATAS ===== */}
       <SectionCard icon={<ShieldCheck className="w-5 h-5" />} tone="emerald" title="Kelola Admin" subtitle="Admin punya akses penuh ke aplikasi">
         <form onSubmit={handleTambahAdmin} className="space-y-3 pb-4 border-b border-border">
           <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Tambah Admin Baru</p>
@@ -281,6 +236,51 @@ export default function PengaturanAdminPage() {
           })}
         </div>
       </SectionCard>
+
+      <form onSubmit={handleSave} className="space-y-6">
+        <SectionCard icon={<Store className="w-5 h-5" />} tone="cyan" title="Identitas Toko" subtitle="Tampil di halaman login">
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className={labelCls}>Nama Toko</label>
+              <div className="relative">
+                <Store className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input type="text" value={form.namaToko} onChange={e => setForm({ ...form, namaToko: e.target.value })} className={`${inputCls} pl-11 uppercase font-bold`} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Nama Sistem (Tampil di Login)</label>
+              <div className="relative">
+                <Globe className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input type="text" value={form.namaSistem} onChange={e => setForm({ ...form, namaSistem: e.target.value })} className={`${inputCls} pl-11 uppercase font-bold`} />
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={<MapPin className="w-5 h-5" />} tone="emerald" title="Lokasi & Radius" subtitle="Dipakai untuk validasi kehadiran GPS">
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className={labelCls}>Latitude</label>
+                <input type="text" inputMode="decimal" placeholder="-7.xxxxx" value={form.lat} onChange={e => setForm({ ...form, lat: e.target.value })} className={inputCls} />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Longitude</label>
+                <input type="text" inputMode="decimal" placeholder="112.xxxxx" value={form.lng} onChange={e => setForm({ ...form, lng: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Radius Maksimal Absen (Meter)</label>
+              <input type="number" min="1" value={form.radiusMaks} onChange={e => setForm({ ...form, radiusMaks: e.target.value })} className={inputCls} />
+            </div>
+          </div>
+        </SectionCard>
+
+        <button type="submit" disabled={saving} className={btn.cyan}>
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          SIMPAN PENGATURAN
+        </button>
+      </form>
 
       <AnimatePresence>
         {successMsg && (
