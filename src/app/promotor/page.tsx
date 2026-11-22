@@ -58,6 +58,9 @@ const pesanErrorGPS = (error: GeolocationPositionError) => {
   return `GPS gagal: ${error.message}`
 }
 
+const DEFAULT_TOKO_ID = process.env.NEXT_PUBLIC_TOKO_ID || 'default-toko'
+const DEFAULT_NAMA_TOKO = process.env.NEXT_PUBLIC_NAMA_TOKO || 'TOKO'
+
 function KategoriPicker({ value, onChange }: { value: 'HA' | 'AV'; onChange: (v: 'HA' | 'AV') => void }) {
   const items: { id: 'HA' | 'AV'; label: string }[] = [
     { id: 'HA', label: 'Home Appliance' },
@@ -160,7 +163,11 @@ export default function PromotorPage() {
     setOpenCollapse((prev) => ({ ...prev, [menu]: !prev[menu] }))
   }
 
-  const TOKO_ID = userData?.tokoId || 'ufo-kebonsari'
+  const TOKO_ID = userData?.tokoId || DEFAULT_TOKO_ID
+  const namaTokoAktif =
+    typeof setting?.namaToko === 'string' && setting.namaToko.trim()
+      ? setting.namaToko.trim()
+      : DEFAULT_NAMA_TOKO
   const latTokoFinal = Number(setting?.latToko || setting?.lat || 0)
   const lngTokoFinal = Number(setting?.lngToko || setting?.lng || 0)
   const radiusFinal = Number(setting?.radiusToko || setting?.radiusMaks || 50) || 50
@@ -190,7 +197,7 @@ export default function PromotorPage() {
           toast.error('Akun Admin tidak bisa login di sini.')
           setUserData(null)
         } else {
-          setUserData({ nama: data.nama, email: user.email, tokoId: data.tokoId || 'ufo-kebonsari' })
+          setUserData({ nama: data.nama, email: user.email, tokoId: data.tokoId || DEFAULT_TOKO_ID })
         }
       } else {
         await signOut(auth)
@@ -666,7 +673,7 @@ export default function PromotorPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background relative">
-      <AppHeader storeName="UFO Malang Kebonsari" isOpen={!antrianTutup} onLogout={() => setShowLogoutConfirm(true)} onToggleTheme={toggleTheme} isDark={isDark} />
+      <AppHeader storeName={namaTokoAktif} isOpen={!antrianTutup} onLogout={() => setShowLogoutConfirm(true)} onToggleTheme={toggleTheme} isDark={isDark} />
 
       <main className="flex-1 px-4 pt-4 pb-28 space-y-6">
         <PromoterCard name={userData.nama} />
@@ -1016,7 +1023,7 @@ export default function PromotorPage() {
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"><Users className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">REKAP PROMOTOR</h4>
-                      <p className="text-[11px] text-muted-foreground">Akumulasi deal & lihat harian</p>
+                      <p className="text-[11px] text-muted-foreground">Akumulasi Deal & Lihat harian</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

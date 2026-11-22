@@ -383,7 +383,7 @@ export default function AktivitasAdminPage() {
 
       <SectionCard icon={<Award className="w-5 h-5" />} tone="purple" title="Rekap Kinerja" subtitle="Per bulan dan per tahun">
         <div className="space-y-3">
-          <MenuRow icon={<Award className="w-5 h-5" />} tone="bg-purple-500/10 text-purple-500" title="Rekap Promotor" desc={`Deal & lihat ${periodeBulanIni}`} onClick={() => setPopupType('rekapPromotor')} />
+          <MenuRow icon={<Award className="w-5 h-5" />} tone="bg-purple-500/10 text-purple-500" title="Rekap Promotor" desc={`Deal & Lihat ${periodeBulanIni}`} onClick={() => setPopupType('rekapPromotor')} />
           <MenuRow icon={<Calendar className="w-5 h-5" />} tone="bg-primary/10 text-primary" title="Total Bulanan" desc="Rekap tiap bulan tahun ini" href="/admin/total-bulanan" />
         </div>
       </SectionCard>
