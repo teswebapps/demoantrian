@@ -16,7 +16,7 @@ export function BottomNav() {
   const menus = [
     { name: 'Beranda', href: '/admin', icon: Home },
     { name: 'Aktivitas', href: '/admin/aktivitas', icon: Activity },
-    { name: 'Darurat', href: '/admin/manajemen', icon: ShieldAlert },
+    { name: 'Antrian', href: '/admin/manajemen', icon: ShieldAlert },
     { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
   ]
 
