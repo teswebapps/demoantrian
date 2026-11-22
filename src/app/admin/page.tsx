@@ -149,7 +149,7 @@ export default function AdminPage() {
                         ) : item.status === 'Ibadah' ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Ibadah</span>
                         ) : isGiliranUtama ? (
-                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Utama</span>
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Giliran Utama</span>
                         ) : (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-400 text-slate-950">Standby</span>
                         )}
