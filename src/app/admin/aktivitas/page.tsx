@@ -216,7 +216,7 @@ export default function AktivitasAdminPage() {
   const sesiIbadahHariIni = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
-      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || a.waktu || 0))
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
 
     const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
     for (const item of raw) {
@@ -424,22 +424,31 @@ export default function AktivitasAdminPage() {
 
                 {popupType === 'rekapPromotor' && (
                   <div className="space-y-2">
-                    <div className="grid grid-cols-12 gap-1 px-3 py-2 bg-secondary rounded-xl text-[11px] font-bold text-muted-foreground uppercase">
-                      <div className="col-span-5">Nama Promotor</div>
-                      <div className="col-span-2 text-center">Deal</div>
-                      <div className="col-span-2 text-center">Lihat</div>
-                      <div className="col-span-1 text-center">No Sale</div>
-                      <div className="col-span-2 text-center">Hari</div>
+                    <div className="grid grid-cols-[minmax(0,1.7fr)_repeat(4,minmax(0,0.75fr))] items-center gap-1.5 px-3 py-2.5 bg-secondary rounded-2xl text-[10px] font-extrabold text-muted-foreground uppercase tracking-tight">
+                      <div className="text-left leading-tight">Nama Promotor</div>
+                      <div className="text-center whitespace-nowrap">Deal</div>
+                      <div className="text-center whitespace-nowrap">Lihat</div>
+                      <div className="text-center whitespace-nowrap">No Sale</div>
+                      <div className="text-center whitespace-nowrap">Hari</div>
                     </div>
-                    {listRekapPromotor.length === 0 ? <p className={emptyCls}>Belum ada data rekap bulan ini</p> : listRekapPromotor.map((row: any, idx: number) => (
-                      <div key={idx} className="grid grid-cols-12 gap-1 px-3 py-2.5 bg-secondary/50 rounded-2xl text-xs items-center border border-border/60 shadow-sm">
-                        <div className="col-span-5 font-bold text-foreground uppercase truncate">{row.namaPromotor}</div>
-                        <div className="col-span-2 text-center font-bold text-emerald-500">{row.deal}</div>
-                        <div className="col-span-2 text-center font-bold text-amber-500">{row.lihat}</div>
-                        <div className="col-span-1 text-center font-bold text-destructive">{row.noSale}</div>
-                        <div className="col-span-2 text-center font-bold text-muted-foreground">{row.hari}</div>
-                      </div>
-                    ))}
+                    {listRekapPromotor.length === 0 ? (
+                      <p className={emptyCls}>Belum ada data rekap bulan ini</p>
+                    ) : (
+                      listRekapPromotor.map((row: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-[minmax(0,1.7fr)_repeat(4,minmax(0,0.75fr))] items-center gap-1.5 px-3.5 py-2.5 bg-secondary/50 rounded-full text-xs border border-border/60 shadow-sm"
+                        >
+                          <div className="font-bold text-foreground uppercase text-[11px] leading-tight break-words" title={row.namaPromotor}>
+                            {row.namaPromotor}
+                          </div>
+                          <div className="text-center font-extrabold text-emerald-500 tabular-nums">{row.deal}</div>
+                          <div className="text-center font-extrabold text-amber-500 tabular-nums">{row.lihat}</div>
+                          <div className="text-center font-extrabold text-destructive tabular-nums">{row.noSale}</div>
+                          <div className="text-center font-extrabold text-foreground tabular-nums">{row.hari}</div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
