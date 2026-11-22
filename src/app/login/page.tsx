@@ -3,8 +3,8 @@ import { LoginShell } from '@/components/login/login-shell'
 import { LoginPanel } from '@/components/login/login-panel'
 
 export const metadata: Metadata = {
-  title: 'Login - Antrian Promotor UFO Kebonsari',
-  description: 'Masuk ke sistem antrian promotor UFO Kebonsari.',
+  title: 'Login - Antrian Promotor',
+  description: 'Masuk ke sistem antrian promotor.',
 }
 
 export default function LoginPage() {

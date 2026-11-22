@@ -7,24 +7,25 @@ import { signInWithPopup, signInWithRedirect } from 'firebase/auth'
 import { ref, get, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
-const DEFAULT_NAMA_TOKO = 'UFO KEBONSARI'
-const DEFAULT_NAMA_APLIKASI = 'Antrian Promotor'
-const TOKO_ID = 'ufo-kebonsari'
+const DEFAULT_NAMA_TOKO = process.env.NEXT_PUBLIC_NAMA_TOKO || 'TOKO'
+const DEFAULT_NAMA_APLIKASI = process.env.NEXT_PUBLIC_NAMA_SISTEM || 'Antrian Promotor'
+const DEFAULT_TOKO_ID = process.env.NEXT_PUBLIC_TOKO_ID || 'default-toko'
 
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [namaToko, setNamaToko] = useState(DEFAULT_NAMA_TOKO)
   const [namaAplikasi, setNamaAplikasi] = useState(DEFAULT_NAMA_APLIKASI)
+  const [tokoId, setTokoId] = useState(DEFAULT_TOKO_ID)
 
   useEffect(() => {
     const unsubToko = onValue(
-      ref(db, `toko/${TOKO_ID}/setting/namaToko`),
+      ref(db, `toko/${tokoId}/setting/namaToko`),
       (snap) => setNamaToko(snap.val() || DEFAULT_NAMA_TOKO),
       () => {}
     )
     const unsubSistem = onValue(
-      ref(db, `toko/${TOKO_ID}/setting/namaSistem`),
+      ref(db, `toko/${tokoId}/setting/namaSistem`),
       (snap) => setNamaAplikasi(snap.val() || DEFAULT_NAMA_APLIKASI),
       () => {}
     )
@@ -32,7 +33,7 @@ export function LoginPanel() {
       unsubToko()
       unsubSistem()
     }
-  }, [])
+  }, [tokoId])
 
   async function handleLogin() {
     setError(null)
@@ -65,6 +66,10 @@ export function LoginPanel() {
       }
 
       const data = snap.val()
+      if (data?.tokoId) {
+        setTokoId(String(data.tokoId))
+      }
+
       if (data.role === 'ADMIN') {
         window.location.href = '/admin'
         return

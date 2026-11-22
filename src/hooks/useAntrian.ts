@@ -72,8 +72,11 @@ export function useAntrian(tokoId: string) {
       if (snapshot.exists()) {
         setSetting(snapshot.val())
       } else {
-        // Default jika belum ada setting
-        setSetting({ statusAntrian: 'BUKA', namaToko: 'UFO Kebonsari' })
+        // Default jika belum ada setting di database
+        setSetting({
+          statusAntrian: 'BUKA',
+          namaToko: process.env.NEXT_PUBLIC_NAMA_TOKO || 'TOKO',
+        })
       }
     })
 
