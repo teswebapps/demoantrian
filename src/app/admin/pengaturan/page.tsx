@@ -25,6 +25,11 @@ const pesanErrorGPS = (error: GeolocationPositionError) => {
   return `GPS gagal: ${error.message}`
 }
 
+type ConfirmActionState =
+  | { type: 'add-admin'; nama: string; email: string }
+  | { type: 'delete-admin'; admin: any }
+  | null
+
 export default function PengaturanAdminPage() {
   const { user, loading: authLoading, logout } = useAuth('ADMIN')
   const { isDark, toggleTheme, mounted } = useTheme()
@@ -32,6 +37,7 @@ export default function PengaturanAdminPage() {
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [confirmAction, setConfirmAction] = useState<ConfirmActionState>(null)
 
   const [form, setForm] = useState({
     namaToko: '',
@@ -182,8 +188,12 @@ export default function PengaturanAdminPage() {
       setErrorMsg('Email ini sudah terdaftar sebagai admin.')
       return
     }
-    if (!window.confirm(`Jadikan ${nama} (${email}) sebagai ADMIN? Admin punya akses penuh ke semua pengaturan.`)) return
 
+    setConfirmAction({ type: 'add-admin', nama, email })
+  }
+
+  const eksekusiTambahAdmin = async (nama: string, email: string) => {
+    setConfirmAction(null)
     setAddingAdmin(true)
     try {
       await update(ref(db, `users/whitelist/${emailToKey(email)}`), {
@@ -213,8 +223,12 @@ export default function PengaturanAdminPage() {
       setErrorMsg('Harus ada minimal satu admin.')
       return
     }
-    if (!window.confirm(`Hapus ${a.nama} dari daftar admin? Akunnya tidak akan bisa login lagi.`)) return
 
+    setConfirmAction({ type: 'delete-admin', admin: a })
+  }
+
+  const eksekusiHapusAdmin = async (a: any) => {
+    setConfirmAction(null)
     setBusyKey(a._key)
     try {
       await remove(ref(db, `users/whitelist/${a._key}`))
@@ -364,6 +378,7 @@ export default function PengaturanAdminPage() {
               <div className="pt-1 space-y-2">
                 <div className="w-full h-44 rounded-2xl overflow-hidden border border-border relative bg-secondary">
                   <MapComponent
+                    key={`${latNum}-${lngNum}`}
                     tokoLat={latNum}
                     tokoLng={lngNum}
                     radius={radiusNum}
@@ -388,6 +403,69 @@ export default function PengaturanAdminPage() {
           SIMPAN PENGATURAN
         </button>
       </form>
+
+      {/* POPUP KONFIRMASI TAMBAH / HAPUS ADMIN */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setConfirmAction(null)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-card border border-border w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center space-y-5"
+            >
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner border ${
+                  confirmAction.type === 'add-admin'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                    : 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                }`}
+              >
+                {confirmAction.type === 'add-admin' ? <UserPlus className="w-8 h-8" /> : <Trash2 className="w-8 h-8" />}
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                  {confirmAction.type === 'add-admin' ? 'KONFIRMASI ADMIN BARU' : 'HAPUS AKSES ADMIN'}
+                </h3>
+                {confirmAction.type === 'add-admin' ? (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Jadikan <strong className="text-foreground uppercase">{confirmAction.nama}</strong> ({confirmAction.email}) sebagai <strong className="text-foreground">ADMIN</strong>? Admin punya akses penuh ke semua pengaturan.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Hapus <strong className="text-foreground uppercase">{confirmAction.admin.nama}</strong> dari daftar admin? Akunnya tidak akan bisa login lagi.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction(null)}
+                  className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    confirmAction.type === 'add-admin'
+                      ? eksekusiTambahAdmin(confirmAction.nama, confirmAction.email)
+                      : eksekusiHapusAdmin(confirmAction.admin)
+                  }
+                  className={`flex-1 py-3 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition ${
+                    confirmAction.type === 'add-admin'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
+                >
+                  {confirmAction.type === 'add-admin' ? 'Ya, Jadikan Admin' : 'Ya, Hapus'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {successMsg && (
