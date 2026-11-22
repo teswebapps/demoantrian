@@ -216,7 +216,7 @@ export default function AktivitasAdminPage() {
   const sesiIbadahHariIni = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
-      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || a.waktu || 0))
 
     const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
     for (const item of raw) {
@@ -393,16 +393,20 @@ export default function AktivitasAdminPage() {
         {popupType && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setPopupType(null)}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()} className="bg-card rounded-3xl w-full max-w-lg border border-border shadow-2xl overflow-hidden">
-              <div className="flex justify-between items-center p-5 border-b border-border">
-                <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
+              <div className="flex justify-between items-center gap-2 p-5 border-b border-border">
+                <h3 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight leading-snug">
                   {popupType === 'checkin' && `Check-in Promotor (${hariIniIndo})`}
                   {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
                   {popupType === 'ibadah' && 'Ibadah Hari Ini'}
                   {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
                   {popupType === 'autokick' && 'Autokick (Pelanggaran)'}
-                  {popupType === 'rekapPromotor' && `Rekap Bawa Customer (${periodeBulanIni})`}
+                  {popupType === 'rekapPromotor' && (
+                    <>
+                      Rekap Bawa Customer <span className="whitespace-nowrap">({periodeBulanIni})</span>
+                    </>
+                  )}
                 </h3>
-                <button onClick={() => setPopupType(null)} className="p-1.5 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
+                <button onClick={() => setPopupType(null)} className="p-1.5 shrink-0 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
               <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5">
 

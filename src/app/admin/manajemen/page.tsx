@@ -521,7 +521,7 @@ export default function ManajemenPage() {
       {/* TAMBAH PROMOTOR */}
       <SectionCard icon={<UserPlus className="w-5 h-5" />} tone="cyan" title="Tambah Promotor Baru" subtitle="Promotor bisa login dengan akun Google">
         <form onSubmit={handleTambahPromotor} className="space-y-3">
-          <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="NAMA LENGKAP" className={`${inputCls} uppercase font-bold`} required />
+          <input type="text" value={formNama} onChange={e => setFormNama(e.target.value)} placeholder="CONTOH : ANDI AQUA" className={`${inputCls} uppercase font-bold`} required />
           <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="EMAIL GOOGLE" className={inputCls} required />
           <button type="submit" disabled={isProcessing} className={btn.cyan}>
             {isProcessing ? 'MEMPROSES...' : 'SIMPAN PROMOTOR'}
