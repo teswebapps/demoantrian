@@ -230,8 +230,29 @@ export default function PengaturanAdminPage() {
       </form>
 
       {/* ===== KELOLA ADMIN ===== */}
-      <SectionCard icon={<ShieldCheck className="w-5 h-5" />} tone="purple" title="Kelola Admin" subtitle="Admin punya akses penuh ke aplikasi">
-        <div className="space-y-2">
+      <SectionCard icon={<ShieldCheck className="w-5 h-5" />} tone="emerald" title="Kelola Admin" subtitle="Admin punya akses penuh ke aplikasi">
+        <form onSubmit={handleTambahAdmin} className="space-y-3 pb-4 border-b border-border">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Tambah Admin Baru</p>
+          <div className="relative">
+            <UserPlus className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input type="text" value={adminNama} onChange={e => setAdminNama(e.target.value)} placeholder="NAMA LENGKAP" className={`${inputCls} pl-11 uppercase font-bold`} required />
+          </div>
+          <div className="relative">
+            <Mail className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="EMAIL GOOGLE" className={`${inputCls} pl-11`} required />
+          </div>
+          <button
+            type="submit"
+            disabled={addingAdmin}
+            className="w-full py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition disabled:opacity-50"
+          >
+            {addingAdmin ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
+            {addingAdmin ? 'MEMPROSES...' : 'SIMPAN ADMIN'}
+          </button>
+        </form>
+
+        <div className="space-y-2 pt-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Daftar Admin Aktif</p>
           {admins.length === 0 ? (
             <p className="text-xs text-muted-foreground italic text-center py-2">Belum ada data admin</p>
           ) : admins.map((a) => {
@@ -259,22 +280,6 @@ export default function PengaturanAdminPage() {
             )
           })}
         </div>
-
-        <form onSubmit={handleTambahAdmin} className="space-y-3 pt-2 border-t border-border">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground pt-3">Tambah Admin Baru</p>
-          <div className="relative">
-            <UserPlus className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input type="text" value={adminNama} onChange={e => setAdminNama(e.target.value)} placeholder="NAMA LENGKAP" className={`${inputCls} pl-11 uppercase font-bold`} required />
-          </div>
-          <div className="relative">
-            <Mail className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="EMAIL GOOGLE" className={`${inputCls} pl-11`} required />
-          </div>
-          <button type="submit" disabled={addingAdmin} className={btn.purple}>
-            {addingAdmin ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-            {addingAdmin ? 'MEMPROSES...' : 'SIMPAN ADMIN'}
-          </button>
-        </form>
       </SectionCard>
 
       <AnimatePresence>
