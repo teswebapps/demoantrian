@@ -190,7 +190,7 @@ export default function PengaturanAdminPage() {
           <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Tambah Admin Baru</p>
           <div className="relative">
             <UserPlus className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input type="text" value={adminNama} onChange={e => setAdminNama(e.target.value)} placeholder="NAMA LENGKAP" className={`${inputCls} pl-11 uppercase font-bold`} required />
+            <input type="text" value={adminNama} onChange={e => setAdminNama(e.target.value)} placeholder="NAMA" className={`${inputCls} pl-11 uppercase font-bold`} required />
           </div>
           <div className="relative">
             <Mail className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />

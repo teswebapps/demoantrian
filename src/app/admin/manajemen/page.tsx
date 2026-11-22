@@ -6,7 +6,7 @@ import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect, useRef } from 'react'
 import {
   Loader2, UserPlus, UserMinus, Play, Lock, Unlock,
-  ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, RefreshCcw
+  ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, RefreshCcw, Coffee
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { CustomModal } from '@/components/ui/CustomModal'
@@ -14,29 +14,6 @@ import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, inputCls, btn } from '@/components/admin/admin-ui'
 
 interface Option { label: string; value: string }
-
-const MosqueIcon = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.9"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-  >
-    <path d="M12 2.5v2" />
-    <path d="M12 4.5c-3.6 2-5.5 4.2-5.5 6.5h11c0-2.3-1.9-4.5-5.5-6.5Z" />
-    <path d="M4.5 11h15" />
-    <path d="M5.5 11v10h13V11" />
-    <path d="M19.5 8.5v12.5" />
-    <path d="M19.5 6.5a1.5 1.5 0 0 1 0 3" />
-    <path d="M10 21v-4.5a2 2 0 0 1 4 0V21" />
-    <path d="M2.5 21h19" />
-  </svg>
-)
 
 const cleanKey = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
@@ -552,15 +529,20 @@ export default function ManajemenPage() {
       {/* RESET MANUAL */}
       <SectionCard
         icon={<RefreshCcw className="w-5 h-5" />}
-        tone="purple"
+        tone="blue"
         title="Reset Antrian"
         subtitle="Reset istirahat standby dan reset harian manual"
       >
         <div className="space-y-3">
           <button type="button" onClick={handleResetIstirahat} disabled={isProcessing} className={btn.amber}>
-            <MosqueIcon className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
+            <Coffee className="w-5 h-5" /> RESET ISTIRAHAT (STANDBY)
           </button>
-          <button type="button" onClick={handleResetHariIni} disabled={isProcessing} className={btn.purple}>
+          <button
+            type="button"
+            onClick={handleResetHariIni}
+            disabled={isProcessing}
+            className="w-full py-4 font-black rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-95 flex justify-center items-center gap-2 disabled:opacity-50 text-sm bg-blue-600 text-white hover:bg-blue-500"
+          >
             <RefreshCcw className="w-5 h-5" /> RESET HARI INI
           </button>
         </div>

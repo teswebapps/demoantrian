@@ -88,10 +88,10 @@ export default function AdminPage() {
 
   const btnBase = 'flex-1 py-4 font-black rounded-xl transition-all flex justify-center items-center gap-2 text-sm'
   const btnBukaCls = `${btnBase} ${statusLoading ? 'bg-secondary text-muted-foreground cursor-default' : isBuka
-    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 cursor-default'
-    : 'bg-secondary text-muted-foreground hover:bg-emerald-500 hover:text-white active:scale-95'}`
+    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 cursor-default'
+    : 'bg-secondary text-muted-foreground hover:bg-emerald-600 hover:text-white active:scale-95'}`
   const btnTutupCls = `${btnBase} ${statusLoading ? 'bg-secondary text-muted-foreground cursor-default' : !isBuka
-    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 cursor-default'
+    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 cursor-default'
     : 'bg-secondary text-muted-foreground hover:bg-rose-600 hover:text-white active:scale-95'}`
 
   return (
@@ -172,7 +172,7 @@ export default function AdminPage() {
                         ) : isGiliranUtama ? (
                           <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Giliran Utama</span>
                         ) : (
-                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-400 text-slate-950">Standby</span>
+                          <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 text-white">Standby</span>
                         )}
                       </div>
                     )

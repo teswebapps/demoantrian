@@ -5,34 +5,10 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Users, LogOut, ShieldAlert, Award, Calendar, X, ShieldCheck, ChevronRight } from 'lucide-react'
-import Link from 'next/link'
+import { Loader2, Users, LogOut, ShieldAlert, Award, Calendar, X, UserCheck, ClipboardList, TrendingUp } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { AdminShell } from '@/components/admin/admin-shell'
-import { SectionCard, StatTile } from '@/components/admin/admin-ui'
-
-const MosqueIcon = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.9"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-  >
-    <path d="M12 2.5v2" />
-    <path d="M12 4.5c-3.6 2-5.5 4.2-5.5 6.5h11c0-2.3-1.9-4.5-5.5-6.5Z" />
-    <path d="M4.5 11h15" />
-    <path d="M5.5 11v10h13V11" />
-    <path d="M19.5 8.5v12.5" />
-    <path d="M19.5 6.5a1.5 1.5 0 0 1 0 3" />
-    <path d="M10 21v-4.5a2 2 0 0 1 4 0V21" />
-    <path d="M2.5 21h19" />
-  </svg>
-)
+import { SectionCard, StatTile, MenuRow, MosqueIcon } from '@/components/admin/admin-ui'
 
 const NAMA_BULAN = [
   'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
@@ -59,33 +35,6 @@ const normalizeNamaKey = (namaRaw: string) => {
     .replace(/([A-Z])\1+/g, '$1')
   const rest = parts.slice(1).join(' ')
   return `${first} ${rest}`.trim()
-}
-
-function MenuRow({
-  icon, tone, title, desc, onClick, href,
-}: {
-  icon: React.ReactNode
-  tone: string
-  title: string
-  desc: string
-  onClick?: () => void
-  href?: string
-}) {
-  const inner = (
-    <>
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tone}`}>{icon}</div>
-        <div className="text-left">
-          <h4 className="text-xs font-black uppercase tracking-wide text-foreground">{title}</h4>
-          <p className="text-[11px] text-muted-foreground">{desc}</p>
-        </div>
-      </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-    </>
-  )
-  const cls = 'w-full bg-secondary/50 border border-border/60 rounded-2xl p-4 flex items-center justify-between transition hover:bg-secondary'
-  if (href) return <Link href={href} className={cls}>{inner}</Link>
-  return <button type="button" onClick={onClick} className={cls}>{inner}</button>
 }
 
 export default function AktivitasAdminPage() {
@@ -216,7 +165,7 @@ export default function AktivitasAdminPage() {
   const sesiIbadahHariIni = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
-      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || a.waktu || 0))
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
 
     const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
     for (const item of raw) {
@@ -354,7 +303,7 @@ export default function AktivitasAdminPage() {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   }
 
-  const rowCls = 'flex justify-between items-center p-3 bg-secondary/50 rounded-2xl text-xs border border-border/60 shadow-sm'
+  const rowCls = 'flex justify-between items-center p-3 bg-card rounded-2xl text-xs border border-border/80 shadow-sm'
   const emptyCls = 'text-xs text-muted-foreground italic text-center py-4'
 
   return (
@@ -371,20 +320,20 @@ export default function AktivitasAdminPage() {
       </section>
 
       {/* MENU DETAIL */}
-      <SectionCard icon={<ShieldCheck className="w-5 h-5" />} tone="emerald" title="Aktivitas & Rekap" subtitle="Ketuk untuk melihat rincian">
+      <SectionCard icon={<ClipboardList className="w-5 h-5" />} tone="blue" title="Aktivitas & Rekap" subtitle="Ketuk untuk melihat rincian">
         <div className="space-y-3">
-          <MenuRow icon={<ShieldCheck className="w-5 h-5" />} tone="bg-emerald-500/10 text-emerald-500" title="Check-in Promotor" desc="Kehadiran hari ini" onClick={() => setPopupType('checkin')} />
-          <MenuRow icon={<Users className="w-5 h-5" />} tone="bg-cyan-500/10 text-cyan-500" title="Bawa Customer" desc="Semua promotor hari ini" onClick={() => setPopupType('bawa')} />
-          <MenuRow icon={<MosqueIcon className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan ibadah" onClick={() => setPopupType('ibadah')} />
-          <MenuRow icon={<LogOut className="w-5 h-5" />} tone="bg-rose-500/10 text-rose-500" title="Keluar Antrian" desc="Manual dan reset istirahat" onClick={() => setPopupType('keluar')} />
-          <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="bg-red-500/10 text-red-500" title="Autokick" desc="Pelanggaran sistem" onClick={() => setPopupType('autokick')} />
+          <MenuRow icon={<UserCheck className="w-5 h-5" />} tone="emerald" title="Check-in Promotor" desc="Kehadiran hari ini" onClick={() => setPopupType('checkin')} />
+          <MenuRow icon={<Users className="w-5 h-5" />} tone="cyan" title="Bawa Customer" desc="Semua promotor hari ini" onClick={() => setPopupType('bawa')} />
+          <MenuRow icon={<MosqueIcon className="w-5 h-5" />} tone="amber" title="Ibadah" desc="Catatan ibadah" onClick={() => setPopupType('ibadah')} />
+          <MenuRow icon={<LogOut className="w-5 h-5" />} tone="rose" title="Keluar Antrian" desc="Manual dan reset istirahat" onClick={() => setPopupType('keluar')} />
+          <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="rose" title="Autokick" desc="Pelanggaran sistem" onClick={() => setPopupType('autokick')} />
         </div>
       </SectionCard>
 
-      <SectionCard icon={<Award className="w-5 h-5" />} tone="purple" title="Rekap Kinerja" subtitle="Per bulan dan per tahun">
+      <SectionCard icon={<TrendingUp className="w-5 h-5" />} tone="amber" title="Rekap Kinerja" subtitle="Per bulan dan per tahun">
         <div className="space-y-3">
-          <MenuRow icon={<Award className="w-5 h-5" />} tone="bg-purple-500/10 text-purple-500" title="Rekap Promotor" desc={`Deal & Lihat ${periodeBulanIni}`} onClick={() => setPopupType('rekapPromotor')} />
-          <MenuRow icon={<Calendar className="w-5 h-5" />} tone="bg-primary/10 text-primary" title="Total Bulanan" desc="Rekap tiap bulan tahun ini" href="/admin/total-bulanan" />
+          <MenuRow icon={<Award className="w-5 h-5" />} tone="purple" title="Rekap Promotor" desc={`Deal & Lihat ${periodeBulanIni}`} onClick={() => setPopupType('rekapPromotor')} />
+          <MenuRow icon={<Calendar className="w-5 h-5" />} tone="blue" title="Total Bulanan" desc="Rekap tiap bulan tahun ini" href="/admin/total-bulanan" />
         </div>
       </SectionCard>
 
@@ -393,9 +342,13 @@ export default function AktivitasAdminPage() {
         {popupType && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setPopupType(null)}>
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()} className="bg-card rounded-3xl w-full max-w-lg border border-border shadow-2xl overflow-hidden">
-              <div className="flex justify-between items-center gap-2 p-5 border-b border-border">
+              <div className="flex justify-between items-center gap-2 p-5 border-b border-border bg-card">
                 <h3 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight leading-snug">
-                  {popupType === 'checkin' && `Check-in Promotor (${hariIniIndo})`}
+                  {popupType === 'checkin' && (
+                    <>
+                      Check-in Promotor <span className="whitespace-nowrap">({hariIniIndo})</span>
+                    </>
+                  )}
                   {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
                   {popupType === 'ibadah' && 'Ibadah Hari Ini'}
                   {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
@@ -408,7 +361,7 @@ export default function AktivitasAdminPage() {
                 </h3>
                 <button onClick={() => setPopupType(null)} className="p-1.5 shrink-0 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
-              <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5">
+              <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5 bg-background dark:bg-card">
 
                 {popupType === 'checkin' && (
                   <div className="space-y-2">
@@ -417,7 +370,7 @@ export default function AktivitasAdminPage() {
                       return (
                         <div key={idx} className={rowCls}>
                           <span className="text-xs sm:text-sm font-black text-foreground uppercase">{p.nama}</span>
-                          <span className={`text-sm sm:text-base font-black px-3.5 py-1.5 rounded-xl ${checkinData ? 'bg-emerald-500/15 text-emerald-500' : 'bg-secondary text-muted-foreground'}`}>
+                          <span className={`text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-xl tabular-nums ${checkinData ? 'bg-emerald-600 text-white dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-secondary text-muted-foreground'}`}>
                             {checkinData ? formatJamCheckin(checkinData.waktu) : 'Belum Check-in'}
                           </span>
                         </div>
@@ -441,14 +394,14 @@ export default function AktivitasAdminPage() {
                       listRekapPromotor.map((row: any, idx: number) => (
                         <div
                           key={idx}
-                          className="grid grid-cols-[minmax(0,1.7fr)_repeat(4,minmax(0,0.75fr))] items-center gap-1.5 px-3.5 py-2.5 bg-secondary/50 rounded-full text-xs border border-border/60 shadow-sm"
+                          className="grid grid-cols-[minmax(0,1.7fr)_repeat(4,minmax(0,0.75fr))] items-center gap-1.5 px-3.5 py-2.5 bg-card rounded-full text-xs border border-border/80 shadow-sm"
                         >
                           <div className="font-bold text-foreground uppercase text-[11px] leading-tight break-words" title={row.namaPromotor}>
                             {row.namaPromotor}
                           </div>
-                          <div className="text-center font-extrabold text-emerald-500 tabular-nums">{row.deal}</div>
-                          <div className="text-center font-extrabold text-amber-500 tabular-nums">{row.lihat}</div>
-                          <div className="text-center font-extrabold text-destructive tabular-nums">{row.noSale}</div>
+                          <div className="text-center font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">{row.deal}</div>
+                          <div className="text-center font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">{row.lihat}</div>
+                          <div className="text-center font-extrabold text-rose-600 dark:text-destructive tabular-nums">{row.noSale}</div>
                           <div className="text-center font-extrabold text-foreground tabular-nums">{row.hari}</div>
                         </div>
                       ))
@@ -463,13 +416,13 @@ export default function AktivitasAdminPage() {
                       const totalLihatHariIni = listBawa.filter(a => a.hasil === 'Lihat').length
                       return (
                         <div className="grid grid-cols-2 gap-2.5">
-                          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Deal</p>
-                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{totalDealHariIni}</p>
+                          <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-center shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Total Deal</p>
+                            <p className="text-lg font-black text-emerald-700 dark:text-emerald-400 mt-0.5 tabular-nums">{totalDealHariIni}</p>
                           </div>
-                          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Total Lihat</p>
-                            <p className="text-lg font-black text-amber-600 dark:text-amber-400 mt-0.5">{totalLihatHariIni}</p>
+                          <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-center shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Total Lihat</p>
+                            <p className="text-lg font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums">{totalLihatHariIni}</p>
                           </div>
                         </div>
                       )
@@ -478,11 +431,11 @@ export default function AktivitasAdminPage() {
                       <div key={i} className={rowCls}>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-foreground uppercase">{a.nama}</span>
-                          {a.hasil === 'Deal' && <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded">DEAL</span>}
-                          {a.hasil === 'Lihat' && <span className="text-[10px] font-black bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">LIHAT</span>}
-                          {!a.waktuSelesai && <span className="text-[10px] font-black bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded animate-pulse">PROSES</span>}
+                          {a.hasil === 'Deal' && <span className="text-[10px] font-black bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 px-2 py-0.5 rounded">DEAL</span>}
+                          {a.hasil === 'Lihat' && <span className="text-[10px] font-black bg-amber-500 text-white dark:bg-amber-500/20 dark:text-amber-400 px-2 py-0.5 rounded">LIHAT</span>}
+                          {!a.waktuSelesai && <span className="text-[10px] font-black bg-blue-600 text-white dark:bg-blue-500/20 dark:text-blue-400 px-2 py-0.5 rounded animate-pulse">PROSES</span>}
                         </div>
-                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktuMulai)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : '...'}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold tabular-nums">{formatJam(a.waktuMulai)} {a.waktuSelesai ? `- ${formatJam(a.waktuSelesai)}` : '...'}</span>
                       </div>
                     ))}
                   </div>
@@ -493,7 +446,7 @@ export default function AktivitasAdminPage() {
                     {sesiIbadahHariIni.length === 0 ? <p className={emptyCls}>Belum ada</p> : sesiIbadahHariIni.map((s, i) => (
                       <div key={i} className={rowCls}>
                         <span className="font-bold text-foreground uppercase">{s.nama}</span>
-                        <span className="text-xs sm:text-sm text-foreground font-bold">
+                        <span className="text-xs sm:text-sm text-foreground font-bold tabular-nums">
                           {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
                         </span>
                       </div>
@@ -510,11 +463,11 @@ export default function AktivitasAdminPage() {
                         <div key={i} className={rowCls}>
                           <div>
                             <span className="font-bold text-foreground uppercase block">{a.nama}</span>
-                            <span className={`text-[10px] font-bold ${isResetIstirahat ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                            <span className={`text-[10px] font-bold ${isResetIstirahat ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
                               {keterangan}
                             </span>
                           </div>
-                          <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktu || a.waktuMulai)}</span>
+                          <span className="text-xs sm:text-sm text-foreground font-bold tabular-nums">{formatJam(a.waktu || a.waktuMulai)}</span>
                         </div>
                       )
                     })}
@@ -527,9 +480,9 @@ export default function AktivitasAdminPage() {
                       <div key={i} className={rowCls}>
                         <div>
                           <span className="font-bold text-foreground uppercase block">{a.nama}</span>
-                          <span className="text-[10px] text-destructive font-bold">{a.hasil || a.kategori}</span>
+                          <span className="text-[10px] text-rose-600 dark:text-destructive font-bold">{a.hasil || a.kategori}</span>
                         </div>
-                        <span className="text-xs sm:text-sm text-foreground font-bold">{formatJam(a.waktu)}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold tabular-nums">{formatJam(a.waktu)}</span>
                       </div>
                     ))}
                   </div>
