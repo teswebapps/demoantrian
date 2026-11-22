@@ -45,14 +45,12 @@ const toIndoDate = (d: Date) => `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-
 
 /* Baris menu bergaya sama dengan baris "Aktivitas & Rekap" di halaman promotor */
 function MenuRow({
-  icon, tone, title, desc, count, countCls, onClick, href,
+  icon, tone, title, desc, onClick, href,
 }: {
   icon: React.ReactNode
   tone: string
   title: string
   desc: string
-  count?: number
-  countCls?: string
   onClick?: () => void
   href?: string
 }) {
@@ -65,10 +63,7 @@ function MenuRow({
           <p className="text-[11px] text-muted-foreground">{desc}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {count !== undefined && <span className={`text-xs font-black px-3 py-1 rounded-xl ${countCls}`}>{count}</span>}
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </div>
+      <ChevronRight className="w-4 h-4 text-muted-foreground" />
     </>
   )
   const cls = 'w-full bg-secondary/50 border border-border/60 rounded-2xl p-4 flex items-center justify-between transition hover:bg-secondary'
@@ -210,7 +205,7 @@ export default function AktivitasAdminPage() {
   const sesiIbadahHariIni = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
-      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || a.waktu || 0))
 
     const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
     for (const item of raw) {
@@ -268,8 +263,6 @@ export default function AktivitasAdminPage() {
       return acc[nama]
     }
 
-    // No Sale dihitung per hari pada bulan terpilih:
-    // jika promotor masuk/beraktivitas pada hari tersebut namun jumlah Deal di hari itu = 0, maka +1 No Sale
     const masukAntrianHari = new Set<string>()
     const dealPerPromotorHari = new Map<string, number>()
 
@@ -355,11 +348,11 @@ export default function AktivitasAdminPage() {
       {/* MENU DETAIL */}
       <SectionCard icon={<ShieldCheck className="w-5 h-5" />} tone="emerald" title="Aktivitas & Rekap" subtitle="Ketuk untuk melihat rincian">
         <div className="space-y-3">
-          <MenuRow icon={<ShieldCheck className="w-5 h-5" />} tone="bg-emerald-500/10 text-emerald-500" title="Check-in Promotor" desc="Kehadiran hari ini" count={checkinHariIni.length} countCls="bg-emerald-500 text-white" onClick={() => setPopupType('checkin')} />
-          <MenuRow icon={<Users className="w-5 h-5" />} tone="bg-cyan-500/10 text-cyan-500" title="Bawa Customer" desc="Semua promotor hari ini" count={listBawa.length} countCls="bg-cyan-500 text-slate-950" onClick={() => setPopupType('bawa')} />
-          <MenuRow icon={<MosqueIcon className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan ibadah" count={sesiIbadahHariIni.length} countCls="bg-amber-500 text-white" onClick={() => setPopupType('ibadah')} />
-          <MenuRow icon={<LogOut className="w-5 h-5" />} tone="bg-rose-500/10 text-rose-500" title="Keluar Antrian" desc="Manual dan reset istirahat" count={listKeluar.length} countCls="bg-rose-500 text-white" onClick={() => setPopupType('keluar')} />
-          <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="bg-red-500/10 text-red-500" title="Autokick" desc="Pelanggaran sistem" count={listAutokick.length} countCls="bg-red-500 text-white" onClick={() => setPopupType('autokick')} />
+          <MenuRow icon={<ShieldCheck className="w-5 h-5" />} tone="bg-emerald-500/10 text-emerald-500" title="Check-in Promotor" desc="Kehadiran hari ini" onClick={() => setPopupType('checkin')} />
+          <MenuRow icon={<Users className="w-5 h-5" />} tone="bg-cyan-500/10 text-cyan-500" title="Bawa Customer" desc="Semua promotor hari ini" onClick={() => setPopupType('bawa')} />
+          <MenuRow icon={<MosqueIcon className="w-5 h-5" />} tone="bg-amber-500/10 text-amber-500" title="Ibadah" desc="Catatan ibadah" onClick={() => setPopupType('ibadah')} />
+          <MenuRow icon={<LogOut className="w-5 h-5" />} tone="bg-rose-500/10 text-rose-500" title="Keluar Antrian" desc="Manual dan reset istirahat" onClick={() => setPopupType('keluar')} />
+          <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="bg-red-500/10 text-red-500" title="Autokick" desc="Pelanggaran sistem" onClick={() => setPopupType('autokick')} />
         </div>
       </SectionCard>
 
