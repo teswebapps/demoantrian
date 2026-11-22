@@ -4,16 +4,26 @@ import { useAuth } from '@/hooks/useAuth'
 import { db, auth } from '@/lib/firebase'
 import { ref, update, onValue, remove } from 'firebase/database'
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Save, Store, Globe, MapPin, CheckCircle2, AlertCircle, ShieldCheck, UserPlus, Trash2, Mail } from 'lucide-react'
+import { Loader2, Save, Store, Globe, MapPin, LocateFixed, CheckCircle2, AlertCircle, ShieldCheck, UserPlus, Trash2, Mail } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, inputCls, btn } from '@/components/admin/admin-ui'
 
+const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
+
 const labelCls = 'text-[11px] font-bold text-muted-foreground uppercase'
 const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, ',')
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const pesanErrorGPS = (error: GeolocationPositionError) => {
+  if (error.code === 1) return 'Izin lokasi ditolak. Buka pengaturan situs di browser dan izinkan lokasi.'
+  if (error.code === 2) return 'Lokasi tidak tersedia. Aktifkan GPS perangkat.'
+  if (error.code === 3) return 'GPS terlalu lama merespons. Coba lagi.'
+  return `GPS gagal: ${error.message}`
+}
 
 export default function PengaturanAdminPage() {
   const { user, loading: authLoading, logout } = useAuth('ADMIN')
@@ -30,6 +40,11 @@ export default function PengaturanAdminPage() {
     lng: '',
     radiusMaks: '50'
   })
+
+  // Lokasi perangkat / pratinjau peta
+  const [isLocating, setIsLocating] = useState(false)
+  const [gpsStatus, setGpsStatus] = useState('')
+  const [deviceLoc, setDeviceLoc] = useState<{ lat: number; lng: number } | null>(null)
 
   // Kelola admin
   const [admins, setAdmins] = useState<any[]>([])
@@ -82,6 +97,42 @@ export default function PengaturanAdminPage() {
     }, (err) => console.error(err))
     return () => unsub()
   }, [user])
+
+  const handleGunakanLokasiSaya = () => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setErrorMsg('Situs harus dibuka lewat HTTPS agar GPS bisa jalan.')
+      return
+    }
+    if (!navigator.geolocation) {
+      setErrorMsg('Browser tidak mendukung GPS.')
+      return
+    }
+
+    setIsLocating(true)
+    setGpsStatus('Mengambil koordinat GPS perangkat...')
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const latVal = Number(pos.coords.latitude.toFixed(6))
+        const lngVal = Number(pos.coords.longitude.toFixed(6))
+        setDeviceLoc({ lat: latVal, lng: lngVal })
+        setForm((prev) => ({
+          ...prev,
+          lat: String(latVal),
+          lng: String(lngVal),
+        }))
+        setGpsStatus(`Koordinat diambil: ${latVal}, ${lngVal}`)
+        setIsLocating(false)
+      },
+      (err) => {
+        const msg = pesanErrorGPS(err)
+        setGpsStatus(msg)
+        setErrorMsg(msg)
+        setIsLocating(false)
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 }
+    )
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -181,6 +232,19 @@ export default function PengaturanAdminPage() {
   }
 
   const emailSaya = (auth.currentUser?.email || '').toLowerCase()
+  const latNum = Number(String(form.lat).trim().replace(',', '.'))
+  const lngNum = Number(String(form.lng).trim().replace(',', '.'))
+  const radiusNum = Math.max(1, Number(form.radiusMaks) || 50)
+  const petaSiap =
+    form.lat.trim() !== '' &&
+    form.lng.trim() !== '' &&
+    Number.isFinite(latNum) &&
+    Number.isFinite(lngNum) &&
+    latNum >= -90 &&
+    latNum <= 90 &&
+    lngNum >= -180 &&
+    lngNum <= 180 &&
+    !(latNum === 0 && lngNum === 0)
 
   return (
     <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout} tokoId={TOKO_ID}>
@@ -259,6 +323,23 @@ export default function PengaturanAdminPage() {
 
         <SectionCard icon={<MapPin className="w-5 h-5" />} tone="emerald" title="Lokasi & Radius" subtitle="Dipakai untuk validasi kehadiran GPS">
           <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase">Koordinat Toko</span>
+              <button
+                type="button"
+                onClick={handleGunakanLokasiSaya}
+                disabled={isLocating}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground text-xs font-bold border border-border transition active:scale-95 disabled:opacity-50"
+              >
+                {isLocating ? (
+                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                ) : (
+                  <LocateFixed className="w-3.5 h-3.5 text-primary" />
+                )}
+                {isLocating ? 'Mencari Lokasi...' : 'Gunakan Lokasi Saya'}
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className={labelCls}>Latitude</label>
@@ -269,10 +350,36 @@ export default function PengaturanAdminPage() {
                 <input type="text" inputMode="decimal" placeholder="112.xxxxx" value={form.lng} onChange={e => setForm({ ...form, lng: e.target.value })} className={inputCls} />
               </div>
             </div>
+
             <div className="space-y-1.5">
               <label className={labelCls}>Radius Maksimal Absen (Meter)</label>
               <input type="number" min="1" value={form.radiusMaks} onChange={e => setForm({ ...form, radiusMaks: e.target.value })} className={inputCls} />
             </div>
+
+            {gpsStatus && (
+              <p className="text-[11px] text-muted-foreground">{gpsStatus}</p>
+            )}
+
+            {petaSiap ? (
+              <div className="pt-1 space-y-2">
+                <div className="w-full h-44 rounded-2xl overflow-hidden border border-border relative bg-secondary">
+                  <MapComponent
+                    tokoLat={latNum}
+                    tokoLng={lngNum}
+                    radius={radiusNum}
+                    userLat={deviceLoc?.lat ?? latNum}
+                    userLng={deviceLoc?.lng ?? lngNum}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Pratinjau area validasi GPS · Radius <strong className="text-foreground">{radiusNum} meter</strong>
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-secondary text-center text-xs text-muted-foreground">
+                Isi Latitude & Longitude atau klik <strong>Gunakan Lokasi Saya</strong> untuk menampilkan peta dan lingkaran radius.
+              </div>
+            )}
           </div>
         </SectionCard>
 
