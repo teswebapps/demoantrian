@@ -142,7 +142,7 @@ export function LoginPanel() {
         {namaAplikasi}
       </h1>
       <p className="m-0 mb-6 text-[13px] sm:text-[14px] leading-[1.5] text-[#6b7280]">
-        Login dengan email Google untuk akses Antrian
+        Login dengan Google untuk akses Antrian
       </p>
 
       {error && (
