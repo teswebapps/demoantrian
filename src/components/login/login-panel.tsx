@@ -8,8 +8,26 @@ import { ref, get, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
 const DEFAULT_NAMA_TOKO = process.env.NEXT_PUBLIC_NAMA_TOKO || 'TOKO'
-const DEFAULT_NAMA_APLIKASI = process.env.NEXT_PUBLIC_NAMA_SISTEM || 'Antrian Promotor'
+const DEFAULT_NAMA_APLIKASI = process.env.NEXT_PUBLIC_NAMA_SISTEM || 'Antrian Walk-In Promotor'
 const DEFAULT_TOKO_ID = process.env.NEXT_PUBLIC_TOKO_ID || 'ufo-kebonsari'
+
+const formatTampilanJudul = (raw?: string | null) => {
+  const cleaned = String(raw || '').replace(/\s+/g, ' ').trim()
+  if (!cleaned) return DEFAULT_NAMA_APLIKASI
+
+  return cleaned
+    .toLowerCase()
+    .split(' ')
+    .map((word) => {
+      if (word === 'walk-in') return 'Walk-In'
+      if (['gps', 'nfc', 'qr', 'pos', 'erp', 'id'].includes(word)) return word.toUpperCase()
+      return word
+        .split('-')
+        .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : ''))
+        .join('-')
+    })
+    .join(' ')
+}
 
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
@@ -46,8 +64,7 @@ export function LoginPanel() {
     const unsubSistem = onValue(
       ref(db, `toko/${tokoId}/setting/namaSistem`),
       (snap) => {
-        const val = snap.val()
-        setNamaAplikasi(typeof val === 'string' && val.trim() ? val.trim() : DEFAULT_NAMA_APLIKASI)
+        setNamaAplikasi(formatTampilanJudul(snap.val()))
       },
       () => {}
     )
