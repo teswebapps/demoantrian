@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { CircleAlert, Loader2 } from 'lucide-react'
 import { GoogleIcon } from './google-icon'
-import { signInWithPopup, signInWithRedirect } from 'firebase/auth'
+import { signInWithPopup, signInWithRedirect, onAuthStateChanged } from 'firebase/auth'
 import { ref, get, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
 const DEFAULT_NAMA_TOKO = process.env.NEXT_PUBLIC_NAMA_TOKO || 'TOKO'
 const DEFAULT_NAMA_APLIKASI = process.env.NEXT_PUBLIC_NAMA_SISTEM || 'Antrian Promotor'
-const DEFAULT_TOKO_ID = process.env.NEXT_PUBLIC_TOKO_ID || 'default-toko'
+const DEFAULT_TOKO_ID = process.env.NEXT_PUBLIC_TOKO_ID || 'ufo-kebonsari'
 
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
@@ -19,14 +19,36 @@ export function LoginPanel() {
   const [tokoId, setTokoId] = useState(DEFAULT_TOKO_ID)
 
   useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser?.email) return
+      try {
+        const emailKey = currentUser.email.trim().toLowerCase().replace(/\./g, ',')
+        const snap = await get(ref(db, 'users/whitelist/' + emailKey))
+        if (snap.exists() && snap.val()?.tokoId) {
+          setTokoId(String(snap.val().tokoId))
+        }
+      } catch {
+        // Abaikan error baca awal saat belum login
+      }
+    })
+    return () => unsubAuth()
+  }, [])
+
+  useEffect(() => {
     const unsubToko = onValue(
       ref(db, `toko/${tokoId}/setting/namaToko`),
-      (snap) => setNamaToko(snap.val() || DEFAULT_NAMA_TOKO),
+      (snap) => {
+        const val = snap.val()
+        setNamaToko(typeof val === 'string' && val.trim() ? val.trim() : DEFAULT_NAMA_TOKO)
+      },
       () => {}
     )
     const unsubSistem = onValue(
       ref(db, `toko/${tokoId}/setting/namaSistem`),
-      (snap) => setNamaAplikasi(snap.val() || DEFAULT_NAMA_APLIKASI),
+      (snap) => {
+        const val = snap.val()
+        setNamaAplikasi(typeof val === 'string' && val.trim() ? val.trim() : DEFAULT_NAMA_APLIKASI)
+      },
       () => {}
     )
     return () => {
@@ -99,8 +121,8 @@ export function LoginPanel() {
       <p className="m-0 mb-1.5 text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.06em] text-[#4b5563]">
         {namaToko}
       </p>
-      <h1 className="m-0 mb-2 text-[20px] sm:text-[22px] font-bold capitalize leading-[1.25] tracking-[-0.02em] text-[#111827]">
-        {namaAplikasi.toLowerCase()}
+      <h1 className="m-0 mb-2 text-[20px] sm:text-[22px] font-bold leading-[1.25] tracking-[-0.02em] text-[#111827]">
+        {namaAplikasi}
       </h1>
       <p className="m-0 mb-6 text-[13px] sm:text-[14px] leading-[1.5] text-[#6b7280]">
         Login dengan email Google untuk akses Antrian
