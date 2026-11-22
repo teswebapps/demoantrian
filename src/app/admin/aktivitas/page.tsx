@@ -43,7 +43,24 @@ const pad2 = (n: number) => String(n).padStart(2, '0')
 const toDateKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 const toIndoDate = (d: Date) => `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`
 
-/* Baris menu bergaya sama dengan baris "Aktivitas & Rekap" di halaman promotor */
+// Normalisasi nama untuk menyatukan variasi ejaan seperti JESICA & JESIKA
+const normalizeNamaKey = (namaRaw: string) => {
+  const clean = String(namaRaw || '')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+
+  const parts = clean.split(' ')
+  if (parts.length === 0) return ''
+  const first = parts[0]
+    .replace(/K/g, 'C')
+    .replace(/Y/g, 'I')
+    .replace(/([A-Z])\1+/g, '$1')
+  const rest = parts.slice(1).join(' ')
+  return `${first} ${rest}`.trim()
+}
+
 function MenuRow({
   icon, tone, title, desc, onClick, href,
 }: {
@@ -90,7 +107,6 @@ export default function AktivitasAdminPage() {
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
 
-  // Tanggal diperbarui tiap menit supaya ikut ganti hari/bulan/tahun
   useEffect(() => {
     const updateTanggal = () => {
       const d = new Date()
@@ -159,7 +175,6 @@ export default function AktivitasAdminPage() {
     return `${pad2(d.getHours())}.${pad2(d.getMinutes())}.${pad2(d.getSeconds())}`
   }
 
-  // Samakan teks reset persis dengan yang muncul di halaman promotor
   const getKeteranganKeluar = (item: any) => {
     const kandidatKeys = ['keterangan', 'alasan', 'catatan', 'hasil', 'status', 'sumber', 'kategori', 'pesan', 'detail', 'label']
     for (const k of kandidatKeys) {
@@ -169,7 +184,6 @@ export default function AktivitasAdminPage() {
       }
     }
 
-    // Cari di semua nilai string pada objek log jika nama field-nya berbeda
     for (const [k, val] of Object.entries(item || {})) {
       if (['_key', 'nama', 'aksi', 'tanggal', 'tanggalKey', 'tokoId'].includes(k)) continue
       if (typeof val === 'string') {
@@ -187,7 +201,6 @@ export default function AktivitasAdminPage() {
     return 'Keluar Antrian'
   }
 
-  // Aktivitas hari ini: log KeluarAntrian hari ini tetap tampil meskipun lastResetTimestamp berdekatan saat tes
   const aktivitasHariIni = statistikList.filter(a => {
     const isHariIni = a.tanggal === hariIniIndo
     if (!isHariIni) return false
@@ -196,12 +209,10 @@ export default function AktivitasAdminPage() {
     return waktuAktivitas >= lastResetTimestamp
   })
 
-  // Bawa Customer: waktu terbaru di paling atas
   const listBawa = aktivitasHariIni
     .filter(a => a.aksi === 'BawaCustomer')
     .sort((a, b) => Number(b.waktuMulai || b.waktu || 0) - Number(a.waktuMulai || a.waktu || 0))
 
-  // Gabungkan sesi Ibadah lalu urutkan agar waktu terbaru berada di paling atas
   const sesiIbadahHariIni = (() => {
     const raw = aktivitasHariIni
       .filter(a => a.aksi === 'MulaiIbadah' || a.aksi === 'SelesaiIbadah' || a.aksi === 'Ibadah')
@@ -210,7 +221,7 @@ export default function AktivitasAdminPage() {
     const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
     for (const item of raw) {
       const nama = String(item.nama || '').trim()
-      const namaKey = nama.toLowerCase()
+      const namaKey = normalizeNamaKey(nama)
       const t = Number(item.waktuMulai || item.waktu || 0)
 
       if (item.waktuSelesai) {
@@ -218,7 +229,7 @@ export default function AktivitasAdminPage() {
       } else if (item.aksi === 'MulaiIbadah' || item.aksi === 'Ibadah') {
         hasil.push({ nama, waktuMulai: t })
       } else if (item.aksi === 'SelesaiIbadah') {
-        const openIdx = hasil.findIndex(s => s.nama.toLowerCase() === namaKey && !s.waktuSelesai)
+        const openIdx = hasil.findIndex(s => normalizeNamaKey(s.nama) === namaKey && !s.waktuSelesai)
         if (openIdx !== -1) hasil[openIdx].waktuSelesai = t
         else hasil.push({ nama, waktuMulai: t, waktuSelesai: t })
       }
@@ -226,7 +237,6 @@ export default function AktivitasAdminPage() {
     return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
   })()
 
-  // Keluar Antrian & Autokick: waktu terbaru di paling atas
   const listKeluar = aktivitasHariIni
     .filter(a => a.aksi === 'KeluarAntrian')
     .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
@@ -239,28 +249,41 @@ export default function AktivitasAdminPage() {
     .filter(c => (c.dateKey || c.tanggalKey) === todayKey)
     .sort((a, b) => Number(b.waktu || 0) - Number(a.waktu || 0))
 
-  // Check-in promotor: yang sudah check-in diurutkan dari jam terbaru di atas
-  const whitelistCheckinTerurut = [...whitelistUsers].sort((a, b) => {
-    const ca = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(a.nama || '').toLowerCase())
-    const cb = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(b.nama || '').toLowerCase())
-    const tsA = Number(ca?.waktu || 0)
-    const tsB = Number(cb?.waktu || 0)
-    if (tsA > 0 && tsB > 0) return tsB - tsA
-    if (tsB > 0) return 1
-    if (tsA > 0) return -1
-    return String(a.nama || '').localeCompare(String(b.nama || ''))
-  })
+  // Deduplikasi promotor check-in berdasarkan nama yang dinormalisasi
+  const whitelistCheckinTerurut = (() => {
+    const map = new Map<string, any>()
+    whitelistUsers.forEach((p) => {
+      const key = normalizeNamaKey(p.nama)
+      if (!key) return
+      const existing = map.get(key)
+      if (!existing) {
+        map.set(key, p)
+      }
+    })
+
+    return Array.from(map.values()).sort((a, b) => {
+      const ca = checkinHariIni.find(c => normalizeNamaKey(c.nama) === normalizeNamaKey(a.nama))
+      const cb = checkinHariIni.find(c => normalizeNamaKey(c.nama) === normalizeNamaKey(b.nama))
+      const tsA = Number(ca?.waktu || 0)
+      const tsB = Number(cb?.waktu || 0)
+      if (tsA > 0 && tsB > 0) return tsB - tsA
+      if (tsB > 0) return 1
+      if (tsA > 0) return -1
+      return String(a.nama || '').localeCompare(String(b.nama || ''))
+    })
+  })()
 
   const rekapPromotorMap = (() => {
     const acc: Record<string, { namaPromotor: string; deal: number; lihat: number; noSale: number; hariSet: Set<string> }> = {}
 
     const ensurePromotor = (namaRaw: string) => {
-      const nama = String(namaRaw || '').replace(/_/g, ' ').trim().toUpperCase()
-      if (!nama) return null
-      if (!acc[nama]) {
-        acc[nama] = { namaPromotor: nama, deal: 0, lihat: 0, noSale: 0, hariSet: new Set<string>() }
+      const display = String(namaRaw || '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase()
+      const key = normalizeNamaKey(display)
+      if (!key) return null
+      if (!acc[key]) {
+        acc[key] = { namaPromotor: display, deal: 0, lihat: 0, noSale: 0, hariSet: new Set<string>() }
       }
-      return acc[nama]
+      return acc[key]
     }
 
     const masukAntrianHari = new Set<string>()
@@ -277,7 +300,8 @@ export default function AktivitasAdminPage() {
 
       const entry = ensurePromotor(c.nama || c.promotorKey)
       if (!entry) return
-      masukAntrianHari.add(`${entry.namaPromotor}__${tglKey}`)
+      const key = normalizeNamaKey(entry.namaPromotor)
+      masukAntrianHari.add(`${key}__${tglKey}`)
     })
 
     statistikList.forEach((a) => {
@@ -289,15 +313,16 @@ export default function AktivitasAdminPage() {
 
       const entry = ensurePromotor(a.nama)
       if (!entry) return
+      const key = normalizeNamaKey(entry.namaPromotor)
 
       const tglKey = String(a.tanggalKey || toDateKey(d))
       const tglLabel = String(a.tanggal || toIndoDate(d))
 
-      masukAntrianHari.add(`${entry.namaPromotor}__${tglKey}`)
+      masukAntrianHari.add(`${key}__${tglKey}`)
 
       if (a.aksi === 'BawaCustomer') {
         entry.hariSet.add(tglLabel)
-        const keyHari = `${entry.namaPromotor}__${tglKey}`
+        const keyHari = `${key}__${tglKey}`
 
         if (a.hasil === 'Deal') {
           entry.deal += 1
@@ -309,8 +334,8 @@ export default function AktivitasAdminPage() {
     })
 
     masukAntrianHari.forEach((keyHari) => {
-      const [namaPromotor] = keyHari.split('__')
-      const entry = ensurePromotor(namaPromotor)
+      const [keyPromotor] = keyHari.split('__')
+      const entry = acc[keyPromotor]
       if (!entry) return
       const jumlahDealHariIni = dealPerPromotorHari.get(keyHari) || 0
       if (jumlahDealHariIni === 0) {
@@ -384,7 +409,7 @@ export default function AktivitasAdminPage() {
                 {popupType === 'checkin' && (
                   <div className="space-y-2">
                     {whitelistCheckinTerurut.length === 0 ? <p className={emptyCls}>Belum ada promotor terdaftar</p> : whitelistCheckinTerurut.map((p, idx) => {
-                      const checkinData = checkinHariIni.find(c => String(c.nama || '').toLowerCase() === String(p.nama || '').toLowerCase())
+                      const checkinData = checkinHariIni.find(c => normalizeNamaKey(c.nama) === normalizeNamaKey(p.nama))
                       return (
                         <div key={idx} className={rowCls}>
                           <span className="text-xs sm:text-sm font-black text-foreground uppercase">{p.nama}</span>
