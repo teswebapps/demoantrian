@@ -44,7 +44,6 @@ export async function autoResetHarian(db: any, tokoId: string) {
     if (txHarian.committed) {
       await update(ref(db), {
         [`toko/${tokoId}/antrian`]: null,
-        [`toko/${tokoId}/checkinHarian`]: null,
         [`toko/${tokoId}/lastResetTimestamp`]: Date.now(),
         // Hapus kunci reset istirahat agar besok bisa jalan lagi
         [`toko/${tokoId}/lastResetIstirahat_13`]: null,
