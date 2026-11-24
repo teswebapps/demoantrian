@@ -318,18 +318,18 @@ export default function PengaturanAdminPage() {
       <form onSubmit={handleSave} className="space-y-6">
         <SectionCard icon={<Store className="w-5 h-5" />} tone="cyan" title="Identitas Toko" subtitle="Tampil di halaman login">
           <div className="space-y-3">
-            <div className="space-y-1.5">
+           <div className="space-y-1.5">
               <label className={labelCls}>Nama Toko</label>
               <div className="relative">
                 <Store className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input type="text" value={form.namaToko} onChange={e => setForm({ ...form, namaToko: e.target.value })} className={`${inputCls} pl-11 uppercase font-bold`} />
+                <input type="text" value={form.namaToko} onChange={e => setForm({ ...form, namaToko: e.target.value })} className={`${inputCls} pl-11 font-bold`} />
               </div>
             </div>
             <div className="space-y-1.5">
               <label className={labelCls}>Nama Sistem (Tampil di Login)</label>
               <div className="relative">
                 <Globe className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input type="text" value={form.namaSistem} onChange={e => setForm({ ...form, namaSistem: e.target.value })} className={`${inputCls} pl-11 uppercase font-bold`} />
+                <input type="text" value={form.namaSistem} onChange={e => setForm({ ...form, namaSistem: e.target.value })} className={`${inputCls} pl-11 font-bold`} />
               </div>
             </div>
           </div>
