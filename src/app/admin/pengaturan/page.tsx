@@ -6,7 +6,7 @@ import { ref, update, onValue, remove } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Save, Store, Globe, MapPin, LocateFixed, CheckCircle2, AlertCircle, ShieldCheck, UserPlus, Trash2, Mail } from 'lucide-react'
+import { Loader2, Save, Store, Globe, MapPin, LocateFixed, CheckCircle2, AlertCircle, ShieldCheck, UserPlus, Trash2, Mail, RotateCcw } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAutoReset } from '@/hooks/useAutoReset'
 import { AdminShell } from '@/components/admin/admin-shell'
@@ -44,7 +44,9 @@ export default function PengaturanAdminPage() {
     namaSistem: '',
     lat: '',
     lng: '',
-    radiusMaks: '50'
+    radiusMaks: '50',
+    autoResetAntrian: false,
+    autoResetIstirahat: false,
   })
 
   // Lokasi perangkat / pratinjau peta
@@ -72,7 +74,9 @@ export default function PengaturanAdminPage() {
           namaSistem: data.namaSistem || '',
           lat: data.lat !== undefined && data.lat !== null ? String(data.lat) : '',
           lng: data.lng !== undefined && data.lng !== null ? String(data.lng) : '',
-          radiusMaks: data.radiusMaks !== undefined && data.radiusMaks !== null ? String(data.radiusMaks) : '50'
+          radiusMaks: data.radiusMaks !== undefined && data.radiusMaks !== null ? String(data.radiusMaks) : '50',
+          autoResetAntrian: Boolean(data.autoResetAntrian),
+          autoResetIstirahat: Boolean(data.autoResetIstirahat),
         })
       }
       setLoading(false)
@@ -167,6 +171,8 @@ export default function PengaturanAdminPage() {
         lat,
         lng,
         radiusMaks: radius,
+        autoResetAntrian: Boolean(form.autoResetAntrian),
+        autoResetIstirahat: Boolean(form.autoResetIstirahat),
       })
       setSuccessMsg('Pengaturan toko berhasil disimpan.')
     } catch (err) {
@@ -318,7 +324,7 @@ export default function PengaturanAdminPage() {
       <form onSubmit={handleSave} className="space-y-6">
         <SectionCard icon={<Store className="w-5 h-5" />} tone="cyan" title="Identitas Toko" subtitle="Tampil di halaman login">
           <div className="space-y-3">
-           <div className="space-y-1.5">
+            <div className="space-y-1.5">
               <label className={labelCls}>Nama Toko</label>
               <div className="relative">
                 <Store className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -395,6 +401,36 @@ export default function PengaturanAdminPage() {
                 Isi Latitude & Longitude atau klik <strong>Gunakan Lokasi Saya</strong> untuk menampilkan peta dan lingkaran radius.
               </div>
             )}
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={<RotateCcw className="w-5 h-5" />} tone="cyan" title="Auto Reset Otomatis" subtitle="Aktifkan atau matikan reset otomatis tanpa tombol manual">
+          <div className="space-y-3">
+            <label className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-secondary/50 border border-border/60 cursor-pointer hover:bg-secondary transition">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-foreground uppercase">Auto Reset Antrian (00.01)</p>
+                <p className="text-[11px] text-muted-foreground">Membersihkan antrian harian otomatis mulai pukul 00.01</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={form.autoResetAntrian}
+                onChange={e => setForm({ ...form, autoResetAntrian: e.target.checked })}
+                className="size-5 accent-primary rounded cursor-pointer shrink-0"
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-secondary/50 border border-border/60 cursor-pointer hover:bg-secondary transition">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-foreground uppercase">Auto Reset Istirahat (13.00 &amp; 16.00)</p>
+                <p className="text-[11px] text-muted-foreground">13.00 untuk check-in di bawah 12.00 · 16.00 untuk check-in mulai 12.00</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={form.autoResetIstirahat}
+                onChange={e => setForm({ ...form, autoResetIstirahat: e.target.checked })}
+                className="size-5 accent-primary rounded cursor-pointer shrink-0"
+              />
+            </label>
           </div>
         </SectionCard>
 

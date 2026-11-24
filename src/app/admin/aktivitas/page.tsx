@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, Users, LogOut, ShieldAlert, Award, Calendar, X, UserCheck, ClipboardList, TrendingUp } from 'lucide-react'
+import { Loader2, Users, LogOut, ShieldAlert, Award, Calendar, X, UserCheck, ClipboardList, TrendingUp, Package } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, StatTile, MenuRow, MosqueIcon } from '@/components/admin/admin-ui'
@@ -186,6 +186,30 @@ export default function AktivitasAdminPage() {
     return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
   })()
 
+  const sesiCSHariIni = (() => {
+    const raw = aktivitasHariIni
+      .filter(a => a.aksi === 'PanggilCS' || a.aksi === 'KembaliAntriDariCS')
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+
+    const hasil: { nama: string; waktuMulai: number; waktuSelesai?: number }[] = []
+    for (const item of raw) {
+      const nama = String(item.nama || '').trim()
+      const namaKey = normalizeNamaKey(nama)
+      const t = Number(item.waktuMulai || item.waktu || 0)
+
+      if (item.waktuSelesai) {
+        hasil.push({ nama, waktuMulai: t, waktuSelesai: Number(item.waktuSelesai) })
+      } else if (item.aksi === 'PanggilCS') {
+        hasil.push({ nama, waktuMulai: t })
+      } else if (item.aksi === 'KembaliAntriDariCS') {
+        const openIdx = hasil.findIndex(s => normalizeNamaKey(s.nama) === namaKey && !s.waktuSelesai)
+        if (openIdx !== -1) hasil[openIdx].waktuSelesai = t
+        else hasil.push({ nama, waktuMulai: t, waktuSelesai: t })
+      }
+    }
+    return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
+  })()
+
   const listKeluar = aktivitasHariIni
     .filter(a => a.aksi === 'KeluarAntrian')
     .sort((a, b) => Number(b.waktu || b.waktuMulai || 0) - Number(a.waktu || a.waktuMulai || 0))
@@ -315,6 +339,7 @@ export default function AktivitasAdminPage() {
           <StatTile label="Check-in" value={checkinHariIni.length} tone="cyan" />
           <StatTile label="Bawa Customer" value={listBawa.length} tone="blue" />
           <StatTile label="Ibadah" value={sesiIbadahHariIni.length} tone="amber" />
+          <StatTile label="Dipanggil CS / Gudang" value={sesiCSHariIni.length} tone="purple" />
           <StatTile label="Keluar Antrian" value={listKeluar.length} tone="purple" />
         </div>
       </section>
@@ -325,6 +350,7 @@ export default function AktivitasAdminPage() {
           <MenuRow icon={<UserCheck className="w-5 h-5" />} tone="emerald" title="Check-in Promotor" desc="Kehadiran hari ini" onClick={() => setPopupType('checkin')} />
           <MenuRow icon={<Users className="w-5 h-5" />} tone="cyan" title="Bawa Customer" desc="Semua promotor hari ini" onClick={() => setPopupType('bawa')} />
           <MenuRow icon={<MosqueIcon className="w-5 h-5" />} tone="amber" title="Ibadah" desc="Catatan ibadah" onClick={() => setPopupType('ibadah')} />
+          <MenuRow icon={<Package className="w-5 h-5" />} tone="purple" title="Dipanggil CS / Gudang" desc="Catatan panggilan CS / Gudang" onClick={() => setPopupType('cs')} />
           <MenuRow icon={<LogOut className="w-5 h-5" />} tone="rose" title="Keluar Antrian" desc="Manual dan reset istirahat" onClick={() => setPopupType('keluar')} />
           <MenuRow icon={<ShieldAlert className="w-5 h-5" />} tone="rose" title="Autokick" desc="Pelanggaran sistem" onClick={() => setPopupType('autokick')} />
         </div>
@@ -351,6 +377,7 @@ export default function AktivitasAdminPage() {
                   )}
                   {popupType === 'bawa' && 'Bawa Customer Hari Ini'}
                   {popupType === 'ibadah' && 'Ibadah Hari Ini'}
+                  {popupType === 'cs' && 'Dipanggil CS / Gudang Hari Ini'}
                   {popupType === 'keluar' && 'Keluar Antrian Hari Ini'}
                   {popupType === 'autokick' && 'Autokick (Pelanggaran)'}
                   {popupType === 'rekapPromotor' && (
@@ -444,6 +471,19 @@ export default function AktivitasAdminPage() {
                 {popupType === 'ibadah' && (
                   <div className="space-y-2">
                     {sesiIbadahHariIni.length === 0 ? <p className={emptyCls}>Belum ada</p> : sesiIbadahHariIni.map((s, i) => (
+                      <div key={i} className={rowCls}>
+                        <span className="font-bold text-foreground uppercase">{s.nama}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-bold tabular-nums">
+                          {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {popupType === 'cs' && (
+                  <div className="space-y-2">
+                    {sesiCSHariIni.length === 0 ? <p className={emptyCls}>Belum ada</p> : sesiCSHariIni.map((s, i) => (
                       <div key={i} className={rowCls}>
                         <span className="font-bold text-foreground uppercase">{s.nama}</span>
                         <span className="text-xs sm:text-sm text-foreground font-bold tabular-nums">

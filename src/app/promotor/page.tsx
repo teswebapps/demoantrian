@@ -153,6 +153,7 @@ export default function PromotorPage() {
     checkin: false,
     bawa: false,
     ibadah: false,
+    cs: false,
     keluar: false,
     autokick: false,
     rekap: false,
@@ -519,13 +520,68 @@ export default function PromotorPage() {
         toast.success('Kembali ke antrian.')
       } else if (aksi === 'PanggilCS') {
         const posisi = posisiStandby()
-        await update(ref(db, pathAntrian), { status: 'Dipanggil CS', posisiTerkunci: posisi, waktuStandbySebelumCS: dataSaya?.waktuStandby || Date.now() })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'PanggilCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif })
+        const now = Date.now()
+        await update(ref(db, pathAntrian), {
+          status: 'Dipanggil CS',
+          posisiTerkunci: posisi,
+          waktuStandbySebelumCS: dataSaya?.waktuStandby || now,
+          waktuMulaiCS: now,
+        })
+        await push(ref(db, pathStatistik), {
+          nama: userData.nama,
+          aksi: 'PanggilCS',
+          waktu: now,
+          waktuMulai: now,
+          tanggal: tglIndo,
+          tanggalKey: tKeyAktif,
+          kategori: 'DipanggilCS',
+          posisi,
+        })
         toast.info('Dipanggil ke CS/Gudang.')
       } else if (aksi === 'KembaliCS') {
+        const posisiLama = dataSaya?.posisiTerkunci || 0
         const waktuStandbyKembali = dataSaya?.waktuStandbySebelumCS || dataSaya?.waktuStandby || Date.now()
-        await update(ref(db, pathAntrian), { status: 'Standby', waktuStandby: waktuStandbyKembali, posisiTerkunci: 0 })
-        await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'KembaliAntriDariCS', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif })
+        const now = Date.now()
+        const snapAkt = await get(ref(db, pathStatistik))
+        const dataAkt = snapAkt.val() || {}
+        const csBelumSelesai = Object.keys(dataAkt)
+          .filter(
+            (key) =>
+              String(dataAkt[key].nama || '').trim().toLowerCase() === userData.nama.trim().toLowerCase() &&
+              dataAkt[key].aksi === 'PanggilCS' &&
+              !dataAkt[key].waktuSelesai
+          )
+          .map((key) => ({ _key: key, ...dataAkt[key] }))
+          .sort((a: any, b: any) => (b.waktu || 0) - (a.waktu || 0))
+        const targetCS = csBelumSelesai[0]
+        const waktuMulaiCS = Number(targetCS?.waktuMulai || targetCS?.waktu || dataSaya?.waktuMulaiCS || now)
+
+        await update(ref(db, pathAntrian), {
+          status: 'Standby',
+          waktuStandby: waktuStandbyKembali,
+          posisiTerkunci: 0,
+          waktuMulaiCS: null,
+        })
+        if (targetCS && targetCS._key) {
+          await update(ref(db, `${pathStatistik}/${targetCS._key}`), {
+            waktuSelesai: now,
+            durasiDetik: Math.max(0, Math.floor((now - waktuMulaiCS) / 1000)),
+            posisiSelesai: posisiLama,
+          })
+        } else {
+          await push(ref(db, pathStatistik), {
+            nama: userData.nama,
+            aksi: 'PanggilCS',
+            waktu: waktuMulaiCS,
+            waktuMulai: waktuMulaiCS,
+            waktuSelesai: now,
+            durasiDetik: Math.max(0, Math.floor((now - waktuMulaiCS) / 1000)),
+            tanggal: tglIndo,
+            tanggalKey: tKeyAktif,
+            kategori: 'DipanggilCS',
+            posisi: posisiLama,
+          })
+        }
         toast.success('Kembali ke antrian.')
       } else if (aksi === 'Keluar') {
         await remove(ref(db, pathAntrian))
@@ -571,6 +627,26 @@ export default function PromotorPage() {
       } else if (item.aksi === 'MulaiIbadah' || item.aksi === 'Ibadah') {
         hasil.push({ waktuMulai: t })
       } else if (item.aksi === 'SelesaiIbadah') {
+        const openIdx = hasil.findIndex(s => !s.waktuSelesai)
+        if (openIdx !== -1) hasil[openIdx].waktuSelesai = t
+        else hasil.push({ waktuMulai: t, waktuSelesai: t })
+      }
+    }
+    return hasil.sort((a, b) => Number(b.waktuMulai || 0) - Number(a.waktuMulai || 0))
+  })()
+
+  const sesiCSSaya = (() => {
+    const raw = aktivitasHariIni
+      .filter(a => a.aksi === 'PanggilCS' || a.aksi === 'KembaliAntriDariCS')
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+    const hasil: { waktuMulai: number; waktuSelesai?: number }[] = []
+    for (const item of raw) {
+      const t = Number(item.waktuMulai || item.waktu || 0)
+      if (item.waktuSelesai) {
+        hasil.push({ waktuMulai: t, waktuSelesai: Number(item.waktuSelesai) })
+      } else if (item.aksi === 'PanggilCS') {
+        hasil.push({ waktuMulai: t })
+      } else if (item.aksi === 'KembaliAntriDariCS') {
         const openIdx = hasil.findIndex(s => !s.waktuSelesai)
         if (openIdx !== -1) hasil[openIdx].waktuSelesai = t
         else hasil.push({ waktuMulai: t, waktuSelesai: t })
@@ -942,6 +1018,40 @@ export default function PromotorPage() {
                         {sesiIbadahSaya.map((s, i) => (
                           <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
                             <span className="font-medium text-amber-600">Ibadah {sesiIbadahSaya.length > 1 ? `#${sesiIbadahSaya.length - i}` : ''}</span>
+                            <span className="font-bold text-foreground">
+                              {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-secondary/50 border border-border/60 rounded-2xl overflow-hidden">
+                <div onClick={() => toggleCollapse('cs')} className="p-4 flex justify-between items-center transition cursor-pointer hover:bg-secondary">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"><Package className="w-5 h-5" /></div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wide text-foreground">DIPANGGIL CS / GUDANG</h4>
+                      <p className="text-[11px] text-muted-foreground">Catatan panggilan CS / Gudang</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black px-3 py-1 rounded-xl bg-purple-600 text-white">{sesiCSSaya.length}</span>
+                    {openCollapse.cs ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                  </div>
+                </div>
+                {openCollapse.cs && (
+                  <div className="p-3 bg-secondary/80 border-t border-border text-xs space-y-2 mx-3 mb-3 rounded-xl">
+                    {sesiCSSaya.length === 0 ? (
+                      <p className="text-muted-foreground italic">Belum ada catatan dipanggil CS / Gudang hari ini.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {sesiCSSaya.map((s, i) => (
+                          <div key={i} className="bg-background border border-border rounded-lg p-2.5 flex justify-between items-center">
+                            <span className="font-medium text-purple-600">CS / Gudang {sesiCSSaya.length > 1 ? `#${sesiCSSaya.length - i}` : ''}</span>
                             <span className="font-bold text-foreground">
                               {formatJam(s.waktuMulai)} - {s.waktuSelesai ? formatJam(s.waktuSelesai) : 'Berlangsung'}
                             </span>
