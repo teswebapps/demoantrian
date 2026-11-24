@@ -57,18 +57,6 @@ export function BottomNav() {
             </Link>
           )
         })}
-
-        {/* TOMBOL KELUAR */}
-        <button
-          type="button"
-          onClick={() => setShowLogout(true)}
-          className="min-w-0 flex flex-col items-center justify-center gap-1 flex-1 py-1 px-0.5 rounded-2xl transition-all duration-200 text-muted-foreground hover:text-rose-500 font-medium"
-        >
-          <div className="p-1.5 rounded-xl transition-colors">
-            <LogOut className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] tracking-tight truncate max-w-full">Keluar</span>
-        </button>
       </nav>
 
       {/* MODAL POP-UP SESUAI TEMA */}
