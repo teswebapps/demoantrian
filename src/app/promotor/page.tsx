@@ -6,6 +6,7 @@ import { ref, get, set, remove, update, push, onValue } from 'firebase/database'
 import { auth, db } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/useTheme'
+import { useAutoReset } from '@/hooks/useAutoReset'
 import dynamic from 'next/dynamic'
 import { Loader2, ShieldCheck, Lock, Play, MapPin, Package, ArrowRight, LogOut, ChevronDown, ChevronUp, Users, CalendarDays, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -165,6 +166,8 @@ export default function PromotorPage() {
   }
 
   const TOKO_ID = userData?.tokoId || DEFAULT_TOKO_ID
+  useAutoReset(userData ? TOKO_ID : undefined)
+
   const namaTokoAktif =
     typeof setting?.namaToko === 'string' && setting.namaToko.trim()
       ? setting.namaToko.trim()
@@ -689,6 +692,12 @@ export default function PromotorPage() {
   const formatJam = (ts: number) => {
     if (!ts) return '-'
     const d = new Date(ts)
+    return `${pad(d.getHours())}.${pad(d.getMinutes())}`
+  }
+
+  const formatJamDetik = (ts: number) => {
+    if (!ts) return '-'
+    const d = new Date(ts)
     return `${pad(d.getHours())}.${pad(d.getMinutes())}.${pad(d.getSeconds())}`
   }
 
@@ -890,9 +899,9 @@ export default function PromotorPage() {
                           {item.status === 'Melayani' ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-emerald-500 text-white">Melayani</span>
                           ) : item.status === 'Dipanggil CS' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-blue-600 text-white">Dipanggil CS</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Dipanggil CS / Gudang</span>
                           ) : item.status === 'Ibadah' ? (
-                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-purple-600 text-white">Ibadah</span>
+                            <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-amber-500 text-white">Ibadah</span>
                           ) : isGiliranUtama ? (
                             <span className="text-[9px] font-black px-2 py-1 rounded-md uppercase bg-rose-500 text-white animate-pulse">Giliran Utama</span>
                           ) : (
@@ -928,7 +937,7 @@ export default function PromotorPage() {
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><ShieldCheck className="w-5 h-5" /></div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wide text-foreground">CHECK-IN PROMOTOR</h4>
-                      <p className="text-[11px] text-muted-foreground">{riwayatCheckinSaya.length > 0 ? `Jam ${formatJam(riwayatCheckinSaya[0])}` : 'Belum check-in'}</p>
+                      <p className="text-[11px] text-muted-foreground">{riwayatCheckinSaya.length > 0 ? `Jam ${formatJamDetik(riwayatCheckinSaya[0])}` : 'Belum check-in'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -945,7 +954,7 @@ export default function PromotorPage() {
                         {riwayatCheckinSaya.map((ts, idx) => (
                           <div key={idx} className="bg-background border border-border rounded-lg p-2 flex justify-between items-center">
                             <span className="font-medium text-emerald-600">Check-in</span>
-                            <span className="font-bold text-foreground">Jam {formatJam(ts)}</span>
+                            <span className="font-bold text-foreground">Jam {formatJamDetik(ts)}</span>
                           </div>
                         ))}
                       </div>
