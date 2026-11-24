@@ -383,14 +383,14 @@ export default function PengaturanAdminPage() {
             {petaSiap ? (
               <div className="pt-1 space-y-2">
                 <div className="w-full h-44 rounded-2xl overflow-hidden border border-border relative bg-secondary">
-                  <MapComponent
-                    key={`${latNum}-${lngNum}`}
-                    tokoLat={latNum}
-                    tokoLng={lngNum}
-                    radius={radiusNum}
-                    userLat={deviceLoc?.lat ?? latNum}
-                    userLng={deviceLoc?.lng ?? lngNum}
-                  />
+                  
+                   <MapComponent
+  tokoLat={latNum}
+  tokoLng={lngNum}
+  radius={radiusNum}
+  userLat={deviceLoc?.lat ?? latNum}
+  userLng={deviceLoc?.lng ?? lngNum}
+/>
                 </div>
                 <p className="text-[11px] text-muted-foreground text-center">
                   Pratinjau area validasi GPS · Radius <strong className="text-foreground">{radiusNum} meter</strong>

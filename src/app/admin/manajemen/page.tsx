@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { ref, onValue, update, get, remove, push, set } from 'firebase/database'
 import { useState, useEffect, useRef } from 'react'
 import {
-  Loader2, UserPlus, UserMinus, Play, Lock, Unlock,
+  Loader2, UserPlus, UserMinus, Lock, Unlock,
   ShieldAlert, Trash2, KeyRound, Clock, FileText, ChevronDown, Users, RefreshCcw, Coffee
 } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
@@ -67,43 +67,118 @@ export async function mulaiTimerLockJikaBelum(db: any, tokoId: string, nama: str
   return { baruMulai: true, sisaMs: selesai - mulai, terkunci: true }
 }
 
-function CustomSelect({ options, value, onChange, placeholder = 'Pilih opsi...', icon }: { options: Option[], value: string, onChange: (val: string) => void, placeholder?: string, icon?: React.ReactNode }) {
+function CustomSelect({
+  options,
+  value,
+  onChange,
+  placeholder = 'Pilih opsi...',
+  icon,
+  searchable = false,
+}: {
+  options: Option[]
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+  icon?: React.ReactNode
+  searchable?: boolean
+}) {
   const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const selectedOption = options.find(opt => opt.value === value)
   const displayLabel = selectedOption ? selectedOption.label : placeholder
 
   useEffect(() => {
+    setQuery(selectedOption ? selectedOption.label : '')
+  }, [value, selectedOption])
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false)
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        if (searchable) {
+          setQuery(selectedOption ? selectedOption.label : '')
+        }
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [searchable, selectedOption])
+
+  const filteredOptions = searchable
+    ? options.filter((opt) => opt.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`${inputCls} ${icon ? 'pl-11' : ''} pr-10 text-left flex items-center justify-between hover:bg-secondary transition`}
-      >
-        {icon && <span className="absolute left-4 text-muted-foreground">{icon}</span>}
-        <span className={`truncate ${!value ? 'text-muted-foreground' : 'text-foreground font-bold uppercase'}`}>{displayLabel}</span>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+      {searchable ? (
+        <div className="relative flex items-center">
+          {icon && <span className="absolute left-4 text-muted-foreground pointer-events-none">{icon}</span>}
+          <input
+            type="text"
+            value={query}
+            onFocus={() => setIsOpen(true)}
+            onChange={(e) => {
+              const val = e.target.value
+              setQuery(val)
+              setIsOpen(true)
+              if (!val.trim() && value) onChange('')
+            }}
+            placeholder={placeholder}
+            className={`${inputCls} ${icon ? 'pl-11' : ''} pr-16 uppercase font-bold placeholder:normal-case placeholder:font-normal`}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('')
+                onChange('')
+                setIsOpen(true)
+              }}
+              aria-label="Hapus pencarian"
+              className="absolute right-8 w-6 h-6 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground text-xs font-black flex items-center justify-center border border-border"
+            >
+              ×
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Buka daftar"
+            className="absolute right-3 text-muted-foreground"
+          >
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`${inputCls} ${icon ? 'pl-11' : ''} pr-10 text-left flex items-center justify-between hover:bg-secondary transition`}
+        >
+          {icon && <span className="absolute left-4 text-muted-foreground">{icon}</span>}
+          <span className={`truncate ${!value ? 'text-muted-foreground' : 'text-foreground font-bold uppercase'}`}>{displayLabel}</span>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+      )}
 
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full bg-card border border-border rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
-          {options.length === 0 ? (
-            <div className="p-3 text-xs text-muted-foreground text-center italic">Tidak ada pilihan</div>
+          {filteredOptions.length === 0 ? (
+            <div className="p-3 text-xs text-muted-foreground text-center italic">
+              {searchable && query ? `Promotor "${query}" tidak ditemukan` : 'Tidak ada pilihan'}
+            </div>
           ) : (
-            options.map((opt) => (
+            filteredOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => { onChange(opt.value); setIsOpen(false) }}
+                onClick={() => {
+                  onChange(opt.value)
+                  if (searchable) setQuery(opt.label)
+                  setIsOpen(false)
+                }}
                 className={`w-full px-4 py-3 text-xs text-left font-medium uppercase transition-colors flex items-center justify-between hover:bg-primary/10 hover:text-primary ${
                   value === opt.value ? 'bg-primary/10 text-primary font-bold' : 'text-foreground'
                 }`}
@@ -126,8 +201,6 @@ export default function ManajemenPage() {
 
   const [masterSales, setMasterSales] = useState<any[]>([])
   const [daftarAntrian, setDaftarAntrian] = useState<any[]>([])
-  const [hariIniIndo, setHariIniIndo] = useState('')
-  const [todayKey, setTodayKey] = useState('')
 
   const [formNama, setFormNama] = useState('')
   const [formEmail, setFormEmail] = useState('')
@@ -156,17 +229,6 @@ export default function ManajemenPage() {
     setModalConfig({ isOpen: true, type, title, message, confirmText, onConfirm })
 
   const TOKO_ID = user?.tokoId || 'ufo-kebonsari'
-
-  useEffect(() => {
-    const updateTanggal = () => {
-      const d = new Date()
-      setHariIniIndo(getTodayIndo(d))
-      setTodayKey(getTodayKey(d))
-    }
-    updateTanggal()
-    const t = setInterval(updateTanggal, 60_000)
-    return () => clearInterval(t)
-  }, [])
 
   useEffect(() => {
     if (!TOKO_ID) return
@@ -227,7 +289,7 @@ export default function ManajemenPage() {
       showModal('success', 'Berhasil', `Promotor ${nama} sudah bisa login.`)
       setFormNama('')
       setFormEmail('')
-    } catch (err) {
+    } catch {
       showModal('error', 'Gagal', 'Gagal menambah promotor. Cek rules Firebase.')
     } finally { setIsProcessing(false) }
   }
@@ -326,7 +388,7 @@ export default function ManajemenPage() {
       await remove(ref(db, `toko/${TOKO_ID}/antrian/${cleanKey(selectedSales)}`))
       showModal('success', 'Berhasil', 'Berhasil mengeluarkan promotor dari antrian.')
       setSelectedSales('')
-    } catch (err) {
+    } catch {
       showModal('error', 'Gagal', 'Gagal mengeluarkan promotor.')
     } finally { setIsProcessing(false) }
   }
@@ -348,30 +410,10 @@ export default function ManajemenPage() {
         await update(ref(db), updates)
         showModal('success', 'Berhasil', 'Promotor dihapus permanen.')
         setSelectedLockSales('')
-      } catch (err) {
+      } catch {
         showModal('error', 'Gagal', 'Gagal menghapus.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Hapus')
-  }
-
-  const handlePaksaBawaCustomer = async () => {
-    if (!selectedSales) { showModal('error', 'Peringatan', 'Pilih promotor terlebih dahulu!'); return }
-    setIsProcessing(true)
-    try {
-      const clean = cleanKey(selectedSales)
-      const snap = await get(ref(db, `toko/${TOKO_ID}/antrian/${clean}`))
-      if (!snap.exists()) throw new Error('Promotor belum ada di antrian. Masukkan ke antrian dulu.')
-      const now = Date.now()
-      await update(ref(db, `toko/${TOKO_ID}/antrian/${clean}`), { status: 'Melayani', waktuMulaiMelayani: now, posisiTerkunci: 0 })
-      await push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), {
-        nama: selectedSales, aksi: 'BawaCustomer', waktu: now,
-        tanggal: hariIniIndo, tanggalKey: todayKey, waktuMulai: now, keterangan: 'Dipaksa Admin'
-      })
-      showModal('success', 'Berhasil', 'Promotor dipaksa melayani customer.')
-      setSelectedSales('')
-    } catch (err: any) {
-      showModal('error', 'Gagal', err.message || 'Gagal memproses.')
-    } finally { setIsProcessing(false) }
   }
 
   /* RESET ISTIRAHAT MANUAL (100% dikontrol Admin) */
@@ -423,7 +465,7 @@ export default function ManajemenPage() {
         } else {
           showModal('alert', 'Tidak Ada Antrian', `Tidak ada promotor Standby ${keteranganGelombang} yang perlu dikeluarkan.`)
         }
-      } catch (err) {
+      } catch {
         showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
       } finally { setIsProcessing(false) }
     }, 'Ya, Reset')
@@ -466,7 +508,7 @@ export default function ManajemenPage() {
       }
       setSelectedLockSales('')
       setLockReason('')
-    } catch (err) {
+    } catch {
       showModal('error', 'Gagal', 'Gagal memproses lock.')
     } finally { setIsProcessing(false) }
   }
@@ -479,7 +521,7 @@ export default function ManajemenPage() {
         await remove(ref(db, `toko/${TOKO_ID}/checkinHarian`))
         await set(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), Date.now())
         showModal('success', 'Berhasil', 'Reset harian berhasil! Antrian dibersihkan, rekap bulanan tetap utuh.')
-      } catch (err) {
+      } catch {
         showModal('error', 'Gagal', 'Gagal melakukan reset hari ini.')
       } finally {
         setIsProcessing(false)
@@ -494,7 +536,7 @@ export default function ManajemenPage() {
   const opsiPromotor = masterSales.map(s => ({ label: s.nama, value: s.nama }))
 
   return (
-    <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout}>
+    <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout} tokoId={TOKO_ID}>
       {/* TAMBAH PROMOTOR */}
       <SectionCard icon={<UserPlus className="w-5 h-5" />} tone="cyan" title="Tambah Promotor Baru" subtitle="Promotor bisa login dengan akun Google">
         <form onSubmit={handleTambahPromotor} className="space-y-3">
@@ -507,9 +549,9 @@ export default function ManajemenPage() {
       </SectionCard>
 
       {/* ATUR ANTRIAN */}
-      <SectionCard icon={<UserMinus className="w-5 h-5" />} tone="amber" title="Atur Antrian" subtitle="Masukkan, keluarkan, atau paksa melayani">
+      <SectionCard icon={<UserMinus className="w-5 h-5" />} tone="amber" title="Atur Antrian" subtitle="Ketik nama promotor untuk memasukkan atau mengeluarkan dari antrian">
         <div className="space-y-3">
-          <CustomSelect options={opsiPromotor} value={selectedSales} onChange={setSelectedSales} placeholder="-- Pilih Promotor --" icon={<Users className="w-4 h-4" />} />
+          <CustomSelect options={opsiPromotor} value={selectedSales} onChange={setSelectedSales} placeholder="Ketik nama promotor" icon={<Users className="w-4 h-4" />} searchable />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <CustomSelect options={[{ label: 'Kategori HA', value: 'HA' }, { label: 'Kategori AV', value: 'AV' }]} value={selectedKategori} onChange={setSelectedKategori} placeholder="Pilih Kategori" />
             <input type="number" value={selectedPosisi} onChange={e => setSelectedPosisi(e.target.value)} placeholder="Nomor antrian (kosong = akhir)" className={inputCls} min="1" />
@@ -519,9 +561,6 @@ export default function ManajemenPage() {
           </button>
           <button type="button" onClick={handleKeluarkanAntrian} disabled={isProcessing} className={btn.amber}>
             <UserMinus className="w-5 h-5" /> KELUARKAN DARI ANTRIAN
-          </button>
-          <button type="button" onClick={handlePaksaBawaCustomer} disabled={isProcessing || !selectedSales} className={btn.cyan}>
-            <Play className="w-5 h-5" /> PAKSA BAWA CUSTOMER
           </button>
         </div>
       </SectionCard>
@@ -551,7 +590,7 @@ export default function ManajemenPage() {
       {/* TINDAKAN DARURAT */}
       <SectionCard icon={<ShieldAlert className="w-5 h-5" />} tone="rose" title="Tindakan Darurat" subtitle="Kunci akun atau hapus promotor">
         <div className="space-y-3">
-          <CustomSelect options={opsiPromotor} value={selectedLockSales} onChange={setSelectedLockSales} placeholder="-- Pilih Promotor --" icon={<Users className="w-4 h-4" />} />
+          <CustomSelect options={opsiPromotor} value={selectedLockSales} onChange={setSelectedLockSales} placeholder="Ketik nama promotor, misal: adhe..." icon={<Users className="w-4 h-4" />} searchable />
           <CustomSelect options={[{ label: 'Lock Akun Promotor', value: 'LOCK' }, { label: 'Unlock Akun Promotor', value: 'UNLOCK' }]} value={lockAction} onChange={setLockAction} placeholder="Pilih Aksi" icon={<KeyRound className="w-4 h-4" />} />
 
           {lockAction === 'LOCK' && (

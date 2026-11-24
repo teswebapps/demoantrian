@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, History, ShieldAlert, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, History, ShieldAlert, Settings, LogOut, Smartphone } from 'lucide-react'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { AppHeader } from '@/components/queue/app-header'
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/admin/aktivitas', label: 'Aktivitas', icon: History },
   { href: '/admin/manajemen', label: 'Antrian', icon: ShieldAlert },
   { href: '/admin/pengaturan', label: 'Pengaturan', icon: Settings },
+  { href: '/admin/bantu-promotor', label: 'Bantu', icon: Smartphone },
 ]
 
 interface AdminShellProps {
@@ -49,7 +50,7 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
         isOpen={isOpen !== false}
         statusLoading={isOpen === null}
         onLogout={() => setShowLogout(true)}
-        showLogout={false}
+        showLogout={true}
         onToggleTheme={onToggleTheme}
         isDark={isDark}
       />
@@ -77,14 +78,6 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
               </Link>
             )
           })}
-          <button
-            type="button"
-            onClick={() => setShowLogout(true)}
-            className="flex flex-col items-center justify-center gap-0.5 rounded-2xl py-2 text-[10px] font-bold uppercase tracking-wide text-destructive transition hover:bg-destructive/10"
-          >
-            <LogOut className="w-5 h-5" />
-            Keluar
-          </button>
         </div>
       </nav>
 
