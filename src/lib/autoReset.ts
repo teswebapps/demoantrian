@@ -26,17 +26,21 @@ export async function autoResetHarian(db: any, tokoId: string) {
   const now = new Date()
   const today = getTodayKey(now)
   const jamSekarang = now.getHours()
-  const menitSekarang = now.getMinutes()
   const tglIndo = getTanggalIndo(now)
   let berubah = false
 
-  // =====================================================================
-  // 1. AUTO RESET HARIAN (Tengah Malam 00.01)
-  // Berjalan hanya jika sudah lewat jam 00.01
-  // =====================================================================
-  const sudahLewatJam00 = (jamSekarang > 0) || (jamSekarang === 0 && menitSekarang >= 1)
+  // ✅ AMBIL PENGATURAN SAKLAR ON/OFF DARI ADMIN
+  const settingSnap = await get(ref(db, `toko/${tokoId}/setting`))
+  const setting = settingSnap.exists() ? settingSnap.val() : {}
+  const autoResetAntrianOn = Boolean(setting?.autoResetAntrian)
+  const autoResetIstirahatOn = Boolean(setting?.autoResetIstirahat)
 
-  if (sudahLewatJam00) {
+  // =====================================================================
+  // 1. AUTO RESET HARIAN (Hanya berjalan jam 00.00 - 02.59 Pagi)
+  // =====================================================================
+  const dalamJendelaHarian = (jamSekarang >= 0 && jamSekarang < 3)
+
+  if (dalamJendelaHarian && autoResetAntrianOn) {
     const txHarian = await runTransaction(ref(db, `toko/${tokoId}/lastResetDate`), (curr) =>
       curr === today ? undefined : today
     )
@@ -56,7 +60,7 @@ export async function autoResetHarian(db: any, tokoId: string) {
   // =====================================================================
   // 2. AUTO RESET ISTIRAHAT GELOMBANG 1 (Jam 13.00)
   // =====================================================================
-  if (jamSekarang >= 13) {
+  if (jamSekarang >= 13 && autoResetIstirahatOn) {
     const marker13 = `${today}_13`
     const tx13 = await runTransaction(ref(db, `toko/${tokoId}/lastResetIstirahat_13`), (curr) =>
       curr === marker13 ? undefined : marker13
@@ -120,7 +124,7 @@ export async function autoResetHarian(db: any, tokoId: string) {
   // =====================================================================
   // 3. AUTO RESET ISTIRAHAT GELOMBANG 2 (Jam 16.00)
   // =====================================================================
-  if (jamSekarang >= 16) {
+  if (jamSekarang >= 16 && autoResetIstirahatOn) {
     const marker16 = `${today}_16`
     const tx16 = await runTransaction(ref(db, `toko/${tokoId}/lastResetIstirahat_16`), (curr) =>
       curr === marker16 ? undefined : marker16
