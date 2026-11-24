@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CircleAlert, Loader2, Rocket } from 'lucide-react'
+import { CircleAlert, Loader2, Rocket, ShieldCheck } from 'lucide-react'
 import { GoogleIcon } from './google-icon'
 import { signInWithPopup, signInWithRedirect, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth'
 import { ref, get, onValue } from 'firebase/database'
@@ -32,6 +32,7 @@ const formatTampilanJudul = (raw?: string | null) => {
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
   const [loadingDemo, setLoadingDemo] = useState(false)
+  const [loadingAdmin, setLoadingAdmin] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [namaToko, setNamaToko] = useState(DEFAULT_NAMA_TOKO)
   const [namaAplikasi, setNamaAplikasi] = useState(DEFAULT_NAMA_APLIKASI)
@@ -131,19 +132,31 @@ export function LoginPanel() {
     }
   }
 
-  // ✅ FUNGSI BARU: Login otomatis sebagai akun demo
+  // ✅ Login Demo sebagai PROMOTOR
   async function handleDemoLogin() {
     setError(null)
     setLoadingDemo(true)
     try {
-      // Login otomatis dengan akun demo yang sudah terdaftar di Firebase
       await signInWithEmailAndPassword(auth, 'demo@antrian.com', 'demo123456')
-      // Arahkan ke halaman promotor
       window.location.href = '/promotor'
     } catch (err: any) {
       console.error(err)
       setError('Gagal masuk ke mode demo. Pastikan akun demo sudah dibuat di Firebase.')
       setLoadingDemo(false)
+    }
+  }
+
+  // ✅ Login Demo sebagai ADMIN
+  async function handleDemoAdminLogin() {
+    setError(null)
+    setLoadingAdmin(true)
+    try {
+      await signInWithEmailAndPassword(auth, 'admin@antrian.com', 'demo123456')
+      window.location.href = '/admin'
+    } catch (err: any) {
+      console.error(err)
+      setError('Gagal masuk ke mode Admin Demo. Pastikan akun admin demo sudah dibuat di Firebase.')
+      setLoadingAdmin(false)
     }
   }
 
@@ -175,7 +188,7 @@ export function LoginPanel() {
       <button
         type="button"
         onClick={handleLogin}
-        disabled={loading || loadingDemo}
+        disabled={loading || loadingDemo || loadingAdmin}
         className="flex h-[44px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#111827] px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1f2937] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? (
@@ -186,7 +199,6 @@ export function LoginPanel() {
         <span>{loading ? 'Menghubungkan...' : 'Sign in with Google'}</span>
       </button>
 
-      {/* ✅ TOMBOL BARU: Coba Demo */}
       <div className="relative my-4">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-gray-200"></div>
@@ -196,10 +208,11 @@ export function LoginPanel() {
         </div>
       </div>
 
+      {/* ✅ TOMBOL DEMO PROMOTOR */}
       <button
         type="button"
         onClick={handleDemoLogin}
-        disabled={loading || loadingDemo}
+        disabled={loading || loadingDemo || loadingAdmin}
         className="flex h-[44px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-emerald-600 px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loadingDemo ? (
@@ -207,7 +220,22 @@ export function LoginPanel() {
         ) : (
           <Rocket className="size-[18px] shrink-0" />
         )}
-        <span>{loadingDemo ? 'Menyiapkan Demo...' : 'Coba Demo Tanpa Login'}</span>
+        <span>{loadingDemo ? 'Menyiapkan Demo...' : 'Coba Demo Promotor'}</span>
+      </button>
+
+      {/* ✅ TOMBOL DEMO ADMIN */}
+      <button
+        type="button"
+        onClick={handleDemoAdminLogin}
+        disabled={loading || loadingDemo || loadingAdmin}
+        className="mt-3 flex h-[44px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-blue-600 px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {loadingAdmin ? (
+          <Loader2 className="size-4 animate-spin text-white" />
+        ) : (
+          <ShieldCheck className="size-[18px] shrink-0" />
+        )}
+        <span>{loadingAdmin ? 'Menyiapkan Admin...' : 'Coba Demo Admin'}</span>
       </button>
     </section>
   )

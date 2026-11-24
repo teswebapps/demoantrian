@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css' // sesuaikan jika file css utama Anda berbeda namanya
 
 export const metadata: Metadata = {
-  title: 'UFO Malang Kebonsari - Sistem Antrian',
+  title: 'DEMO TOKO- Sistem Antrian',
   description: 'Aplikasi Manajemen Antrian Promotor',
   manifest: '/manifest.json',
   icons: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'UFO Antrian',
+    title: 'DEMO Antrian',
   },
 }
 
