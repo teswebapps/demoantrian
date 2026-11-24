@@ -284,7 +284,7 @@ export default function AktivitasAdminPage() {
     })
   })()
 
-  // Pisahkan data check-in hari ini menjadi Shift Pagi (< 12.00) dan Shift Siang (>= 12.00)
+  // Pisahkan data check-in hari ini menjadi Shift Pagi (< 12.00), Shift Siang (>= 12.00), dan Belum Check-in
   const checkinShiftPagi = whitelistCheckinTerurut.filter((p) => {
     const c = checkinHariIni.find((item) => normalizeNamaKey(item.nama) === normalizeNamaKey(p.nama))
     if (!c?.waktu) return false
@@ -295,6 +295,11 @@ export default function AktivitasAdminPage() {
     const c = checkinHariIni.find((item) => normalizeNamaKey(item.nama) === normalizeNamaKey(p.nama))
     if (!c?.waktu) return false
     return new Date(Number(c.waktu)).getHours() >= 12
+  })
+
+  const checkinBelumMasuk = whitelistCheckinTerurut.filter((p) => {
+    const c = checkinHariIni.find((item) => normalizeNamaKey(item.nama) === normalizeNamaKey(p.nama))
+    return !c?.waktu
   })
 
   const rekapPromotorMap = (() => {
@@ -505,6 +510,33 @@ export default function AktivitasAdminPage() {
                       ) : (
                         <div className="space-y-2">
                           {checkinShiftSiang.map((p, idx) => renderCheckinRow(p, idx))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CARD BELUM CHECK-IN */}
+                    <div className="rounded-2xl border border-border bg-card/70 p-3.5 space-y-2.5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Belum Check-in</h4>
+                          <p className="text-[10px] text-muted-foreground">Promotor terdaftar yang belum masuk hari ini</p>
+                        </div>
+                        <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-secondary text-muted-foreground tabular-nums">
+                          {checkinBelumMasuk.length} Orang
+                        </span>
+                      </div>
+                      {checkinBelumMasuk.length === 0 ? (
+                        <p className={emptyCls}>Semua promotor sudah check-in</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {checkinBelumMasuk.map((p, idx) => (
+                            <div key={idx} className={rowCls}>
+                              <span className="text-xs sm:text-sm font-black text-foreground uppercase truncate pr-2">{p.nama}</span>
+                              <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-secondary text-muted-foreground shrink-0">
+                                Belum Check-in
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
