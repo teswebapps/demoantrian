@@ -32,9 +32,13 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
 
   // Status buka/tutup antrian diambil dari pengaturan toko
   useEffect(() => {
-    const unsub = onValue(ref(db, `toko/${tokoId}/setting/statusAntrian`), (snap) => {
-      setIsOpen(snap.val() !== 'TUTUP')
-    }, () => setIsOpen(true))
+    const unsub = onValue(
+      ref(db, `toko/${tokoId}/setting/statusAntrian`),
+      (snap) => {
+        setIsOpen(snap.val() !== 'TUTUP')
+      },
+      () => setIsOpen(true)
+    )
     return () => unsub()
   }, [tokoId])
 
@@ -44,7 +48,7 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
   }, [isDark])
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col bg-background relative">
+    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col bg-background relative overflow-x-clip">
       <AppHeader
         storeName="UFO Malang Kebonsari"
         isOpen={isOpen !== false}
@@ -58,8 +62,8 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
       <main className="flex-1 px-4 pt-4 pb-28 space-y-6">{children}</main>
 
       {/* BOTTOM NAV */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto max-w-2xl grid grid-cols-5 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <nav aria-label="Navigasi Admin" className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto max-w-2xl grid grid-cols-5 gap-0.5 sm:gap-1 px-1.5 sm:px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active =
               href === '/admin'
@@ -69,12 +73,12 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center justify-center gap-0.5 rounded-2xl py-2 text-[10px] font-bold uppercase tracking-wide transition ${
+                className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-2xl py-2 px-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wide transition ${
                   active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                {label}
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="truncate max-w-full">{label}</span>
               </Link>
             )
           })}
@@ -99,11 +103,19 @@ export function AdminShell({ children, isDark, onToggleTheme, onLogout, tokoId =
                 <p className="text-xs text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi admin?</p>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={() => setShowLogout(false)} className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition">
+                <button
+                  type="button"
+                  onClick={() => setShowLogout(false)}
+                  className="flex-1 py-3 bg-secondary hover:bg-secondary/80 text-foreground rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+                >
                   Batal
                 </button>
                 <button
-                  onClick={async () => { setShowLogout(false); await onLogout() }}
+                  type="button"
+                  onClick={async () => {
+                    setShowLogout(false)
+                    await onLogout()
+                  }}
                   className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition"
                 >
                   Ya, Keluar
