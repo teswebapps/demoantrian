@@ -46,7 +46,6 @@ export default function AktivitasAdminPage() {
   const [statistikList, setStatistikList] = useState<any[]>([])
   const [checkinList, setCheckinList] = useState<any[]>([])
   const [whitelistUsers, setWhitelistUsers] = useState<any[]>([])
-  const [lastResetTimestamp, setLastResetTimestamp] = useState<number>(0)
 
   const [hariIniIndo, setHariIniIndo] = useState('')
   const [todayKey, setTodayKey] = useState('')
@@ -76,13 +75,8 @@ export default function AktivitasAdminPage() {
     const unsubStat = onValue(ref(db, `toko/${TOKO_ID}/statistikAktivitas`), (snap) => {
       const data = snap.val()
       const list: any[] = []
-      if (data) Object.keys(data).forEach(k => { if (data[k].nama) list.push({ ...data[k], _key: k }) })
+      if (data) Object.keys(data).forEach(k => { if (data[k]?.nama) list.push({ ...data[k], _key: k }) })
       setStatistikList(list)
-    })
-
-    const unsubReset = onValue(ref(db, `toko/${TOKO_ID}/lastResetTimestamp`), (snap) => {
-      if (snap.exists()) setLastResetTimestamp(snap.val())
-      else setLastResetTimestamp(0)
     })
 
     const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
@@ -113,7 +107,7 @@ export default function AktivitasAdminPage() {
       setLoading(false)
     })
 
-    return () => { unsubStat(); unsubReset(); unsubCheckin(); unsubUser() }
+    return () => { unsubStat(); unsubCheckin(); unsubUser() }
   }, [TOKO_ID])
 
   const formatJam = (ts: number) => ts ? `${pad2(new Date(ts).getHours())}.${pad2(new Date(ts).getMinutes())}` : '-'
@@ -150,11 +144,12 @@ export default function AktivitasAdminPage() {
     return 'Keluar Antrian'
   }
 
+  // Tampilkan semua log aktivitas hari ini tanpa terpotong lastResetTimestamp
   const aktivitasHariIni = statistikList.filter(a => {
-    const isHariIni = a.tanggal === hariIniIndo
-    if (!isHariIni) return false
-    const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
-    return waktuAktivitas >= lastResetTimestamp
+    const isHariIni =
+      (hariIniIndo && a.tanggal === hariIniIndo) ||
+      (todayKey && a.tanggalKey === todayKey)
+    return Boolean(isHariIni)
   })
 
   const listBawa = aktivitasHariIni
@@ -385,7 +380,7 @@ export default function AktivitasAdminPage() {
                     </>
                   )}
                 </h3>
-                <button onClick={() => setPopupType(null)} className="p-1.5 shrink-0 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setPopupType(null)} className="p-1.5 shrink-0 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
               <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5 bg-background dark:bg-card">
 
