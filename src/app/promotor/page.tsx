@@ -372,7 +372,7 @@ export default function PromotorPage() {
     return listStandby.findIndex(i => i.nama.toLowerCase() === userData.nama.toLowerCase()) + 1
   }
 
-  const handleAksi = async (aksi: string, hasil: string = '') => {
+    const handleAksi = async (aksi: string, hasil: string = '') => {
     if (!userData) return
     setIsProcessing(true)
     const clean = cleanNama(userData.nama)
@@ -385,6 +385,13 @@ export default function PromotorPage() {
       if (aksi === 'CheckIn') {
         if (setting?.statusAntrian === 'TUTUP') {
           toast.error('❌ Maaf, antrian saat ini sedang DITUTUP oleh Admin.')
+          return
+        }
+
+        // ✅ VALIDASI GPS (WAJIB UNTUK CHECK-IN BARU MAUPUN MASUK ANTRIAN LAGI)
+        if (gpsAktif && !dalamRadius) {
+          toast.error('⚠️ Anda berada di luar radius toko. Mendekatlah ke area toko untuk masuk antrian.')
+          setIsProcessing(false)
           return
         }
 
@@ -441,7 +448,9 @@ export default function PromotorPage() {
 
         const waktuStandbyFinal = Math.max(nowTs, maxWaktuStandbyKategori + 1)
 
+        // ✅ LOGIKA BARU: BEDAKAN CHECK-IN BARU VS MASUK ANTRIAN LAGI
         if (!checkinSnap.exists()) {
+          // 1. Jika belum ada data hari ini -> Buat Check-in Baru (Simpan jam masuk kerja)
           await set(checkinRef, {
             nama: userData.nama,
             tanggal: tglIndo,
@@ -449,10 +458,15 @@ export default function PromotorPage() {
             waktu: nowTs,
             kategoriAwal: katDipilih,
           })
-        } else if (!checkinSnap.val()?.kategoriAwal) {
-          await update(checkinRef, {
-            kategoriAwal: katDipilih,
-          })
+          toast.success('Check-in berhasil! Selamat bekerja.')
+        } else {
+          // 2. Jika sudah ada -> Jangan ubah jam check-in, cukup pastikan kategori awal
+          if (!checkinSnap.val()?.kategoriAwal) {
+            await update(checkinRef, {
+              kategoriAwal: katDipilih,
+            })
+          }
+          toast.success('Berhasil masuk antrian kembali.')
         }
 
         await set(ref(db, pathAntrian), {
@@ -464,7 +478,7 @@ export default function PromotorPage() {
           subkategori: katDipilih,
           posisiTerkunci: 0,
         })
-        toast.success('Berhasil Masuk Antrian!')
+        
       } else if (aksi === 'BawaCustomer') {
         await update(ref(db, pathAntrian), { status: 'Melayani', posisiTerkunci: 0, waktuMulaiMelayani: Date.now() })
         await push(ref(db, pathStatistik), { nama: userData.nama, aksi: 'BawaCustomer', waktu: Date.now(), tanggal: tglIndo, tanggalKey: tKeyAktif, waktuMulai: Date.now() })
