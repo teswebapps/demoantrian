@@ -37,6 +37,12 @@ const normalizeNamaKey = (namaRaw: string) => {
   return `${first} ${rest}`.trim()
 }
 
+const ekstrakKategoriHA_AV = (raw: any): 'HA' | 'AV' | '' => {
+  const val = String(raw || '').trim().toUpperCase()
+  if (val === 'HA' || val === 'AV') return val
+  return ''
+}
+
 export default function AktivitasAdminPage() {
   const { user, loading: authLoading, logout } = useAuth('ADMIN')
   const { isDark, toggleTheme, mounted } = useTheme()
@@ -45,6 +51,7 @@ export default function AktivitasAdminPage() {
   const [popupType, setPopupType] = useState<string | null>(null)
   const [statistikList, setStatistikList] = useState<any[]>([])
   const [checkinList, setCheckinList] = useState<any[]>([])
+  const [antrianList, setAntrianList] = useState<any[]>([])
   const [whitelistUsers, setWhitelistUsers] = useState<any[]>([])
 
   const [hariIniIndo, setHariIniIndo] = useState('')
@@ -79,6 +86,17 @@ export default function AktivitasAdminPage() {
       setStatistikList(list)
     })
 
+    const unsubAntrian = onValue(ref(db, `toko/${TOKO_ID}/antrian`), (snap) => {
+      const data = snap.val()
+      const list: any[] = []
+      if (data) {
+        Object.keys(data).forEach((k) => {
+          if (data[k]?.nama) list.push({ ...data[k], _key: k })
+        })
+      }
+      setAntrianList(list)
+    })
+
     const unsubCheckin = onValue(ref(db, `toko/${TOKO_ID}/checkinHarian`), (snap) => {
       const data = snap.val()
       const list: any[] = []
@@ -107,7 +125,7 @@ export default function AktivitasAdminPage() {
       setLoading(false)
     })
 
-    return () => { unsubStat(); unsubCheckin(); unsubUser() }
+    return () => { unsubStat(); unsubAntrian(); unsubCheckin(); unsubUser() }
   }, [TOKO_ID])
 
   const formatJam = (ts: number) => ts ? `${pad2(new Date(ts).getHours())}.${pad2(new Date(ts).getMinutes())}` : '-'
@@ -144,13 +162,39 @@ export default function AktivitasAdminPage() {
     return 'Keluar Antrian'
   }
 
-  // Tampilkan semua log aktivitas hari ini tanpa terpotong lastResetTimestamp
   const aktivitasHariIni = statistikList.filter(a => {
     const isHariIni =
       (hariIniIndo && a.tanggal === hariIniIndo) ||
       (todayKey && a.tanggalKey === todayKey)
     return Boolean(isHariIni)
   })
+
+  // Menentukan kategori antrian awal (HA / AV) saat promotor pertama kali masuk kerja hari ini
+  const getKategoriAwalMasuk = (promotor: any, checkinData: any): 'HA' | 'AV' | '' => {
+    const keyPromotor = normalizeNamaKey(promotor?.nama)
+
+    // 1. Cek langsung dari data check-in hari ini
+    const dariCheckin =
+      ekstrakKategoriHA_AV(checkinData?.kategoriAwal) ||
+      ekstrakKategoriHA_AV(checkinData?.antriAwal) ||
+      ekstrakKategoriHA_AV(checkinData?.kategori) ||
+      ekstrakKategoriHA_AV(checkinData?.divisi)
+    if (dariCheckin) return dariCheckin
+
+    // 2. Cek log aktivitas paling awal hari ini yang punya kategori HA / AV
+    const logAwal = aktivitasHariIni
+      .filter((a) => normalizeNamaKey(a.nama) === keyPromotor)
+      .sort((a, b) => Number(a.waktuMulai || a.waktu || 0) - Number(b.waktuMulai || b.waktu || 0))
+      .find((a) => ekstrakKategoriHA_AV(a.kategori))
+    if (logAwal) return ekstrakKategoriHA_AV(logAwal.kategori)
+
+    // 3. Fallback dari antrian aktif saat ini atau data profil whitelist
+    const diAntrian = antrianList.find((a) => normalizeNamaKey(a.nama) === keyPromotor)
+    const dariAntrian = ekstrakKategoriHA_AV(diAntrian?.kategori)
+    if (dariAntrian) return dariAntrian
+
+    return ekstrakKategoriHA_AV(promotor?.kategori)
+  }
 
   const listBawa = aktivitasHariIni
     .filter(a => a.aksi === 'BawaCustomer')
@@ -388,12 +432,26 @@ export default function AktivitasAdminPage() {
                   <div className="space-y-2">
                     {whitelistCheckinTerurut.length === 0 ? <p className={emptyCls}>Belum ada promotor terdaftar</p> : whitelistCheckinTerurut.map((p, idx) => {
                       const checkinData = checkinHariIni.find(c => normalizeNamaKey(c.nama) === normalizeNamaKey(p.nama))
+                      const kategoriAwal = checkinData ? getKategoriAwalMasuk(p, checkinData) : ''
                       return (
                         <div key={idx} className={rowCls}>
-                          <span className="text-xs sm:text-sm font-black text-foreground uppercase">{p.nama}</span>
-                          <span className={`text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-xl tabular-nums ${checkinData ? 'bg-emerald-600 text-white dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-secondary text-muted-foreground'}`}>
-                            {checkinData ? formatJamCheckin(checkinData.waktu) : 'Belum Check-in'}
-                          </span>
+                          <span className="text-xs sm:text-sm font-black text-foreground uppercase truncate pr-2">{p.nama}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {checkinData && kategoriAwal && (
+                              <span
+                                className={`text-[10px] sm:text-xs font-black px-2.5 py-1.5 rounded-xl uppercase ${
+                                  kategoriAwal === 'HA'
+                                    ? 'bg-cyan-600 text-white dark:bg-cyan-500/20 dark:text-cyan-300'
+                                    : 'bg-purple-600 text-white dark:bg-purple-500/20 dark:text-purple-300'
+                                }`}
+                              >
+                                {kategoriAwal}
+                              </span>
+                            )}
+                            <span className={`text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-xl tabular-nums ${checkinData ? 'bg-emerald-600 text-white dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-secondary text-muted-foreground'}`}>
+                              {checkinData ? formatJamCheckin(checkinData.waktu) : 'Belum Check-in'}
+                            </span>
+                          </div>
                         </div>
                       )
                     })}

@@ -442,7 +442,17 @@ export default function PromotorPage() {
         const waktuStandbyFinal = Math.max(nowTs, maxWaktuStandbyKategori + 1)
 
         if (!checkinSnap.exists()) {
-          await set(checkinRef, { nama: userData.nama, tanggal: tglIndo, tanggalKey: tKeyAktif, waktu: nowTs })
+          await set(checkinRef, {
+            nama: userData.nama,
+            tanggal: tglIndo,
+            tanggalKey: tKeyAktif,
+            waktu: nowTs,
+            kategoriAwal: katDipilih,
+          })
+        } else if (!checkinSnap.val()?.kategoriAwal) {
+          await update(checkinRef, {
+            kategoriAwal: katDipilih,
+          })
         }
 
         await set(ref(db, pathAntrian), {
