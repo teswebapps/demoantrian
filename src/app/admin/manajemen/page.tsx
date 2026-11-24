@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { CustomModal } from '@/components/ui/CustomModal'
 import { AdminShell } from '@/components/admin/admin-shell'
 import { SectionCard, inputCls, btn } from '@/components/admin/admin-ui'
+import { autoResetHarian } from '@/lib/autoReset'
 
 interface Option { label: string; value: string }
 
@@ -20,10 +21,6 @@ const emailToKey = (email: string) => email.trim().toLowerCase().replace(/\./g, 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 const getTodayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 const getTodayIndo = (d = new Date()) => `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`
-
-// Check-in jam 08.00 - 11.59 = Shift Pagi | Check-in jam 12.00 - 15.59 = Shift Siang
-const isShiftPagi = (jamShift: number) => jamShift >= 8 && jamShift <= 11
-const isShiftSiang = (jamShift: number) => jamShift >= 12 && jamShift <= 15
 
 export async function cekLockPromotor(db: any, tokoId: string, nama: string) {
   const key = cleanKey(nama)
@@ -416,58 +413,29 @@ export default function ManajemenPage() {
     }, 'Ya, Hapus')
   }
 
-  /* RESET ISTIRAHAT MANUAL (100% dikontrol Admin) */
+  /* RESET ISTIRAHAT MANUAL (Memanggil fungsi dari lib/autoReset) */
   const handleResetIstirahat = () => {
-    const currentHour = new Date().getHours()
-    const keteranganGelombang = currentHour < 15 ? 'Shift Pagi (check-in sebelum 12.00)' : 'Shift Siang (check-in mulai 12.00)'
-
-    showModal('confirm', 'Reset Istirahat', `⚠️ Keluarkan promotor Standby ${keteranganGelombang} dari antrian sekarang?`, async () => {
+    showModal('confirm', 'Reset Istirahat', `⚠️ Jalankan reset istirahat manual sekarang? Sistem akan mengeluarkan promotor Standby sesuai aturan (Pagi < 12.00, Siang >= 12.00).`, async () => {
       setIsProcessing(true)
       try {
-        const eksekusiAt = Date.now()
-        const eksekusiDate = new Date(eksekusiAt)
-        const eksekusiHour = eksekusiDate.getHours()
-        const tKeyEksekusi = getTodayKey(eksekusiDate)
-        const tIndoEksekusi = getTodayIndo(eksekusiDate)
-
-        const updates: Record<string, any> = {}
-        let jumlahKeluar = 0
-
-        for (const item of daftarAntrian) {
-          if (item.status !== 'Standby') continue
-          const clean = cleanKey(item.nama)
-
-          const checkin = checkinList.find(c => c.namaClean === clean && c.tanggalKey === tKeyEksekusi)
-          const acuan = checkin?.waktu || item.waktuStandby
-          const jamShift = acuan ? new Date(Number(acuan)).getHours() : -1
-
-          const shouldReset = eksekusiHour < 15 ? isShiftPagi(jamShift) : isShiftSiang(jamShift)
-
-          if (shouldReset) {
-            updates[`toko/${TOKO_ID}/antrian/${clean}`] = null
-            if (checkin) updates[`toko/${TOKO_ID}/checkinHarian/${clean}/${tKeyEksekusi}/waktuReset`] = eksekusiAt
-            const logKey = push(ref(db, `toko/${TOKO_ID}/statistikAktivitas`)).key
-            updates[`toko/${TOKO_ID}/statistikAktivitas/${logKey}`] = {
-              nama: item.nama,
-              aksi: 'KeluarAntrian',
-              waktu: eksekusiAt,
-              tanggal: tIndoEksekusi,
-              tanggalKey: tKeyEksekusi,
-              hasil: 'Reset Istirahat'
-            }
-            jumlahKeluar += 1
-          }
-        }
-
-        if (Object.keys(updates).length > 0) {
-          await update(ref(db), updates)
-          showModal('success', 'Berhasil', `${jumlahKeluar} promotor Standby berhasil dikeluarkan untuk istirahat.`)
-        } else {
-          showModal('alert', 'Tidak Ada Antrian', `Tidak ada promotor Standby ${keteranganGelombang} yang perlu dikeluarkan.`)
-        }
-      } catch {
+        const today = getTodayKey()
+        
+        // 1. Hapus penanda (marker) hari ini agar sistem mengizinkan reset jalan
+        await update(ref(db, `toko/${TOKO_ID}`), {
+          lastResetIstirahat_13: null,
+          lastResetIstirahat_16: null
+        })
+        
+        // 2. Panggil otak utamanya (yang juga dipakai oleh otomatis)
+        await autoResetHarian(db, TOKO_ID)
+        
+        showModal('success', 'Berhasil', 'Reset istirahat berhasil dijalankan.')
+      } catch (err) {
+        console.error(err)
         showModal('error', 'Gagal', 'Gagal melakukan reset istirahat.')
-      } finally { setIsProcessing(false) }
+      } finally { 
+        setIsProcessing(false) 
+      }
     }, 'Ya, Reset')
   }
 

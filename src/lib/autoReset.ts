@@ -1,95 +1,18 @@
 import { get, push, ref, runTransaction, update } from 'firebase/database'
 
 const pad = (n: number) => String(n).padStart(2, '0')
-export const getTodayKey = (d = new Date()) => {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-const getTanggalIndo = (d = new Date()) => {
-  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
-}
-
+export const getTodayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+const getTanggalIndo = (d = new Date()) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 const cleanNama = (nama: string) => nama.trim().toLowerCase().replace(/\s+/g, '_')
-
-const getBatasJam = (now: Date, jam: 13 | 16) => {
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), jam, 0, 0, 0).getTime()
-}
-
-async function prosesGelombangIstirahat(
-  db: any,
-  tokoId: string,
-  now: Date,
-  today: string,
-  gelombang: '13' | '16'
-) {
-  const marker = `${today}_${gelombang}`
-  const tx = await runTransaction(
-    ref(db, `toko/${tokoId}/lastResetIstirahat_${gelombang}`),
-    (curr) => (curr === marker ? undefined : marker)
-  )
-  if (!tx.committed) return false
-
-  const batasTs = getBatasJam(now, gelombang === '13' ? 13 : 16)
-  const labelJamReset = gelombang === '13' ? '13.00' : '16.00'
-  const keteranganKeluar = `Keluar antrian istirahat ${labelJamReset}`
-  const tglIndo = getTanggalIndo(now)
-
-  const [antrianSnap, checkinSnap] = await Promise.all([
-    get(ref(db, `toko/${tokoId}/antrian`)),
-    get(ref(db, `toko/${tokoId}/checkinHarian`)),
-  ])
-
-  const antrian = antrianSnap.val() || {}
-  const checkin = checkinSnap.val() || {}
-  const updates: Record<string, any> = {}
-  const logKeluarList: any[] = []
-
-  Object.keys(antrian).forEach((key) => {
-    const item = antrian[key]
-    if (!item?.nama) return
-
-    const clean = item._key ? cleanNama(item._key) : cleanNama(item.nama) || key
-    const waktuCheckin = Number(checkin?.[clean]?.[today]?.waktu || 0)
-    const waktuMasuk = Number(item.waktuMasukAntrian || 0)
-
-    // Check-in atau masuk antrian setelah jam gelombang (misal check-in siang >= 13.00) tidak kena reset gelombang ini
-    if (gelombang === '13' && waktuCheckin >= batasTs) return
-    if (waktuMasuk > 0 && waktuMasuk >= batasTs) return
-
-    const status = String(item.status || '')
-    if (status === 'Standby') {
-      updates[`toko/${tokoId}/antrian/${key}`] = null
-      logKeluarList.push({
-        nama: item.nama,
-        aksi: 'KeluarAntrian',
-        waktu: Date.now(),
-        tanggal: tglIndo,
-        tanggalKey: today,
-        jamReset: labelJamReset,
-        hasil: keteranganKeluar,
-      })
-    } else if (status === 'Melayani' || status === 'Ibadah' || status === 'Dipanggil CS') {
-      updates[`toko/${tokoId}/checkinHarian/${clean}/${today}/nama`] = item.nama
-      updates[`toko/${tokoId}/checkinHarian/${clean}/${today}/tanggalKey`] = today
-      updates[`toko/${tokoId}/checkinHarian/${clean}/${today}/terlewatReset_${gelombang}`] = true
-    }
-  })
-
-  if (Object.keys(updates).length > 0) {
-    await update(ref(db), updates)
-  }
-
-  for (const logItem of logKeluarList) {
-    await push(ref(db, `toko/${tokoId}/statistikAktivitas`), logItem)
-  }
-
-  return true
-}
 
 export async function autoResetHarian(db: any, tokoId: string) {
   const now = new Date()
   const today = getTodayKey(now)
+  const jamSekarang = now.getHours()
+  const tglIndo = getTanggalIndo(now)
   let berubah = false
 
+  // 1. AUTO RESET HARIAN (Tengah Malam)
   const txHarian = await runTransaction(ref(db, `toko/${tokoId}/lastResetDate`), (curr) =>
     curr === today ? undefined : today
   )
@@ -105,12 +28,102 @@ export async function autoResetHarian(db: any, tokoId: string) {
     berubah = true
   }
 
-  const jam = now.getHours()
-  if (jam >= 13 && (await prosesGelombangIstirahat(db, tokoId, now, today, '13'))) {
-    berubah = true
+  // 2. AUTO RESET ISTIRAHAT GELOMBANG 1 (Jam 13.00)
+  if (jamSekarang >= 13) {
+    const marker13 = `${today}_13`
+    const tx13 = await runTransaction(ref(db, `toko/${tokoId}/lastResetIstirahat_13`), (curr) =>
+      curr === marker13 ? undefined : marker13
+    )
+
+    if (tx13.committed) {
+      const [antrianSnap, checkinSnap] = await Promise.all([
+        get(ref(db, `toko/${tokoId}/antrian`)),
+        get(ref(db, `toko/${tokoId}/checkinHarian`)),
+      ])
+
+      const antrian = antrianSnap.val() || {}
+      const checkin = checkinSnap.val() || {}
+      const updates: Record<string, any> = {}
+      const logs: any[] = []
+
+      const batas12 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0).getTime()
+
+      Object.keys(antrian).forEach((key) => {
+        const item = antrian[key]
+        if (!item?.nama || item.status !== 'Standby') return
+
+        const clean = cleanNama(item.nama)
+        const waktuCheckin = Number(checkin?.[clean]?.[today]?.waktu || item.waktuMasukAntrian || 0)
+        if (!waktuCheckin) return
+
+        if (waktuCheckin < batas12) {
+          updates[`toko/${tokoId}/antrian/${key}`] = null
+          logs.push({
+            nama: item.nama,
+            aksi: 'KeluarAntrian',
+            waktu: Date.now(),
+            tanggal: tglIndo,
+            tanggalKey: today,
+            hasil: 'Auto Reset Istirahat 13.00'
+          })
+        }
+      })
+
+      if (Object.keys(updates).length > 0) {
+        await update(ref(db), updates)
+        for (const log of logs) await push(ref(db, `toko/${tokoId}/statistikAktivitas`), log)
+      }
+      berubah = true
+    }
   }
-  if (jam >= 16 && (await prosesGelombangIstirahat(db, tokoId, now, today, '16'))) {
-    berubah = true
+
+  // 3. AUTO RESET ISTIRAHAT GELOMBANG 2 (Jam 16.00)
+  if (jamSekarang >= 16) {
+    const marker16 = `${today}_16`
+    const tx16 = await runTransaction(ref(db, `toko/${tokoId}/lastResetIstirahat_16`), (curr) =>
+      curr === marker16 ? undefined : marker16
+    )
+
+    if (tx16.committed) {
+      const [antrianSnap, checkinSnap] = await Promise.all([
+        get(ref(db, `toko/${tokoId}/antrian`)),
+        get(ref(db, `toko/${tokoId}/checkinHarian`)),
+      ])
+
+      const antrian = antrianSnap.val() || {}
+      const checkin = checkinSnap.val() || {}
+      const updates: Record<string, any> = {}
+      const logs: any[] = []
+
+      const batas12 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0).getTime()
+
+      Object.keys(antrian).forEach((key) => {
+        const item = antrian[key]
+        if (!item?.nama || item.status !== 'Standby') return
+
+        const clean = cleanNama(item.nama)
+        const waktuCheckin = Number(checkin?.[clean]?.[today]?.waktu || item.waktuMasukAntrian || 0)
+        if (!waktuCheckin) return
+
+        if (waktuCheckin >= batas12) {
+          updates[`toko/${tokoId}/antrian/${key}`] = null
+          logs.push({
+            nama: item.nama,
+            aksi: 'KeluarAntrian',
+            waktu: Date.now(),
+            tanggal: tglIndo,
+            tanggalKey: today,
+            hasil: 'Auto Reset Istirahat 16.00'
+          })
+        }
+      })
+
+      if (Object.keys(updates).length > 0) {
+        await update(ref(db), updates)
+        for (const log of logs) await push(ref(db, `toko/${tokoId}/statistikAktivitas`), log)
+      }
+      berubah = true
+    }
   }
 
   return berubah
