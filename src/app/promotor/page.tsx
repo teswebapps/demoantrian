@@ -797,15 +797,39 @@ export default function PromotorPage() {
 
         {statusSaya === 'Offline' && (
           <div className="bg-card rounded-3xl p-6 shadow-sm border border-border relative overflow-hidden">
-            {sudahCheckinHariIni ? (
+                       {sudahCheckinHariIni ? (
               <div className="text-center py-4 relative z-10">
                 <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ShieldCheck className="w-8 h-8 text-accent" />
                 </div>
-                <h2 className="text-lg font-bold text-foreground mb-2 uppercase">Sudah Check-in Hari Ini</h2>
-                <p className="text-xs text-muted-foreground mb-4">Ambil antrian jika ingin mulai bekerja.</p>
+                <h2 className="text-lg font-bold text-foreground mb-1 uppercase">Sudah Check-in Hari Ini</h2>
+                <p className="text-xs text-muted-foreground mb-3">Ambil antrian jika ingin mulai bekerja.</p>
+                
+                {/* ✅ INDIKATOR GPS & PERINGATAN DI LUAR RADIUS */}
+                {gpsAktif && (
+                  <div className={`mb-4 p-2.5 rounded-xl text-xs font-bold border ${
+                    jarak === null 
+                      ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' 
+                      : dalamRadius 
+                        ? 'bg-accent/10 text-accent border-accent/20' 
+                        : 'bg-destructive/10 text-destructive border-destructive/20'
+                  }`}>
+                    {jarak !== null ? (
+                      dalamRadius 
+                        ? `✓ Di dalam radius (${jarak.toFixed(0)}m)` 
+                        : `⚠️ Di luar radius toko (${jarak.toFixed(0)}m). Mendekatlah!`
+                    ) : statusGPS}
+                  </div>
+                )}
+
                 <KategoriPicker value={kategoriPilih} onChange={setKategoriPilih} />
-                <button onClick={() => handleAksi('CheckIn')} disabled={isProcessing || antrianTutup || !dalamRadius} className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2">
+                
+                {/* ✅ TOMBOL OTOMATIS DISABLED JIKA DI LUAR RADIUS */}
+                <button 
+                  onClick={() => handleAksi('CheckIn')} 
+                  disabled={isProcessing || antrianTutup || !dalamRadius} 
+                  className="w-full py-4 bg-primary text-primary-foreground font-black rounded-xl shadow-lg shadow-primary/30 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
+                >
                   {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-primary-foreground" />}
                   {isProcessing ? 'Memproses...' : antrianTutup ? 'ANTRIAN DITUTUP' : !dalamRadius ? 'DI LUAR RADIUS' : 'MASUK ANTRIAN'}
                 </button>
