@@ -153,7 +153,6 @@ export default function AktivitasAdminPage() {
   const aktivitasHariIni = statistikList.filter(a => {
     const isHariIni = a.tanggal === hariIniIndo
     if (!isHariIni) return false
-    if (a.aksi === 'KeluarAntrian') return true
     const waktuAktivitas = Number(a.waktu || a.waktuMulai || 0)
     return waktuAktivitas >= lastResetTimestamp
   })
