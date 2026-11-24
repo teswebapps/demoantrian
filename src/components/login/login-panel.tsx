@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CircleAlert, Loader2 } from 'lucide-react'
+import { CircleAlert, Loader2, Rocket } from 'lucide-react'
 import { GoogleIcon } from './google-icon'
-import { signInWithPopup, signInWithRedirect, onAuthStateChanged } from 'firebase/auth'
+import { signInWithPopup, signInWithRedirect, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth'
 import { ref, get, onValue } from 'firebase/database'
 import { auth, db, googleProvider } from '@/lib/firebase'
 
@@ -31,6 +31,7 @@ const formatTampilanJudul = (raw?: string | null) => {
 
 export function LoginPanel() {
   const [loading, setLoading] = useState(false)
+  const [loadingDemo, setLoadingDemo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [namaToko, setNamaToko] = useState(DEFAULT_NAMA_TOKO)
   const [namaAplikasi, setNamaAplikasi] = useState(DEFAULT_NAMA_APLIKASI)
@@ -130,6 +131,22 @@ export function LoginPanel() {
     }
   }
 
+  // ✅ FUNGSI BARU: Login otomatis sebagai akun demo
+  async function handleDemoLogin() {
+    setError(null)
+    setLoadingDemo(true)
+    try {
+      // Login otomatis dengan akun demo yang sudah terdaftar di Firebase
+      await signInWithEmailAndPassword(auth, 'demo@antrian.com', 'demo123456')
+      // Arahkan ke halaman promotor
+      window.location.href = '/promotor'
+    } catch (err: any) {
+      console.error(err)
+      setError('Gagal masuk ke mode demo. Pastikan akun demo sudah dibuat di Firebase.')
+      setLoadingDemo(false)
+    }
+  }
+
   return (
     <section
       aria-label={`${namaToko} - ${namaAplikasi}`}
@@ -142,7 +159,7 @@ export function LoginPanel() {
         {namaAplikasi}
       </h1>
       <p className="m-0 mb-6 text-[13px] sm:text-[14px] leading-[1.5] text-[#6b7280]">
-        Login dengan Google untuk akses Antrian
+        Login dengan Google atau coba demo
       </p>
 
       {error && (
@@ -158,7 +175,7 @@ export function LoginPanel() {
       <button
         type="button"
         onClick={handleLogin}
-        disabled={loading}
+        disabled={loading || loadingDemo}
         className="flex h-[44px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-[#111827] px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1f2937] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? (
@@ -167,6 +184,30 @@ export function LoginPanel() {
           <GoogleIcon className="size-[18px] shrink-0" />
         )}
         <span>{loading ? 'Menghubungkan...' : 'Sign in with Google'}</span>
+      </button>
+
+      {/* ✅ TOMBOL BARU: Coba Demo */}
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-white px-2 text-gray-400">atau</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleDemoLogin}
+        disabled={loading || loadingDemo}
+        className="flex h-[44px] w-full items-center justify-center gap-2.5 rounded-[8px] bg-emerald-600 px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {loadingDemo ? (
+          <Loader2 className="size-4 animate-spin text-white" />
+        ) : (
+          <Rocket className="size-[18px] shrink-0" />
+        )}
+        <span>{loadingDemo ? 'Menyiapkan Demo...' : 'Coba Demo Tanpa Login'}</span>
       </button>
     </section>
   )
