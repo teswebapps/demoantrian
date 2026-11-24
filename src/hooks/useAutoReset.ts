@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ref, get, update, push, set } from 'firebase/database'
+import { ref, get, update, push, set, runTransaction } from 'firebase/database'
 import { db } from '@/lib/firebase'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -59,12 +59,16 @@ export async function ambilKonfigurasiJamReset(tokoId: string): Promise<{
   return { gelombang1, gelombang2 }
 }
 
-// 1. Reset Antrian: hanya membersihkan antrian harian (tidak menghapus statistikAktivitas Deal/Lihat)
+// 1. Reset Antrian: hanya membersihkan antrian harian (tidak menghapus checkinHarian maupun statistikAktivitas Deal/Lihat)
 export async function jalankanResetAntrianManual(tokoId: string) {
   const now = new Date()
   const tKey = getTanggalKey(now)
   await set(ref(db, `toko/${tokoId}/antrian`), null)
   await set(ref(db, `toko/${tokoId}/resetAntrianHarian/${tKey}`), now.getTime())
+  await update(ref(db, `toko/${tokoId}/autoResetLog/${tKey}`), {
+    antrianDone: true,
+    antrianAt: now.getTime(),
+  })
 }
 
 // 2. Reset Istirahat: mengeluarkan promotor Standby sesuai gelombang check-in
@@ -148,9 +152,17 @@ export async function jalankanResetIstirahatLangsung(
   for (const key of Object.keys(antrianData)) {
     const item = antrianData[key]
     if (!item || !item.nama) continue
-    if (item.status !== 'Standby') continue
 
     const clean = cleanNama(item.nama)
+    const jedaInfo = jedaPerPromotor.get(clean)
+    const akaliResetLewatJeda = Boolean(
+      jedaInfo &&
+      jedaInfo.mulaiSebelumReset > 0 &&
+      jedaInfo.kembaliSetelahReset >= tsResetHariIni
+    )
+
+    if (item.status !== 'Standby' && !akaliResetLewatJeda) continue
+
     const checkinHariIni = checkinAll?.[clean]?.[tKey]
     const waktuCheckin = Number(checkinHariIni?.waktu || item.waktuStandby || 0)
     if (!waktuCheckin) continue
@@ -165,26 +177,17 @@ export async function jalankanResetIstirahatLangsung(
 
     if (!cocokGelombang) continue
 
-    const jedaInfo = jedaPerPromotor.get(clean)
-    const akaliResetLewatJeda = Boolean(
-      jedaInfo &&
-      jedaInfo.mulaiSebelumReset > 0 &&
-      jedaInfo.kembaliSetelahReset >= tsResetHariIni
-    )
+    updates[`toko/${tokoId}/antrian/${key}`] = null
+    jumlahKeluar += 1
 
-    if (item.status === 'Standby' || akaliResetLewatJeda) {
-      updates[`toko/${tokoId}/antrian/${key}`] = null
-      jumlahKeluar += 1
-
-      logAktivitas.push({
-        nama: item.nama,
-        aksi: 'KeluarAntrian',
-        waktu: nowTs,
-        tanggal: tglIndo,
-        tanggalKey: tKey,
-        hasil: `Reset Istirahat ${labelJam}`,
-      })
-    }
+    logAktivitas.push({
+      nama: item.nama,
+      aksi: 'KeluarAntrian',
+      waktu: nowTs,
+      tanggal: tglIndo,
+      tanggalKey: tKey,
+      hasil: `Reset Istirahat ${labelJam}`,
+    })
   }
 
   if (Object.keys(updates).length > 0) {
@@ -195,12 +198,33 @@ export async function jalankanResetIstirahatLangsung(
     await push(ref(db, `toko/${tokoId}/statistikAktivitas`), log)
   }
 
+  const fieldDone = mappedTarget === '1' ? 'istirahat1Done' : 'istirahat2Done'
+  const fieldAt = mappedTarget === '1' ? 'istirahat1At' : 'istirahat2At'
+  await update(ref(db, `toko/${tokoId}/autoResetLog/${tKey}`), {
+    [fieldDone]: true,
+    [fieldAt]: nowTs,
+  })
+
   return jumlahKeluar
 }
 
 const sudahLewatJam = (now: Date, target: JamMenitConfig) =>
   now.getHours() > target.jam ||
   (now.getHours() === target.jam && now.getMinutes() >= target.menit)
+
+const dalamJendelaEksekusi = (now: Date, target: JamMenitConfig, toleransiMenit = 5) => {
+  const menitSekarang = now.getHours() * 60 + now.getMinutes()
+  const menitTarget = target.jam * 60 + target.menit
+  return menitSekarang >= menitTarget && menitSekarang <= menitTarget + toleransiMenit
+}
+
+async function klaimJadwalHariIni(tokoId: string, tKey: string, fieldDone: string): Promise<boolean> {
+  const tx = await runTransaction(
+    ref(db, `toko/${tokoId}/autoResetLog/${tKey}/${fieldDone}`),
+    (curr) => (curr === true ? undefined : true)
+  )
+  return Boolean(tx.committed)
+}
 
 export async function jalankanAutoResetTerjadwal(tokoId: string) {
   if (!tokoId) return
@@ -212,99 +236,48 @@ export async function jalankanAutoResetTerjadwal(tokoId: string) {
   const autoAntrianOn = Boolean(setting?.autoResetAntrian)
   const autoIstirahatOn = Boolean(setting?.autoResetIstirahat)
 
-  // Jika keduanya OFF, tidak ada auto-reset; sepenuhnya manual oleh admin
   if (!autoAntrianOn && !autoIstirahatOn) return
 
   const now = new Date()
   const tKey = getTanggalKey(now)
   const logRef = ref(db, `toko/${tokoId}/autoResetLog/${tKey}`)
   const logSnap = await get(logRef)
-  let logHariIni = logSnap.exists() ? logSnap.val() : {}
+  const logHariIni = logSnap.exists() ? logSnap.val() : {}
 
-  const armUpdates: Record<string, any> = {}
-  const jamAntrian = parseJamMenit(setting?.jamAutoResetAntrian, 0, 1)
-  const cfg = autoIstirahatOn ? await ambilKonfigurasiJamReset(tokoId) : null
-
-  // Arm jadwal yang belum lewat saat fitur ON
-  if (
-    autoAntrianOn &&
-    !logHariIni?.antrianDone &&
-    !logHariIni?.antrianSkipped &&
-    !logHariIni?.antrianArmed &&
-    !sudahLewatJam(now, jamAntrian)
-  ) {
-    armUpdates.antrianArmed = true
-  }
-
-  if (autoIstirahatOn && cfg) {
-    if (
-      !logHariIni?.istirahat1Done &&
-      !logHariIni?.istirahat1Skipped &&
-      !logHariIni?.istirahat1Armed &&
-      !sudahLewatJam(now, cfg.gelombang1)
-    ) {
-      armUpdates.istirahat1Armed = true
-    }
-    if (
-      !logHariIni?.istirahat2Done &&
-      !logHariIni?.istirahat2Skipped &&
-      !logHariIni?.istirahat2Armed &&
-      !sudahLewatJam(now, cfg.gelombang2)
-    ) {
-      armUpdates.istirahat2Armed = true
+  // 1. Auto Reset Antrian (default 00.01)
+  if (autoAntrianOn && !logHariIni?.antrianDone) {
+    const jamAntrian = parseJamMenit(setting?.jamAutoResetAntrian, 0, 1)
+    if (sudahLewatJam(now, jamAntrian)) {
+      const berhakJalan = await klaimJadwalHariIni(tokoId, tKey, 'antrianDone')
+      if (berhakJalan) {
+        await jalankanResetAntrianManual(tokoId)
+      }
     }
   }
 
-  if (Object.keys(armUpdates).length > 0) {
-    await update(logRef, armUpdates)
-    logHariIni = { ...logHariIni, ...armUpdates }
-  }
+  // 2. Auto Reset Istirahat Gelombang 1 & 2
+  if (autoIstirahatOn) {
+    const cfg = await ambilKonfigurasiJamReset(tokoId)
 
-  // Eksekusi Reset Antrian (00.01) hanya jika sudah armed & sudah masuk waktunya
-  if (autoAntrianOn && !logHariIni?.antrianDone && !logHariIni?.antrianSkipped && sudahLewatJam(now, jamAntrian)) {
-    if (logHariIni?.antrianArmed) {
-      await jalankanResetAntrianManual(tokoId)
-      await update(logRef, {
-        antrianDone: true,
-        antrianAt: now.getTime(),
-      })
-    } else {
-      await update(logRef, {
-        antrianSkipped: true,
-        antrianSkippedAt: now.getTime(),
-      })
-    }
-  }
-
-  // Eksekusi Reset Istirahat Gelombang 1 & 2 sesuai jam masing-masing
-  if (autoIstirahatOn && cfg) {
-    if (!logHariIni?.istirahat1Done && !logHariIni?.istirahat1Skipped && sudahLewatJam(now, cfg.gelombang1)) {
-      if (logHariIni?.istirahat1Armed) {
-        await jalankanResetIstirahatLangsung(tokoId, '1', cfg.gelombang1.label)
-        await update(logRef, {
-          istirahat1Done: true,
-          istirahat1At: now.getTime(),
-        })
+    if (!logHariIni?.istirahat1Done && sudahLewatJam(now, cfg.gelombang1)) {
+      if (dalamJendelaEksekusi(now, cfg.gelombang1, 5)) {
+        const berhakJalan1 = await klaimJadwalHariIni(tokoId, tKey, 'istirahat1Done')
+        if (berhakJalan1) {
+          await jalankanResetIstirahatLangsung(tokoId, '1', cfg.gelombang1.label)
+        }
       } else {
-        await update(logRef, {
-          istirahat1Skipped: true,
-          istirahat1SkippedAt: now.getTime(),
-        })
+        await update(logRef, { istirahat1Done: true, istirahat1At: now.getTime() })
       }
     }
 
-    if (!logHariIni?.istirahat2Done && !logHariIni?.istirahat2Skipped && sudahLewatJam(now, cfg.gelombang2)) {
-      if (logHariIni?.istirahat2Armed) {
-        await jalankanResetIstirahatLangsung(tokoId, '2', cfg.gelombang2.label)
-        await update(logRef, {
-          istirahat2Done: true,
-          istirahat2At: now.getTime(),
-        })
+    if (!logHariIni?.istirahat2Done && sudahLewatJam(now, cfg.gelombang2)) {
+      if (dalamJendelaEksekusi(now, cfg.gelombang2, 5)) {
+        const berhakJalan2 = await klaimJadwalHariIni(tokoId, tKey, 'istirahat2Done')
+        if (berhakJalan2) {
+          await jalankanResetIstirahatLangsung(tokoId, '2', cfg.gelombang2.label)
+        }
       } else {
-        await update(logRef, {
-          istirahat2Skipped: true,
-          istirahat2SkippedAt: now.getTime(),
-        })
+        await update(logRef, { istirahat2Done: true, istirahat2At: now.getTime() })
       }
     }
   }
