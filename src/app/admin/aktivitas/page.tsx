@@ -284,6 +284,19 @@ export default function AktivitasAdminPage() {
     })
   })()
 
+  // Pisahkan data check-in hari ini menjadi Shift Pagi (< 12.00) dan Shift Siang (>= 12.00)
+  const checkinShiftPagi = whitelistCheckinTerurut.filter((p) => {
+    const c = checkinHariIni.find((item) => normalizeNamaKey(item.nama) === normalizeNamaKey(p.nama))
+    if (!c?.waktu) return false
+    return new Date(Number(c.waktu)).getHours() < 12
+  })
+
+  const checkinShiftSiang = whitelistCheckinTerurut.filter((p) => {
+    const c = checkinHariIni.find((item) => normalizeNamaKey(item.nama) === normalizeNamaKey(p.nama))
+    if (!c?.waktu) return false
+    return new Date(Number(c.waktu)).getHours() >= 12
+  })
+
   const rekapPromotorMap = (() => {
     const acc: Record<string, { namaPromotor: string; deal: number; lihat: number; noSale: number; hariSet: Set<string> }> = {}
 
@@ -368,6 +381,32 @@ export default function AktivitasAdminPage() {
   const rowCls = 'flex justify-between items-center p-3 bg-card rounded-2xl text-xs border border-border/80 shadow-sm'
   const emptyCls = 'text-xs text-muted-foreground italic text-center py-4'
 
+  const renderCheckinRow = (p: any, idx: number) => {
+    const checkinData = checkinHariIni.find(c => normalizeNamaKey(c.nama) === normalizeNamaKey(p.nama))
+    const kategoriAwal = checkinData ? getKategoriAwalMasuk(p, checkinData) : ''
+    return (
+      <div key={idx} className={rowCls}>
+        <span className="text-xs sm:text-sm font-black text-foreground uppercase truncate pr-2">{p.nama}</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {kategoriAwal && (
+            <span
+              className={`text-[10px] sm:text-xs font-black px-2.5 py-1.5 rounded-xl uppercase ${
+                kategoriAwal === 'HA'
+                  ? 'bg-cyan-600 text-white dark:bg-cyan-500/20 dark:text-cyan-300'
+                  : 'bg-purple-600 text-white dark:bg-purple-500/20 dark:text-purple-300'
+              }`}
+            >
+              {kategoriAwal}
+            </span>
+          )}
+          <span className="text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-xl tabular-nums bg-emerald-600 text-white dark:bg-emerald-500/15 dark:text-emerald-400">
+            {formatJamCheckin(checkinData?.waktu)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <AdminShell isDark={isDark} onToggleTheme={toggleTheme} onLogout={logout} tokoId={TOKO_ID}>
       {/* RINGKASAN HARI INI */}
@@ -426,35 +465,49 @@ export default function AktivitasAdminPage() {
                 </h3>
                 <button type="button" onClick={() => setPopupType(null)} className="p-1.5 shrink-0 text-muted-foreground hover:text-destructive bg-secondary rounded-full transition"><X className="w-4 h-4" /></button>
               </div>
-              <div className="p-5 max-h-[65vh] overflow-y-auto space-y-2.5 bg-background dark:bg-card">
+              <div className="p-5 max-h-[65vh] overflow-y-auto space-y-3.5 bg-background dark:bg-card">
 
                 {popupType === 'checkin' && (
-                  <div className="space-y-2">
-                    {whitelistCheckinTerurut.length === 0 ? <p className={emptyCls}>Belum ada promotor terdaftar</p> : whitelistCheckinTerurut.map((p, idx) => {
-                      const checkinData = checkinHariIni.find(c => normalizeNamaKey(c.nama) === normalizeNamaKey(p.nama))
-                      const kategoriAwal = checkinData ? getKategoriAwalMasuk(p, checkinData) : ''
-                      return (
-                        <div key={idx} className={rowCls}>
-                          <span className="text-xs sm:text-sm font-black text-foreground uppercase truncate pr-2">{p.nama}</span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {checkinData && kategoriAwal && (
-                              <span
-                                className={`text-[10px] sm:text-xs font-black px-2.5 py-1.5 rounded-xl uppercase ${
-                                  kategoriAwal === 'HA'
-                                    ? 'bg-cyan-600 text-white dark:bg-cyan-500/20 dark:text-cyan-300'
-                                    : 'bg-purple-600 text-white dark:bg-purple-500/20 dark:text-purple-300'
-                                }`}
-                              >
-                                {kategoriAwal}
-                              </span>
-                            )}
-                            <span className={`text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-xl tabular-nums ${checkinData ? 'bg-emerald-600 text-white dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-secondary text-muted-foreground'}`}>
-                              {checkinData ? formatJamCheckin(checkinData.waktu) : 'Belum Check-in'}
-                            </span>
-                          </div>
+                  <div className="space-y-4">
+                    {/* CARD SHIFT PAGI */}
+                    <div className="rounded-2xl border border-border bg-card/70 p-3.5 space-y-2.5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Shift Pagi</h4>
+                          <p className="text-[10px] text-muted-foreground">Check-in di bawah pukul 12.00</p>
                         </div>
-                      )
-                    })}
+                        <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 tabular-nums">
+                          {checkinShiftPagi.length} Orang
+                        </span>
+                      </div>
+                      {checkinShiftPagi.length === 0 ? (
+                        <p className={emptyCls}>Belum ada check-in shift pagi</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {checkinShiftPagi.map((p, idx) => renderCheckinRow(p, idx))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CARD SHIFT SIANG */}
+                    <div className="rounded-2xl border border-border bg-card/70 p-3.5 space-y-2.5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Shift Siang</h4>
+                          <p className="text-[10px] text-muted-foreground">Check-in mulai pukul 12.00 ke atas</p>
+                        </div>
+                        <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 tabular-nums">
+                          {checkinShiftSiang.length} Orang
+                        </span>
+                      </div>
+                      {checkinShiftSiang.length === 0 ? (
+                        <p className={emptyCls}>Belum ada check-in shift siang</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {checkinShiftSiang.map((p, idx) => renderCheckinRow(p, idx))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
